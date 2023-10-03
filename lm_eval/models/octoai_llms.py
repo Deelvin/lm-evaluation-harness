@@ -3,10 +3,18 @@ import os
 import json
 
 from lm_eval.base import BaseLM
-      
+
+# Start line
+# python3 main.py --model=octoai --tasks=math_algebra --batch_size=1 --output_path=./results_alg.json --device cuda:0 --limit 0.1
+# need --model_args="" with model name while hardcode
 
 class OctoAIEndpointLM(BaseLM):
-  def __init__(self, model_name="llama-2-70b-chat"):
+  def __init__(
+      self,
+      model_name="llama-2-70b-chat",
+      batch_size=1,
+      max_batch_size=None,
+      device=None):
     """
     :param model_name: str
         Model name from the list of models supported by OctoAI
@@ -14,6 +22,9 @@ class OctoAIEndpointLM(BaseLM):
     super().__init__()
 
     self.model_name = model_name
+    self.batch_size=int(batch_size)
+    self.max_batch_size=max_batch_size
+    self.device=device
     # TODO(vvchernov): check that model name is supported
 
     self.init_remote()
