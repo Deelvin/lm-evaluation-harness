@@ -22,9 +22,9 @@ class OctoAIEndpointLM(BaseLM):
     super().__init__()
 
     self.model_name = model_name
-    self.batch_size=int(batch_size)
+    self._batch_size=int(batch_size)
     self.max_batch_size=max_batch_size
-    self.device=device
+    self._device=device
     # TODO(vvchernov): check that model name is supported
 
     self.init_remote()
@@ -73,6 +73,14 @@ class OctoAIEndpointLM(BaseLM):
   @property
   def max_gen_toks(self):
     return 256
+
+  @property
+  def batch_size(self):
+    return self._batch_size
+
+  @property
+  def device(self):
+    return self._device
 
   def tok_encode(self, string: str):
       return string
