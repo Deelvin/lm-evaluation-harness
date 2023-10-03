@@ -74,16 +74,6 @@ class OctoAIEndpointLM(BaseLM):
   def max_gen_toks(self):
     return 256
 
-  @property
-  def batch_size(self):
-      # Isn't used because we override _loglikelihood_tokens
-      raise NotImplementedError()
-
-  @property
-  def device(self):
-      # Isn't used because we override _loglikelihood_tokens
-      raise NotImplementedError()
-
   def tok_encode(self, string: str):
       return string
       #raise NotImplementedError("No idea about anthropic tokenization.")
