@@ -225,10 +225,8 @@ def evaluate(
             if description_dict and task_name in description_dict
             else ""
         )
-        print("LIMIT FROM ARGS:", limit)
         if limit is not None:
             limit = int(len(task_docs) * limit) if limit < 1.0 else int(limit)
-        print("LIMIT FOR SLICE:", limit)
 
         for doc_id, doc in enumerate(itertools.islice(task_docs, 0, limit)):
             if decontaminate and task.should_decontaminate():

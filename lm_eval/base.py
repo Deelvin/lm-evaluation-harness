@@ -427,17 +427,14 @@ class BaseLM(LM):
             cont = self._model_generate(
                 context_enc, context_enc.shape[1] + max_gen_tokens, primary_until
             )
-            print("OUTPUT FROM THE MODEL:", cont)
 
             s = self.tok_decode(cont[0].tolist()[context_enc.shape[1] :])
-            print("DECODED Responce:", s)
 
             for term in until:
                 s = s.split(term)[0]
 
             # partial caching
             self.cache_hook.add_partial("greedy_until", (context, until), s)
-            print("Responce after CacheHook:", s)
             res.append(s)
 
         return re_ord.get_original(res)
