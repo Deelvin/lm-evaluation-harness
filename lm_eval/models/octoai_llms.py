@@ -1,6 +1,7 @@
 import requests
 import os
 import json
+import concurrent.futures
 
 from lm_eval.base import BaseLM
 
@@ -97,15 +98,21 @@ class OctoAIEndpointLM(BaseLM):
     if not requests:
       return []
 
-    res = []
-    for request in requests:
-      inp = request[0]
-      request_args = request[1]
-      until = request_args["until"]
-      # TODO(vvchernov): do we need additional args? max_tokens, temperature..
-      response = self._model_generate(inp, stop=until)
-      res.append(response)
-    return res
+    results = []
+    if self.batch_size > 1:
+      def _batcher(in_requests):
+        for i in range(0, len(in_requests), self.batch_size):
+          yield in_requests[i:i + self.batch_size]
+
+      for request_batch in _batcher(requests):
+        self._model_generate_parallel(request_batch, results)
+    else:
+      for request in requests:
+        inp = request[0]
+        request_args = request[1]
+        until = request_args["until"]
+        self._model_generate(inp, results, stop=until)
+    return results
 
   def call_octoai_inference(self, user_input: str):
     self.data["messages"][1]["content"] = user_input
@@ -119,7 +126,23 @@ class OctoAIEndpointLM(BaseLM):
   def _model_call(self, inps):
     raise NotImplementedError("OctoAI does not support one model call")
 
-  def _model_generate(self, inps, stop):
+  # TODO(vvchernov): do we need additional args? max_tokens, temperature..
+  def _model_generate(self, inps, results, stop=[]):
     response = self.call_octoai_inference(inps)
     response = json.loads(response.text)
-    return response['choices'][0]['message']['content']
+    results.append(response['choices'][0]['message']['content'])
+
+  def _model_generate_parallel(self, request_batch, results):
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+      futures = []
+      for id in range(len(request_batch)):
+        inp = request_batch[id][0]
+        request_args = request_batch[id][1]
+        until = request_args["until"]
+        futures.append(executor.submit(self._model_generate, inp, results, stop=until))
+
+      for future in concurrent.futures.as_completed(futures):
+        try:
+          future.result()
+        except Exception as exc:
+          raise RuntimeError(f"Error parallel generating predictions: {exc}")
