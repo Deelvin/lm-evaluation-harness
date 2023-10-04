@@ -405,12 +405,15 @@ class BaseLM(LM):
         re_ord = utils.Reorderer(requests, _collate)
 
         for context, request_args in tqdm(re_ord.get_reordered()):
-            until = request_args["until"]
-            if isinstance(until, str):
-                until = [until]
+            untils = request_args["until"]
+            if isinstance(untils, str):
+                untils = [untils]
 
-            if until:
-                (primary_until,) = self.tok_encode(until[0])
+            if untils:
+                enc_until =[]
+                for until in untils:
+                    enc_until.append(self.tok_encode(until))
+                primary_until = set(enc_until)
             else:
                 primary_until = None
 
@@ -424,15 +427,17 @@ class BaseLM(LM):
             cont = self._model_generate(
                 context_enc, context_enc.shape[1] + max_gen_tokens, primary_until
             )
+            print("OUTPUT FROM THE MODEL:", cont)
 
             s = self.tok_decode(cont[0].tolist()[context_enc.shape[1] :])
+            print("DECODED Responce:", s)
 
             for term in until:
                 s = s.split(term)[0]
 
             # partial caching
             self.cache_hook.add_partial("greedy_until", (context, until), s)
-
+            print("Responce after CacheHook:", s)
             res.append(s)
 
         return re_ord.get_original(res)
