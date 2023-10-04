@@ -209,7 +209,6 @@ class BaseLM(LM):
 
     def loglikelihood(self, requests):
         new_reqs = []
-        print("RAW REQUESTS:", requests)
         for context, continuation in requests:
             if context == "":
                 # end of text as context
@@ -218,7 +217,6 @@ class BaseLM(LM):
                 context_enc, continuation_enc = self._encode_pair(context, continuation)
 
             new_reqs.append(((context, continuation), context_enc, continuation_enc))
-        print("NEW REQUESTS:", new_reqs)
         return self._loglikelihood_tokens(new_reqs)
 
     def loglikelihood_rolling(self, requests):
@@ -283,7 +281,6 @@ class BaseLM(LM):
         re_ord = utils.Reorderer(requests, _collate)
 
         reordered_requests = re_ord.get_reordered()
-        print("REORDERED REQS:", reordered_requests)
         n_reordered_requests = len(reordered_requests)
 
         # automatic (variable) batch size detection for vectorization
@@ -355,11 +352,9 @@ class BaseLM(LM):
                 inplens.append(inplen)
 
             batched_inps = torch.cat(inps, dim=0)  # [batch, padding_length
-            print("BATCHED INPUTS TO MODEL CALL:", batched_inps)
             multi_logits = F.log_softmax(
                 self._model_call(batched_inps), dim=-1
             ).cpu()  # [batch, padding_length, vocab]
-            print("ACTIVATED OUTPUT:", multi_logits)
 
             for (cache_key, _, _), logits, inp, inplen, cont_toks in zip(
                 chunk, multi_logits, inps, inplens, cont_toks_list
