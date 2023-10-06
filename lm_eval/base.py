@@ -411,7 +411,7 @@ class BaseLM(LM):
             if untils:
                 enc_until =[]
                 for until in untils:
-                    enc_until.append(self.tok_encode(until))
+                    enc_until.extend(self.tok_encode(until))
                 primary_until = set(enc_until)
             else:
                 primary_until = None
