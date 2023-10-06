@@ -412,7 +412,8 @@ class BaseLM(LM):
                 enc_until =[]
                 for until in untils:
                     enc_until.extend(self.tok_encode(until))
-                primary_until = set(enc_until)
+                # TODO(vvchernov): [0] - hard code need to use whole list but issue in model.generate() method (need scalar or Tensor)
+                primary_until = list(set(enc_until))[0]
             else:
                 primary_until = None
 
