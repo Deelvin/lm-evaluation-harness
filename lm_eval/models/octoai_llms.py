@@ -107,11 +107,17 @@ class OctoAIEndpointLM(BaseLM):
       for request_batch in _batcher(requests):
         self._model_generate_parallel(request_batch, results)
     else:
+      counter = 0
       for request in requests:
+        if counter > 9:
+          break
+        counter = counter + 1
         inp = request[0]
         request_args = request[1]
         until = request_args["until"]
+        print("INPUT [", counter, "]:", inp)
         self._model_generate(inp, results, stop=until)
+      print("RESULTS:", results)
     return results
 
   def call_octoai_inference(self, user_input: str):
