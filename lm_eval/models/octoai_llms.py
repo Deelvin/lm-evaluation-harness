@@ -7,6 +7,8 @@ import time
 
 from lm_eval.base import BaseLM
 
+REPEAT_REQUEST_TO_OCTOAI_SEREVER = 10
+
 # Start line
 # python3 main.py --model=octoai --tasks=math_algebra --batch_size=1 --output_path=./results_alg.json --device cuda:0 --limit 0.1
 # need --model_args="" with model name while hardcode
@@ -138,9 +140,18 @@ class OctoAIEndpointLM(BaseLM):
 
   # TODO(vvchernov): do we need additional args? max_tokens, temperature..
   def _model_generate(self, inps, results, stop=[]):
-    response = self.call_octoai_inference(inps)
-    response = json.loads(response.text)
-    results.append(response['choices'][0]['message']['content'])
+    success = False
+    for _ in range(REPEAT_REQUEST_TO_OCTOAI_SEREVER):
+      response = self.call_octoai_inference(inps)
+      response = json.loads(response.text)
+      if 'choices' in response.keys():
+        success = True
+        break
+    if success:
+      results.append(response['choices'][0]['message']['content'])
+    else:
+      print("ERROR: responce does not have choices. Dummy response was inserted")
+      results.append("Dummy response")
 
   def _model_generate_parallel(self, request_batch, results):
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
