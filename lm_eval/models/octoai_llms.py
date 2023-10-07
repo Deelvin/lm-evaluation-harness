@@ -154,7 +154,7 @@ class OctoAIEndpointLM(BaseLM):
       results.append("Dummy response")
 
   def _model_generate_parallel(self, request_batch, results):
-    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=request_batch) as executor:
       futures = []
       parallel_results={}
       for id in range(len(request_batch)):
