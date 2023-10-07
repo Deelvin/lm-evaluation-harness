@@ -3,6 +3,8 @@ import os
 import json
 import concurrent.futures
 
+import time
+
 from lm_eval.base import BaseLM
 
 # Start line
@@ -21,6 +23,8 @@ class OctoAIEndpointLM(BaseLM):
         Model name from the list of models supported by OctoAI
     """
     super().__init__()
+
+    self.time_meas = True
 
     self.model_name = model_name
     self._batch_size=int(batch_size)
@@ -99,6 +103,8 @@ class OctoAIEndpointLM(BaseLM):
       return []
 
     results = []
+    if self.time_meas:
+      start_timer = time.time()
     if self.batch_size > 1:
       def _batcher(in_requests):
         for i in range(0, len(in_requests), self.batch_size):
@@ -112,6 +118,9 @@ class OctoAIEndpointLM(BaseLM):
         request_args = request[1]
         until = request_args["until"]
         self._model_generate(inp, results, stop=until)
+    if self.time_meas:
+      stop_timer = time.time()
+      print("Full time of predictions measurement:", stop_timer-start_timer, "sec")
     return results
 
   def call_octoai_inference(self, user_input: str):
