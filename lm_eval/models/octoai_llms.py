@@ -120,7 +120,8 @@ class OctoAIEndpointLM(BaseLM):
         self._model_generate(inp, results, stop=until)
     if self.time_meas:
       stop_timer = time.time()
-      print("Full time of predictions measurement:", stop_timer-start_timer, "sec")
+      secs = stop_timer-start_timer
+      print("Full time of predictions measurement:", secs, "sec", secs/60, "min", secs/3600, "hour(s)")
     return results
 
   def call_octoai_inference(self, user_input: str):
