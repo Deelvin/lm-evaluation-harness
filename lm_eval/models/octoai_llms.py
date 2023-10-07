@@ -156,14 +156,20 @@ class OctoAIEndpointLM(BaseLM):
   def _model_generate_parallel(self, request_batch, results):
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
       futures = []
+      parallel_results={}
       for id in range(len(request_batch)):
+        parallel_results[id]=[]
         inp = request_batch[id][0]
         request_args = request_batch[id][1]
         until = request_args["until"]
-        futures.append(executor.submit(self._model_generate, inp, results, stop=until))
+        futures.append(executor.submit(self._model_generate, inp, parallel_results[id], stop=until))
 
       for future in concurrent.futures.as_completed(futures):
         try:
           future.result()
         except Exception as exc:
           raise RuntimeError(f"Error parallel generating predictions: {exc}")
+
+      # Collect results together
+      for id in range(len(request_batch)):
+        results.extend(parallel_results[id])
