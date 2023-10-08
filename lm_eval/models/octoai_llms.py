@@ -101,30 +101,41 @@ class OctoAIEndpointLM(BaseLM):
     raise NotImplementedError("No support for logits.")
 
   def greedy_until(self, requests):
-    if not requests:
-      return []
+        if not requests:
+            return []
 
-    results = []
-    if self.time_meas:
-      start_timer = time.time()
-    if self.batch_size > 1:
-      def _batcher(in_requests):
-        for i in range(0, len(in_requests), self.batch_size):
-          yield in_requests[i:i + self.batch_size]
+        results = []
+        if self.time_meas:
+            start_timer = time.time()
+        if self.batch_size > 1:
+            def _batcher(in_requests):
+                for i in range(0, len(in_requests), self.batch_size):
+                    yield in_requests[i:i + self.batch_size]
 
-      for request_batch in _batcher(requests):
-        self._model_generate_parallel(request_batch, results)
-    else:
-      for request in requests:
-        inp = request[0]
-        request_args = request[1]
-        until = request_args["until"]
-        self._model_generate(inp, results, stop=until)
-    if self.time_meas:
-      stop_timer = time.time()
-      secs = stop_timer-start_timer
-      print("Full time of predictions measurement:", secs, "sec", secs/60, "min", secs/3600, "hour(s)")
-    return results
+            for request_batch in _batcher(requests):
+                try:
+                    self._model_generate_parallel(request_batch, results)
+                except ConnectionError as e:
+                    print(f"ConnectionError: {e}. Skipping this batch and continuing...")
+
+        else:
+            for request in requests:
+                inp = request[0]
+                request_args = request[1]
+                until = request_args["until"]
+                try:
+                    self._model_generate(inp, results, stop=until)
+                except ConnectionError as e:
+                    print(f"ConnectionError: {e}. Skipping this request and continuing...")
+
+        if self.time_meas:
+            stop_timer = time.time()
+            secs = stop_timer - start_timer
+            print(
+                "Full time of predictions measurement: {:.2f} sec, {:.2f} min, {:.2f} hour(s)".format(
+                    secs, secs / 60, secs / 3600))
+    
+        return results
 
   def call_octoai_inference(self, user_input: str):
     self.data["messages"][1]["content"] = user_input
@@ -142,19 +153,22 @@ class OctoAIEndpointLM(BaseLM):
   def _model_generate(self, inps, results, stop=[]):
     success = False
     for _ in range(REPEAT_REQUEST_TO_OCTOAI_SEREVER):
+      print("QUSETION:",inps)
       response = self.call_octoai_inference(inps)
       response = json.loads(response.text)
       if 'choices' in response.keys():
         success = True
         break
     if success:
+      print("ANSWER:",response['choices'][0]['message']['content'])
       results.append(response['choices'][0]['message']['content'])
     else:
       print("ERROR: responce does not have choices. Dummy response was inserted")
       results.append("Dummy response")
 
   def _model_generate_parallel(self, request_batch, results):
-    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+    
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(request_batch)) as executor:
       futures = []
       parallel_results={}
       for id in range(len(request_batch)):

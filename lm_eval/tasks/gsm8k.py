@@ -33,7 +33,10 @@ _CITATION = """
 """
 
 
-ANS_RE = re.compile(r"#### (\-?[0-9\.\,]+)")
+#ANS_RE = re.compile(r"#### (\-?[0-9\.\,]+)")
+
+ANS_RE = re.compile(r'\b\d+(\.\d+)?\b(?![\s\S]*\b\d+(\.\d+)?\b)')
+
 INVALID_ANS = "[invalid]"
 
 
@@ -82,14 +85,25 @@ class GradeSchoolMath8K(Task):
         completion = rf.greedy_until(ctx, {"until": [":", "Question:", "Question"]})
         return completion
 
+#    def _extract_answer(self, completion):
+#        match = ANS_RE.search(completion)
+#        if match:
+#            match_str = match.group(1).strip()
+#            match_str = match_str.replace(",", "")
+#            return match_str
+#        else:
+#            return INVALID_ANS
+       
     def _extract_answer(self, completion):
         match = ANS_RE.search(completion)
         if match:
-            match_str = match.group(1).strip()
-            match_str = match_str.replace(",", "")
+            match_str = match.group(0)
+            print(match_str)
             return match_str
         else:
             return INVALID_ANS
+        
+    
 
     def _is_correct(self, completion, answer):
         gold = self._extract_answer(answer)
