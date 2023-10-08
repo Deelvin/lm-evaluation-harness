@@ -98,7 +98,7 @@ class GradeSchoolMath8K(Task):
         match = ANS_RE.search(completion)
         if match:
             match_str = match.group(0)
-            print(match_str)
+            #print(match_str)
             return match_str
         else:
             return INVALID_ANS

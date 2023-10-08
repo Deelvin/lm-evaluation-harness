@@ -153,14 +153,14 @@ class OctoAIEndpointLM(BaseLM):
   def _model_generate(self, inps, results, stop=[]):
     success = False
     for _ in range(REPEAT_REQUEST_TO_OCTOAI_SEREVER):
-      print("QUSETION:",inps)
+      #print(inps)
       response = self.call_octoai_inference(inps)
       response = json.loads(response.text)
       if 'choices' in response.keys():
         success = True
         break
     if success:
-      print("ANSWER:",response['choices'][0]['message']['content'])
+      #print(response['choices'][0]['message']['content'])
       results.append(response['choices'][0]['message']['content'])
     else:
       print("ERROR: responce does not have choices. Dummy response was inserted")
@@ -182,7 +182,8 @@ class OctoAIEndpointLM(BaseLM):
         try:
           future.result()
         except Exception as exc:
-          raise RuntimeError(f"Error parallel generating predictions: {exc}")
+          print(f"Error parallel generating predictions: {exc}")
+          #raise RuntimeError(f"Error parallel generating predictions: {exc}")
 
       # Collect results together
       for id in range(len(request_batch)):
