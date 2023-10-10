@@ -9,6 +9,29 @@ from lm_eval.base import BaseLM
 
 REPEAT_REQUEST_TO_OCTOAI_SEREVER = 10
 
+model_urls = {
+   "codellama-7b-instruct-mlc-q0f16": "https://codellama-7b-instruct-fp16-1gpu-g2ave3d5t9mm.octoai.run/v1/chat/completions",
+   "codellama-7b-instruct-mlc-q4f16_1": "https://codellama-7b-instruct-int4-1gpu-g2ave3d5t9mm.octoai.run/v1/chat/completions",
+   "codellama-7b-instruct-mlc-q8f16_1": "https://codellama-7b-instruct-int8-1gpu-g2ave3d5t9mm.octoai.run/v1/chat/completions",
+   "codellama-13b-instruct-mlc-q0f16": "https://codellama-13b-instruct-fp16-1gpu-g2ave3d5t9mm.octoai.run/v1/chat/completions",
+   "codellama-13b-instruct-mlc-q4f16_1": "https://codellama-13b-instruct-int4-1gpu-g2ave3d5t9mm.octoai.run/v1/chat/completions",
+   "codellama-13b-instruct-mlc-q8f16_1": "https://codellama-13b-instruct-int8-1gpu-g2ave3d5t9mm.octoai.run/v1/chat/completions",
+   "codellama-34b-instruct-mlc-q0f16": "https://codellama-34b-instruct-fp16-1gpu-g2ave3d5t9mm.octoai.run/v1/chat/completions",
+   "codellama-34b-instruct-mlc-q4f16_1": "https://codellama-34b-instruct-int4-1gpu-g2ave3d5t9mm.octoai.run/v1/chat/completions",
+   "codellama-34b-instruct-mlc-q8f16_1": "https://codellama-34b-instruct-int8-1gpu-g2ave3d5t9mm.octoai.run/v1/chat/completions",
+   "llama2-7b-chat-mlc-q0f16": "https://llama2-7b-chat-fp16-1gpu-g2ave3d5t9mm.octoai.run/v1/chat/completions",
+   "llama2-7b-chat-mlc-q4f16_1": "https://llama2-7b-chat-int4-1gpu-g2ave3d5t9mm.octoai.run/v1/chat/completions",
+   "llama2-7b-chat-mlc-q8f16_1": "https://llama2-7b-chat-int8-1gpu-g2ave3d5t9mm.octoai.run/v1/chat/completions",
+   "llama2-13b-chat-mlc-q0f16": "https://llama2-13b-chat-fp16-1gpu-g2ave3d5t9mm.octoai.run/v1/chat/completions",
+   "llama2-13b-chat-mlc-q4f16_1": "https://llama2-13b-chat-int4-1gpu-g2ave3d5t9mm.octoai.run/v1/chat/completions",
+   "llama2-13b-chat-mlc-q8f16_1": "https://llama2-13b-chat-int8-1gpu-g2ave3d5t9mm.octoai.run/v1/chat/completions",
+   "llama2-70b-chat-mlc-q0f16": "https://llama2-70b-chat-fp16-4gpu-g2ave3d5t9mm.octoai.run/v1/chat/completions",
+   "llama2-70b-chat-mlc-q4f16_1": "https://llama2-70b-chat-int4-2gpu-g2ave3d5t9mm.octoai.run/v1/chat/completions",
+   "llama2-70b-chat-mlc-q8f16_1": "https://llama2-70b-chat-int8-4gpu-g2ave3d5t9mm.octoai.run/v1/chat/completions",
+   # TODO(vvchernov): it is demo, may be need to remove
+   "llama-2-70b-chat": "https://llama-2-70b-chat-demo-kk0powt97tmb.octoai.run/v1/chat/completions",
+}
+
 # Start line
 # python3 main.py --model=octoai --tasks=math_algebra --batch_size=1 --output_path=./results_alg.json --device cuda:0 --limit 0.1
 # need --model_args="" with model name while hardcode
@@ -16,6 +39,7 @@ REPEAT_REQUEST_TO_OCTOAI_SEREVER = 10
 class OctoAIEndpointLM(BaseLM):
   def __init__(
       self,
+      # TODO(vvchernov): it is demo model, may be need to use othe default model name
       model_name="llama-2-70b-chat",
       batch_size=1,
       max_batch_size=None,
@@ -37,15 +61,13 @@ class OctoAIEndpointLM(BaseLM):
     self.init_remote()
 
   def init_remote(self):
-    # TODO(vvchernov): possibly not-safe approach need to get key each time
     # Get the API key from the environment variables
     api_key=os.environ["OCTOAI_API_KEY"]
 
     if api_key is None:
       raise ValueError("API_KEY not found in the .env file")
 
-    # TODO(vvchernov): looks like hard code
-    self.url = "https://llama-2-70b-chat-demo-kk0powt97tmb.octoai.run/v1/chat/completions"
+    self.url = model_urls[self.model_name]
 
     self.headers = {
       "accept": "text/event-stream",
@@ -56,10 +78,6 @@ class OctoAIEndpointLM(BaseLM):
     self.data = {
         "model": self.model_name,
         "messages": [
-            {
-                "role": "assistant",
-                "content": "Below is an instruction that describes a task. Write a response that appropriately completes the request."
-            },
             {
                 "role": "user",
                 "content": "" # need to fill before use inference
