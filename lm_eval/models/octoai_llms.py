@@ -156,7 +156,7 @@ class OctoAIEndpointLM(BaseLM):
         return results
 
   def call_octoai_inference(self, user_input: str):
-    self.data["messages"][1]["content"] = user_input
+    self.data["messages"][0]["content"] = user_input
     response = requests.post(self.url, headers=self.headers, json=self.data)
 
     if response.status_code != 200:
