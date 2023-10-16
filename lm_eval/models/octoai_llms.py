@@ -1,7 +1,7 @@
 import requests
 import os
 import json
-import concurrent.futures
+# import concurrent.futures
 
 import time
 
@@ -10,37 +10,33 @@ from lm_eval.base import BaseLM
 REPEAT_REQUEST_TO_OCTOAI_SEREVER = 10
 
 model_urls = {
-   "codellama-7b-instruct-mlc-q0f16": "https://codellama-7b-instruct-fp16-1gpu-g2ave3d5t9mm.octoai.run/v1/chat/completions",      # +
-   "codellama-7b-instruct-mlc-q4f16_1": "https://codellama-7b-instruct-int4-1gpu-g2ave3d5t9mm.octoai.run/v1/chat/completions",    # +
-   "codellama-7b-instruct-mlc-q8f16_1": "https://codellama-7b-instruct-int8-1gpu-g2ave3d5t9mm.octoai.run/v1/chat/completions",    # +
-   "codellama-13b-instruct-mlc-q0f16": "https://codellama-13b-instruct-fp16-2gpu-g2ave3d5t9mm.octoai.run/v1/chat/completions",    # +
-   "codellama-13b-instruct-mlc-q4f16_1": "https://codellama-13b-instruct-int4-1gpu-g2ave3d5t9mm.octoai.run/v1/chat/completions",  # +
-   "codellama-13b-instruct-mlc-q8f16_1": "https://codellama-13b-instruct-int8-1gpu-g2ave3d5t9mm.octoai.run/v1/chat/completions",  # +
-   "codellama-34b-instruct-mlc-q0f16": "https://codellama-34b-instruct-fp16-4gpu-g2ave3d5t9mm.octoai.run/v1/chat/completions",    # - bad json
-   "codellama-34b-instruct-mlc-q4f16_1": "https://codellama-34b-instruct-int4-1gpu-g2ave3d5t9mm.octoai.run/v1/chat/completions",  # +
-   "codellama-34b-instruct-mlc-q8f16_1": "https://codellama-34b-instruct-int8-2gpu-g2ave3d5t9mm.octoai.run/v1/chat/completions",  # +
-   "llama2-7b-chat-mlc-q0f16": "https://llama2-7b-chat-fp16-1gpu-g2ave3d5t9mm.octoai.run/v1/chat/completions",      # +
-   "llama2-7b-chat-mlc-q4f16_1": "https://llama2-7b-chat-int4-1gpu-g2ave3d5t9mm.octoai.run/v1/chat/completions",    # - not exist
-   "llama2-7b-chat-mlc-q8f16_1": "https://llama2-7b-chat-int8-1gpu-g2ave3d5t9mm.octoai.run/v1/chat/completions",    # - bad json
-   "llama2-13b-chat-mlc-q0f16": "https://llama2-13b-chat-fp16-2gpu-g2ave3d5t9mm.octoai.run/v1/chat/completions",    # +
-   "llama2-13b-chat-mlc-q4f16_1": "https://llama2-13b-chat-int4-1gpu-g2ave3d5t9mm.octoai.run/v1/chat/completions",  # +
-   "llama2-13b-chat-mlc-q8f16_1": "https://llama2-13b-chat-int8-1gpu-g2ave3d5t9mm.octoai.run/v1/chat/completions",  # +
-   "llama2-70b-chat-mlc-q0f16": "https://llama2-70b-chat-fp16-4gpu-g2ave3d5t9mm.octoai.run/v1/chat/completions",    # +
-   "llama2-70b-chat-mlc-q4f16_1": "https://llama2-70b-chat-int4-2gpu-g2ave3d5t9mm.octoai.run/v1/chat/completions",  # - bad json
-   "llama2-70b-chat-mlc-q8f16_1": "https://llama2-70b-chat-int8-4gpu-g2ave3d5t9mm.octoai.run/v1/chat/completions",  # - bad json
+   "codellama-7b-instruct-mlc-q0f16": "https://codellama-7b-instruct-fp16-1gpu-g2ave3d5t9mm.octoai.run",
+   "codellama-7b-instruct-mlc-q4f16_1": "https://codellama-7b-instruct-int4-1gpu-g2ave3d5t9mm.octoai.run",
+   "codellama-7b-instruct-mlc-q8f16_1": "https://codellama-7b-instruct-int8-1gpu-g2ave3d5t9mm.octoai.run",
+   "codellama-13b-instruct-mlc-q0f16": "https://codellama-13b-instruct-fp16-2gpu-g2ave3d5t9mm.octoai.run",
+   "codellama-13b-instruct-mlc-q4f16_1": "https://codellama-13b-instruct-int4-1gpu-g2ave3d5t9mm.octoai.run",
+   "codellama-13b-instruct-mlc-q8f16_1": "https://codellama-13b-instruct-int8-1gpu-g2ave3d5t9mm.octoai.run",
+   "codellama-34b-instruct-mlc-q0f16": "https://codellama-34b-instruct-fp16-4gpu-g2ave3d5t9mm.octoai.run",
+   "codellama-34b-instruct-mlc-q4f16_1": "https://codellama-34b-instruct-int4-1gpu-g2ave3d5t9mm.octoai.run",
+   "codellama-34b-instruct-mlc-q8f16_1": "https://codellama-34b-instruct-int8-2gpu-g2ave3d5t9mm.octoai.run",
+   "llama2-7b-chat-mlc-q0f16": "https://llama2-7b-chat-fp16-1gpu-g2ave3d5t9mm.octoai.run",
+   "llama2-7b-chat-mlc-q4f16_1": "https://llama2-7b-chat-int4-1gpu-g2ave3d5t9mm.octoai.run",
+   "llama2-7b-chat-mlc-q8f16_1": "https://llama2-7b-chat-int8-1gpu-g2ave3d5t9mm.octoai.run",
+   "llama2-13b-chat-mlc-q0f16": "https://llama2-13b-chat-fp16-2gpu-g2ave3d5t9mm.octoai.run",
+   "llama2-13b-chat-mlc-q4f16_1": "https://llama2-13b-chat-int4-1gpu-g2ave3d5t9mm.octoai.run",
+   "llama2-13b-chat-mlc-q8f16_1": "https://llama2-13b-chat-int8-1gpu-g2ave3d5t9mm.octoai.run",
+   "llama2-70b-chat-mlc-q0f16": "https://llama2-70b-chat-fp16-4gpu-g2ave3d5t9mm.octoai.run",
+   "llama2-70b-chat-mlc-q4f16_1": "https://llama2-70b-chat-int4-2gpu-g2ave3d5t9mm.octoai.run",
+   "llama2-70b-chat-mlc-q8f16_1": "https://llama2-70b-chat-int8-4gpu-g2ave3d5t9mm.octoai.run",
    # TODO(vvchernov): it is demo, may be need to remove
-   "llama-2-70b-chat": "https://llama-2-70b-chat-demo-kk0powt97tmb.octoai.run/v1/chat/completions",
+   "llama-2-70b-chat": "https://llama-2-70b-chat-demo-kk0powt97tmb.octoai.run",
 }
 
-# Start line
-# python3 main.py --model=octoai --tasks=math_algebra --batch_size=1 --output_path=./results_alg.json --device cuda:0 --limit 0.1
-# need --model_args="" with model name while hardcode
 
 class OctoAIEndpointLM(BaseLM):
   def __init__(
       self,
-      # TODO(vvchernov): it is demo model, may be need to use othe default model name
-      model_name="llama-2-70b-chat",
+      model_name="llama2-7b-chat-mlc-q0f16",
       batch_size=1,
       max_batch_size=None,
       device=None):
@@ -155,9 +151,18 @@ class OctoAIEndpointLM(BaseLM):
     
         return results
 
+  def call_octoai_reset(self):
+    try:
+      resp = requests.post(self.url + "/chat/reset", headers = self.headers)
+      return resp.json()
+    except Exception as e:
+      print(f"Error resetting chat for endpoint {self.url}")
+      print(e)
+      return
+
   def call_octoai_inference(self, user_input: str):
     self.data["messages"][0]["content"] = user_input
-    response = requests.post(self.url, headers=self.headers, json=self.data)
+    response = requests.post(self.url + "/v1/chat/completions", headers=self.headers, json=self.data)
 
     if response.status_code != 200:
       print(f"Error: {response.status_code} - {response.text}")
@@ -171,37 +176,37 @@ class OctoAIEndpointLM(BaseLM):
   def _model_generate(self, inps, results, stop=[]):
     success = False
     for _ in range(REPEAT_REQUEST_TO_OCTOAI_SEREVER):
-      #print(inps)
+      # TODO(vvchernov): process wrong reset
+      self.call_octoai_reset()
       response = self.call_octoai_inference(inps)
       response = json.loads(response.text)
       if 'choices' in response.keys():
         success = True
         break
     if success:
-      #print(response['choices'][0]['message']['content'])
       results.append(response['choices'][0]['message']['content'])
     else:
       print("ERROR: responce does not have choices. Dummy response was inserted")
       results.append("Dummy response")
 
   def _model_generate_parallel(self, request_batch, results):
-    with concurrent.futures.ThreadPoolExecutor(max_workers=self.batch_size) as executor:
-      futures = []
-      parallel_results={}
-      for id in range(len(request_batch)):
-        parallel_results[id]=[]
-        inp = request_batch[id][0]
-        request_args = request_batch[id][1]
-        until = request_args["until"]
-        futures.append(executor.submit(self._model_generate, inp, parallel_results[id], stop=until))
+    # with concurrent.futures.ThreadPoolExecutor(max_workers=self.batch_size) as executor:
+    #   futures = []
+    parallel_results={}
+    for id in range(len(request_batch)):
+      parallel_results[id]=[]
+      inp = request_batch[id][0]
+      request_args = request_batch[id][1]
+      until = request_args["until"]
+      self._model_generate(inp, parallel_results[id], stop=until)
+        # futures.append(executor.submit(self._model_generate, inp, parallel_results[id], stop=until))
 
-      for future in concurrent.futures.as_completed(futures):
-        try:
-          future.result()
-        except Exception as exc:
-          print(f"Error parallel generating predictions: {exc}")
-          #raise RuntimeError(f"Error parallel generating predictions: {exc}")
+      # for future in concurrent.futures.as_completed(futures):
+      #   try:
+      #     future.result()
+      #   except Exception as exc:
+      #     print(f"Error parallel generating predictions: {exc}")
 
       # Collect results together
-      for id in range(len(request_batch)):
-        results.extend(parallel_results[id])
+    for id in range(len(request_batch)):
+      results.extend(parallel_results[id])
