@@ -405,12 +405,16 @@ class BaseLM(LM):
         re_ord = utils.Reorderer(requests, _collate)
 
         for context, request_args in tqdm(re_ord.get_reordered()):
-            until = request_args["until"]
-            if isinstance(until, str):
-                until = [until]
+            untils = request_args["until"]
+            if isinstance(untils, str):
+                untils = [untils]
 
-            if until:
-                (primary_until,) = self.tok_encode(until[0])
+            if untils:
+                enc_until =[]
+                for until in untils:
+                    enc_until.extend(self.tok_encode(until))
+                # TODO(vvchernov): [0] - hard code need to use whole list but issue in model.generate() method (need scalar or Tensor)
+                primary_until = list(set(enc_until))[0]
             else:
                 primary_until = None
 
