@@ -3,3 +3,6 @@ env
 data/
 lm_cache
 .idea
+
+# ignore test results
+*.json
