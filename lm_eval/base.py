@@ -713,13 +713,13 @@ class Task(abc.ABC):
                 fewshotex = [x for x in fewshotex if x != doc][:num_fewshot]
 
             labeled_examples = (
-                "\n\n".join(
+                "\n\n" +
+                "".join(
                     [
-                        self.doc_to_text(doc) + self.doc_to_target(doc)
+                        self.doc_to_text(doc) + "\n[/INST]\n" + self.doc_to_target(doc) + "\n</s>\n\n<s>\n[INST]\n"
                         for doc in fewshotex
                     ]
                 )
-                + "\n\n"
             )
 
         example = self.doc_to_text(doc)
