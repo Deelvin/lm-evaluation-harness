@@ -57,8 +57,8 @@ HEADERS = [{
 TASKS = [
     "gsm8k",
     "triviaqa",
-    "qasper",
-    "squad2",
+    # "qasper",
+    # "squad2",
     "truthfulqa",
     #"mgsm"
 ]

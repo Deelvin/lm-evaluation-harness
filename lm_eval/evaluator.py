@@ -101,6 +101,7 @@ def simple_evaluate(
         decontamination_ngrams_path=decontamination_ngrams_path,
         write_out=write_out,
         output_base_path=output_base_path,
+        model_name = model_args[11:]
     )
 
     # add info about the model and few shot config
@@ -135,6 +136,7 @@ def evaluate(
     decontamination_ngrams_path=None,
     write_out=False,
     output_base_path=None,
+    model_name='',
 ):
     """Instantiate and evaluate a model on a list of tasks.
 
@@ -365,10 +367,9 @@ def evaluate(
         except FileExistsError:
             pass
         
-        model_name = results["config"][0]["model_args"][11:]
         for task_name, _ in task_dict_items:
             with open(
-                output_base_path.joinpath(f"{model_name}_{task_name}_{num_fewshot}_write_out_info.json"),
+                output_base_path.joinpath(f"{model_name}_{task_name}_{num_fewshot}fs_write_out_info.json"),
                 "w",
                 encoding="utf8",
             ) as fp:
