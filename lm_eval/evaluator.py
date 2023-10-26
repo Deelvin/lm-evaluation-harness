@@ -364,10 +364,11 @@ def evaluate(
             output_base_path.mkdir(parents=True, exist_ok=False)
         except FileExistsError:
             pass
-
+        
+        model_name = results["config"][0]["model_args"][11:]
         for task_name, _ in task_dict_items:
             with open(
-                output_base_path.joinpath(f"{task_name}_write_out_info.json"),
+                output_base_path.joinpath(f"{model_name}_{task_name}_{num_fewshot}_write_out_info.json"),
                 "w",
                 encoding="utf8",
             ) as fp:
