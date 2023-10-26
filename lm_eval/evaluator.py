@@ -101,7 +101,7 @@ def simple_evaluate(
         decontamination_ngrams_path=decontamination_ngrams_path,
         write_out=write_out,
         output_base_path=output_base_path,
-        model_name = model_args[11:]
+        model_name = model_args[12:-1]
     )
 
     # add info about the model and few shot config
@@ -227,8 +227,13 @@ def evaluate(
             if description_dict and task_name in description_dict
             else ""
         )
+
+        if 1 is not None:
+            task_docs = [task_docs[10], task_docs[25], task_docs[28]]
         if limit is not None:
             limit = int(len(task_docs) * limit) if limit < 1.0 else int(limit)
+
+        #print("TD:", task_docs)
 
         for doc_id, doc in enumerate(itertools.islice(task_docs, 0, limit)):
             if decontaminate and task.should_decontaminate():

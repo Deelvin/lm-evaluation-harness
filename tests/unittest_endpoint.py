@@ -1,68 +1,44 @@
 import requests
 import pytest
-import os
-import re
+from lm_eval import tasks, evaluator, utils
 import testdata.config as cfg
-
-
-# @pytest.fixture(params=cfg.MODEL_ENDPOINTS)
-# def get_model_endpoint(request):
-#     return request.model_endpoint
-
-# @pytest.fixture(params=cfg.API_KEY)
-# def get_api_key(request, api_key):
-#     if api_key is None:
-#       raise ValueError("API_KEY not found in the .env file")
-#     return request.api_key
-
-# @pytest.fixture(params=cfg.HEADERS)
-# def get_headers(request):
-#     return request.headers
-
-# @pytest.mark.smoke
-# @pytest.mark.parametrize("model_endpoint", cfg.MODEL_ENDPOINTS) 
-# @pytest.fixture(params=response, autouse=True)
-# def test_availability(response):
-
-#     assert response.status_code == 200
-#     yield
-#     print("Test passed.")
+import json
 
 @pytest.mark.smoke
-
+@pytest.mark.parametrize("cfg_tasks", cfg.TASKS)
 @pytest.mark.parametrize("headers", cfg.HEADERS)
-@pytest.mark.parametrize("model_endpoint", cfg.MODEL_ENDPOINTS)
-@pytest.mark.parametrize("prompt, expected_pattern", [
-    ("Translate the following text to French: 'Hello, world.'", r"Bonjour"),
-    ("Sum the numbers 2 and 3.", r"5"),
-])
-def test_model_endpoint(model_endpoint, prompt, expected_pattern, headers):
-    data = {
-        "model": model_endpoint,
-        "messages": [
-            {
-                "role": "user",
-                "content": "" # need to fill before use inference
-            }
-        ],
-        "stream": False,
-        "max_tokens": 256
-    }
+@pytest.mark.parametrize("models", cfg.MODEL_ARGS)
+def test_model_endpoint(models, cfg_tasks, headers):
+    num_fewshot = 0
 
-    
+    model_args = models
+    model_name = model_args[12:-1]
 
-    data["messages"][0]["content"] = prompt
-    response = requests.post(model_endpoint+"/v1/chat/completions", headers=headers, json=data)
-    print(response)
-    assert response.status_code == 200, f"HTTP Status Code for {model_endpoint}: {response.status_code}"
+    task_names = utils.pattern_match(cfg_tasks.split(","), tasks.ALL_TASKS)
 
-    assert response.content.strip() != "", f"Response for {model_endpoint} is empty"
-    response_data = response.json()
-    print(response_data)
-    print(response.content)
+    evaluator.simple_evaluate(
+        model="octoai",
+        model_args=model_args,
+        tasks=task_names,
+        num_fewshot=num_fewshot,
+        batch_size=1,
+        max_batch_size=None,
+        device=None,
+        no_cache=True,
+        limit=3,
+        description_dict=None,
+        decontamination_ngrams_path=None,
+        check_integrity=False,
+        write_out=True,
+        output_base_path=None
+    )
 
-    
-    assert "content" in response_data['choices'][0]["message"]
-    
-    model_output = response_data['choices'][0]["message"]["content"]
-    assert re.search(expected_pattern, model_output)
+    write_out_path = f"{model_name}_{task_names[0]}_{num_fewshot}fs_write_out_info.json"
+
+    with open(write_out_path, "r") as f:
+        evaluated_output = json.load(f)
+        
+        assert evaluated_output is not []
+
+        for i in evaluated_output:
+            assert i["acc"] == "True", f"Found the wrong answer or the incorrect scoring case:\nPredicted:\n{i['logit_0']}\nTruth:\n{i['truth']}"
