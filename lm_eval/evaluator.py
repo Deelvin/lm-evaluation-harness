@@ -26,6 +26,7 @@ def simple_evaluate(
     decontamination_ngrams_path=None,
     write_out=False,
     output_base_path=None,
+    samples_choice=None,
 ):
     """Instantiate and evaluate a model on a list of tasks.
 
@@ -90,7 +91,7 @@ def simple_evaluate(
 
     if check_integrity:
         run_task_tests(task_list=tasks)
-
+    print(model_args[11:])
     results = evaluate(
         lm=lm,
         task_dict=task_dict,
@@ -101,7 +102,8 @@ def simple_evaluate(
         decontamination_ngrams_path=decontamination_ngrams_path,
         write_out=write_out,
         output_base_path=output_base_path,
-        model_name = model_args[12:-1]
+        model_name=model_args[12:-1],
+        samples_choice=samples_choice,
     )
 
     # add info about the model and few shot config
@@ -137,6 +139,7 @@ def evaluate(
     write_out=False,
     output_base_path=None,
     model_name='',
+    samples_choice=None,
 ):
     """Instantiate and evaluate a model on a list of tasks.
 
@@ -228,14 +231,21 @@ def evaluate(
             else ""
         )
 
-        if 1 is not None:
-            task_docs = [task_docs[10], task_docs[25], task_docs[28]]
-        if limit is not None:
+        if samples_choice is not None:
+            if len(samples_choice[0])==1:
+                task_docs = [task_docs[x] for x in list(map(int, samples_choice[0].split(',')))]
+            else:
+                task_docs = [task_docs[x] for x in list(map(int,samples_choice))]
+            print("TASK DOCS", task_docs)
+        elif limit is not None:
             limit = int(len(task_docs) * limit) if limit < 1.0 else int(limit)
+
+        print("TASK DOCS2", task_docs)
 
         #print("TD:", task_docs)
 
         for doc_id, doc in enumerate(itertools.islice(task_docs, 0, limit)):
+            print(doc_id, " --- ", doc)
             if decontaminate and task.should_decontaminate():
                 docs_for_decontamination[(task_name, task_set)].append(
                     task.doc_to_decontamination_query(doc)
@@ -373,6 +383,7 @@ def evaluate(
             pass
         
         for task_name, _ in task_dict_items:
+            print("OUTPUT PATH", f"{model_name}_{task_name}_{num_fewshot}fs_write_out_info.json")
             with open(
                 output_base_path.joinpath(f"{model_name}_{task_name}_{num_fewshot}fs_write_out_info.json"),
                 "w",

@@ -30,6 +30,7 @@ def parse_args():
     parser.add_argument("--check_integrity", action="store_true")
     parser.add_argument("--write_out", action="store_true", default=False)
     parser.add_argument("--output_base_path", type=str, default=None)
+    parser.add_argument("--samples_choice", nargs="+", type=str, default=None)
 
     return parser.parse_args()
 
@@ -55,7 +56,7 @@ def main():
     if args.description_dict_path:
         with open(args.description_dict_path, "r") as f:
             description_dict = json.load(f)
-
+    
     results = evaluator.simple_evaluate(
         model=args.model,
         model_args=args.model_args,
@@ -71,6 +72,7 @@ def main():
         check_integrity=args.check_integrity,
         write_out=args.write_out,
         output_base_path=args.output_base_path,
+        samples_choice=args.samples_choice,
     )
 
     dumped = json.dumps(results, indent=2)

@@ -12,9 +12,9 @@ MODEL_NAMES = [
     # "codellama-34b-instruct-mlc-q0f16",
     # "codellama-34b-instruct-mlc-q4f16_1",
     # "codellama-34b-instruct-mlc-q8f16_1",
-    #"llama2-7b-chat-mlc-q0f16",
+    "llama2-7b-chat-mlc-q0f16",
     "llama2-7b-chat-mlc-q4f16_1",
-    #"llama2-7b-chat-mlc-q8f16_1",
+    "llama2-7b-chat-mlc-q8f16_1",
     # "llama2-13b-chat-mlc-q0f16",
     # "llama2-13b-chat-mlc-q4f16_1",
     # "llama2-13b-chat-mlc-q8f16_1",
@@ -26,9 +26,9 @@ MODEL_NAMES = [
 ]
 
 MODEL_ARGS = [
-    #"model_name='llama2-7b-chat-mlc-q0f16'",
+    "model_name='llama2-7b-chat-mlc-q0f16'",
     "model_name='llama2-7b-chat-mlc-q4f16_1'",
-    #"model_name='llama2-7b-chat-mlc-q8f16_1'",
+    "model_name='llama2-7b-chat-mlc-q8f16_1'",
 ]
 
 MODEL_ENDPOINTS = [
@@ -42,9 +42,9 @@ MODEL_ENDPOINTS = [
     # "https://codellama-34b-instruct-fp16-4gpu-g2ave3d5t9mm.octoai.run",
     # "https://codellama-34b-instruct-int4-1gpu-g2ave3d5t9mm.octoai.run",
     # "https://codellama-34b-instruct-int8-2gpu-g2ave3d5t9mm.octoai.run",
-    #("model_name='llama2-7b-chat-mlc-q0f16'", "https://llama2-7b-chat-fp16-1gpu-g2ave3d5t9mm.octoai.run"),
+    ("model_name='llama2-7b-chat-mlc-q0f16'", "https://llama2-7b-chat-fp16-1gpu-g2ave3d5t9mm.octoai.run"),
     ("model_name='llama2-7b-chat-mlc-q4f16_1'", "https://llama2-7b-chat-int4-1gpu-g2ave3d5t9mm.octoai.run"),
-    #("model_name='llama2-7b-chat-mlc-q8f16_1'", "https://llama2-7b-chat-int8-1gpu-g2ave3d5t9mm.octoai.run"),
+    ("model_name='llama2-7b-chat-mlc-q8f16_1'", "https://llama2-7b-chat-int8-1gpu-g2ave3d5t9mm.octoai.run"),
     # "https://llama2-13b-chat-fp16-2gpu-g2ave3d5t9mm.octoai.run",
     # "https://llama2-13b-chat-int4-1gpu-g2ave3d5t9mm.octoai.run",
     # "https://llama2-13b-chat-int8-1gpu-g2ave3d5t9mm.octoai.run",
