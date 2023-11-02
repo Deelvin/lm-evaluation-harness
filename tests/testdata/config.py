@@ -2,35 +2,6 @@ import os
 
 API_KEY=os.environ["OCTOAI_API_KEY"]
 
-MODEL_NAMES = [
-    #"codellama-7b-instruct-mlc-q0f16",
-    # "codellama-7b-instruct-mlc-q4f16_1",
-    # "codellama-7b-instruct-mlc-q8f16_1",
-    # "codellama-13b-instruct-mlc-q0f16",
-    # "codellama-13b-instruct-mlc-q4f16_1",
-    # "codellama-13b-instruct-mlc-q8f16_1",
-    # "codellama-34b-instruct-mlc-q0f16",
-    # "codellama-34b-instruct-mlc-q4f16_1",
-    # "codellama-34b-instruct-mlc-q8f16_1",
-    "llama2-7b-chat-mlc-q0f16",
-    "llama2-7b-chat-mlc-q4f16_1",
-    "llama2-7b-chat-mlc-q8f16_1",
-    # "llama2-13b-chat-mlc-q0f16",
-    # "llama2-13b-chat-mlc-q4f16_1",
-    # "llama2-13b-chat-mlc-q8f16_1",
-    # "llama2-70b-chat-mlc-q0f16",
-    # "llama2-70b-chat-mlc-q4f16_1",
-    # "llama2-70b-chat-mlc-q8f16_1",
-    # TODO(vvchernov): it is demo, may be need to remove
-    #"llama-2-70b-chat",
-]
-
-MODEL_ARGS = [
-    "model_name='llama2-7b-chat-mlc-q0f16'",
-    "model_name='llama2-7b-chat-mlc-q4f16_1'",
-    "model_name='llama2-7b-chat-mlc-q8f16_1'",
-]
-
 MODEL_ENDPOINTS = [
     # "https://llama2-7b-chat-fp16-1gpu-g2ave3d5t9mm.octoai.run",
     # "https://codellama-7b-instruct-fp16-1gpu-g2ave3d5t9mm.octoai.run",
@@ -45,9 +16,9 @@ MODEL_ENDPOINTS = [
     ("model_name='llama2-7b-chat-mlc-q0f16'", "https://llama2-7b-chat-fp16-1gpu-g2ave3d5t9mm.octoai.run"),
     ("model_name='llama2-7b-chat-mlc-q4f16_1'", "https://llama2-7b-chat-int4-1gpu-g2ave3d5t9mm.octoai.run"),
     ("model_name='llama2-7b-chat-mlc-q8f16_1'", "https://llama2-7b-chat-int8-1gpu-g2ave3d5t9mm.octoai.run"),
-    # "https://llama2-13b-chat-fp16-2gpu-g2ave3d5t9mm.octoai.run",
-    # "https://llama2-13b-chat-int4-1gpu-g2ave3d5t9mm.octoai.run",
-    # "https://llama2-13b-chat-int8-1gpu-g2ave3d5t9mm.octoai.run",
+    ("model_name='llama2-13b-chat-mlc-q0f16'", "https://llama2-13b-chat-fp16-2gpu-g2ave3d5t9mm.octoai.run"),
+    ("model_name='llama2-13b-chat-mlc-q4f16_1'", "https://llama2-13b-chat-int4-1gpu-g2ave3d5t9mm.octoai.run"),
+    ("model_name='llama2-13b-chat-mlc-q8f16_1'", "https://llama2-13b-chat-int8-1gpu-g2ave3d5t9mm.octoai.run"),
     # "https://llama2-70b-chat-fp16-4gpu-g2ave3d5t9mm.octoai.run",
     # "https://llama2-70b-chat-int4-2gpu-g2ave3d5t9mm.octoai.run",
     # "https://llama2-70b-chat-int8-4gpu-g2ave3d5t9mm.octoai.run",
@@ -62,6 +33,7 @@ HEADERS = [{
 
 TASKS = [
     "gsm8k",
+    #"gsm8k_truncated"
     #"triviaqa",
     # "qasper",
     # "squad2",
