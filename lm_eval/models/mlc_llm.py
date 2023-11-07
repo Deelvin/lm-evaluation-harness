@@ -36,7 +36,8 @@ class MLCLM(BaseLM):
         self.model_name = model_name
         self._batch_size = int(batch_size)
         self.max_batch_size = max_batch_size
-        self._device = tvm.device(device)
+        self._device = device
+        self._tvm_device = tvm.device(self._device)
         self.model_path = model_path
 
         self.params_path = os.path.join(self.model_path, "params")
@@ -58,15 +59,15 @@ class MLCLM(BaseLM):
             # 50277 means "### End"
             self.tokenizer.eos_token_id = 50277
 
-        self.const_params = load_params(self.params_path, self.device)
+        self.const_params = load_params(self.params_path, self._tvm_device)
         ex = tvm.runtime.load_module(
             os.path.join(
                 model_path,
-                f"{model_name}-{device}.so",
+                f"{model_name}-{self._device}.so",
             )
         )
         
-        self.vm = relax.VirtualMachine(ex, self.device)
+        self.vm = relax.VirtualMachine(ex, self._tvm_device)
 
         self.tot_seq_len = 0
         self.kv_cache = self.vm["create_kv_cache"]()
@@ -101,7 +102,7 @@ class MLCLM(BaseLM):
         return self.tokenizer.encode(string)
 
     def tok_decode(self, tokens: Iterable[int]):
-        return self.tokenizer.batch_decode(tokens)
+        return self.tokenizer.batch_decode(tokens)[0] # for single sentence
 
 
     def _sample_top_p(self, probs, p):
@@ -115,10 +116,14 @@ class MLCLM(BaseLM):
 
         return next_token
 
+    def reset(self):
+        self.kv_cache_clear(self.kv_cache)
+        self.tot_seq_len = 0
+
     def _model_call(
         self, 
         inps: torch.Tensor, 
-        seq_len: int,
+        seq_len: int = 1,
         reset: bool = False
     ) -> torch.Tensor:
         if reset:
@@ -146,14 +151,14 @@ class MLCLM(BaseLM):
         max_length: int,
         eos_token_id: Optional[List[str]] = None
     ) -> torch.Tensor:
-        prompt_len = context.shape[1]
+        prompt_len = context.shape[0]
         total_len = max_length + prompt_len
         tvm_tokens = tvm.nd.array(
             np.zeros(
                 (1, total_len), 
                 dtype="int32"
             ), 
-            device=self.device
+            device=self._tvm_device
         )
         tokens = torch.from_dlpack(tvm_tokens)
         tokens[0, : prompt_len] = context
@@ -167,11 +172,11 @@ class MLCLM(BaseLM):
                         (1, 1), 
                         dtype="int32"
                     ), 
-                    device=self.device
+                    device=self._tvm_device
                 )
                 to_model = torch.from_dlpack(tvm_to_model)
                 to_model[0, 0] = tokens[:, cur_pos - 1 : cur_pos]
-                logits = self.model(to_model)
+                logits = self._model_call(to_model)
             logits = logits[:, -1, :].to(torch.float32)
             if self.mlc_config["temperature"] > 0:
                 probs = torch.softmax(logits / self.mlc_config["temperature"], dim=-1)
@@ -181,7 +186,7 @@ class MLCLM(BaseLM):
             next_token = next_token.reshape(-1)
             tokens[:, cur_pos] = next_token
 
-            if next_token[0] in self.stop_tokens:
+            if next_token[0] in [self.tokenizer.eos_token_id]:
                 break
 
         return tokens[:, :cur_pos + 1]
@@ -199,6 +204,14 @@ class MLCLM(BaseLM):
             inp = request[0]
             request_args = request[1]
             until = request_args["until"]
-            results.append(self._model_generate(inp, self.max_length, eos_token_id=until))
+            results.append(
+                self.tok_decode(
+                    self._model_generate(
+                        torch.Tensor(self.tok_encode(inp)), 
+                        self.max_length, 
+                        eos_token_id=until
+                    )
+                )
+            )
 
         return results
