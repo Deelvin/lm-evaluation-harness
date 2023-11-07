@@ -1,11 +1,11 @@
 import os
 import json
-from typing import List, Tuple, Union, Iterable
+from typing import List, Tuple, Union, Iterable, Optional
 from lm_eval.base import BaseLM
 
 import torch
 import numpy as np
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, PretrainedConfig
 
 import tvm
 from tvm import relax
@@ -34,21 +34,23 @@ class MLCLM(BaseLM):
         super().__init__()
         
         self.model_name = model_name
-        self.batch_size = batch_size
+        self._batch_size = int(batch_size)
         self.max_batch_size = max_batch_size
-        self.device = device
-        self.model_path = os.Path(model_path)
+        self._device = tvm.device(device)
+        self.model_path = model_path
 
-        self.params_path = self.model_path.joinpath("params")
-        self.config_path = self.params_path
+        self.params_path = os.path.join(self.model_path, "params")
+        self.config_path = os.path.join(self.params_path, "mlc-chat-config.json")
 
         self.mlc_config = {}
         with open(self.config_path) as file:
             self.mlc_config = json.load(file)
 
         self.tokenizer = AutoTokenizer.from_pretrained(
-            self.mlc_config["tokenizer_files"][0], 
-            trust_remote_code=True
+            self.params_path, 
+            trust_remote_code=True,
+            # config=PretrainedConfig(name_or_path=os.path.join(self.params_path, "tokenizer_config.json")),
+            # use_fast=True
         )
 
         self.tokenizer.pad_token_id = self.tokenizer.eos_token_id
@@ -89,11 +91,11 @@ class MLCLM(BaseLM):
 
     @property
     def batch_size(self):
-        return self.batch_size
+        return self._batch_size
 
     @property
     def device(self):
-        return self.device
+        return self._device
 
     def tok_encode(self, string: str):
         return self.tokenizer.encode(string)
@@ -141,7 +143,8 @@ class MLCLM(BaseLM):
     def _model_generate(
         self, 
         context: torch.Tensor, 
-        max_length: int
+        max_length: int,
+        eos_token_id: Optional[List[str]] = None
     ) -> torch.Tensor:
         prompt_len = context.shape[1]
         total_len = max_length + prompt_len
@@ -196,6 +199,6 @@ class MLCLM(BaseLM):
             inp = request[0]
             request_args = request[1]
             until = request_args["until"]
-            results.append(self._model_generate(inp, results, stop=until))
+            results.append(self._model_generate(inp, self.max_length, eos_token_id=until))
 
         return results
