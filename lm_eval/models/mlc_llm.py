@@ -189,7 +189,7 @@ class MLCLM(BaseLM):
             if next_token[0] in [self.tokenizer.eos_token_id]:
                 break
 
-        return tokens[:, :cur_pos + 1]
+        return tokens[:, start_pos : cur_pos + 1]
 
     def greedy_until(
         self, 
