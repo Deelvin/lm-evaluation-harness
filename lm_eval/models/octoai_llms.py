@@ -11,12 +11,13 @@ REPEAT_REQUEST_TO_OCTOAI_SERVER = 10
 class OctoAIEndpointLM(BaseLM):
   def __init__(
     self,
-    model_name="llama-2-70b-chat-int4",
-    batch_size=1,
-    max_batch_size=None,
-    device=None,
-    top_p=1,
-    temperature=0.0,
+    model_name: str="llama-2-70b-chat-int4",
+    url: str=None,
+    batch_size: int=1,
+    max_batch_size: int=None,
+    device: str=None,
+    top_p: float=1.0,
+    temperature: float=0.0,
     prod=True,
     token=None,
   ):
@@ -33,9 +34,9 @@ class OctoAIEndpointLM(BaseLM):
     self.max_batch_size = max_batch_size
     self._device = device
 
-    self.init_remote(top_p, temperature, prod, token)
+    self.init_remote(url, top_p, temperature, prod, token)
 
-  def init_remote(self, top_p, temperature, prod, token):
+  def init_remote(self, url, top_p, temperature, prod, token):
     # Get the API key from the environment variables
 
     if token is None: # there is no customized token, try to find in env
@@ -43,7 +44,9 @@ class OctoAIEndpointLM(BaseLM):
       if token is None:
         raise ValueError("TOKEN not found.")
 
-    if prod:
+    if url is not None:
+      self.url = url
+    elif prod:
       self.url = "https://text.octoai.run"
     else:
       self.url = "https://text.customer-endpoints.nimbus.octoml.ai"
