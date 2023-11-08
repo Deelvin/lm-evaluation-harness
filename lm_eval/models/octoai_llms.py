@@ -46,10 +46,8 @@ class OctoAIEndpointLM(BaseLM):
 
     if url is not None:
       self.url = url
-    elif prod:
-      self.url = "https://text.octoai.run"
     else:
-      self.url = "https://text.customer-endpoints.nimbus.octoml.ai"
+      self.url = self.construct_request_url(prod)
 
     self.headers = {
       "authorization": f"Bearer {token}",
@@ -57,12 +55,11 @@ class OctoAIEndpointLM(BaseLM):
     }
 
     self.data = {
-      "model": self.model_name,
-      "messages": [{"role": "user", "content": ""}],  # need to fill before use inference
-      # "stream": False,
-      "max_tokens": 256,
-      "top_p": top_p,
-      "temperature": temperature,
+        "model": self.model_name,
+        "stream": False,
+        "max_tokens": 256,
+        "top_p": top_p,
+        "temperature": temperature,
     }
 
   def construct_request_url(self, prod):
@@ -153,8 +150,13 @@ class OctoAIEndpointLM(BaseLM):
       print(e)
       return
 
-  def call_octoai_inference(self, user_input: str):
-    self.data["messages"][0]["content"] = user_input
+  def call_octoai_inference(self, user_input: str, url_postfix: str):
+    self.data["messages"] = [
+        {
+            "role": "user",
+            "content": user_input,
+        }
+    ],
     response = requests.post(
       self.url + "/v1/chat/completions", headers=self.headers, json=self.data
     )
