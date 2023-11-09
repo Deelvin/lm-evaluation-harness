@@ -91,7 +91,6 @@ def simple_evaluate(
 
     if check_integrity:
         run_task_tests(task_list=tasks)
-    print(model_args[11:])
     results = evaluate(
         lm=lm,
         task_dict=task_dict,
@@ -236,16 +235,12 @@ def evaluate(
                 task_docs = [task_docs[x] for x in list(map(int, samples_choice[0].split(',')))]
             else:
                 task_docs = [task_docs[x] for x in list(map(int,samples_choice))]
-            print("TASK DOCS", task_docs)
         elif limit is not None:
             limit = int(len(task_docs) * limit) if limit < 1.0 else int(limit)
 
-        print("TASK DOCS2", task_docs)
 
-        #print("TD:", task_docs)
 
         for doc_id, doc in enumerate(itertools.islice(task_docs, 0, limit)):
-            print(doc_id, " --- ", doc)
             if decontaminate and task.should_decontaminate():
                 docs_for_decontamination[(task_name, task_set)].append(
                     task.doc_to_decontamination_query(doc)

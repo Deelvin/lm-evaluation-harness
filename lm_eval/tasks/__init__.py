@@ -26,6 +26,9 @@ from . import piqa
 from . import prost
 from . import mc_taco
 from . import triviaqa
+from . import triviaqa_truncated_7b
+from . import triviaqa_truncated_13b
+from . import triviaqa_truncated_70b
 from . import pubmedqa
 from . import sciq
 from . import qasper
@@ -49,7 +52,9 @@ from . import truthfulqa
 from . import blimp
 from . import asdiv
 from . import gsm8k
-from . import gsm8k_truncated
+from . import gsm8k_truncated_7b
+from . import gsm8k_truncated_13b
+from . import gsm8k_truncated_70b
 from . import storycloze
 from . import toxigen
 from . import crowspairs
@@ -135,6 +140,9 @@ TASK_REGISTRY = {
     "qa4mre_2012": qa4mre.QA4MRE_2012,
     "qa4mre_2013": qa4mre.QA4MRE_2013,
     "triviaqa": triviaqa.TriviaQA,
+    "triviaqa_truncated_7b": triviaqa_truncated_7b.TruncatedTriviaQA,
+    "triviaqa_truncated_13b": triviaqa_truncated_13b.TruncatedTriviaQA,
+    "gtriviaqa_truncated_70b": triviaqa_truncated_70b.TruncatedTriviaQA,
     "arc_easy": arc.ARCEasy,
     "arc_challenge": arc.ARCChallenge,
     # "quac": quac.QuAC, # not implemented yet
@@ -176,7 +184,9 @@ TASK_REGISTRY = {
     "math_precalc": hendrycks_math.MathPrecalculus,
     "math_asdiv": asdiv.Asdiv,
     "gsm8k": gsm8k.GradeSchoolMath8K,
-    "gsm8k_truncated": gsm8k_truncated.TruncatedGradeSchoolMath8K,
+    "gsm8k_truncated_7b": gsm8k_truncated_7b.TruncatedGradeSchoolMath8K,
+    "gsm8k_truncated_13b": gsm8k_truncated_13b.TruncatedGradeSchoolMath8K,
+    "gsm8k_truncated_70b": gsm8k_truncated_70b.TruncatedGradeSchoolMath8K,
     # arithmetic
     "arithmetic_2da": arithmetic.Arithmetic2DPlus,
     "arithmetic_2ds": arithmetic.Arithmetic2DMinus,
