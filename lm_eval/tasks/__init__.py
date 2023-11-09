@@ -142,7 +142,7 @@ TASK_REGISTRY = {
     "triviaqa": triviaqa.TriviaQA,
     "triviaqa_truncated_7b": triviaqa_truncated_7b.TruncatedTriviaQA,
     "triviaqa_truncated_13b": triviaqa_truncated_13b.TruncatedTriviaQA,
-    "gtriviaqa_truncated_70b": triviaqa_truncated_70b.TruncatedTriviaQA,
+    "triviaqa_truncated_70b": triviaqa_truncated_70b.TruncatedTriviaQA,
     "arc_easy": arc.ARCEasy,
     "arc_challenge": arc.ARCChallenge,
     # "quac": quac.QuAC, # not implemented yet
