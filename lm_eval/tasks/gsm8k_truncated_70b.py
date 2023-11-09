@@ -4,12 +4,8 @@ from . import gsm8k
 import os
 
 class TruncatedGradeSchoolMath8K(gsm8k.GradeSchoolMath8K):
-
-    # Get the directory where the script is located
-    script_directory = os.path.dirname(os.path.abspath(__file__))
-
     # Go up two directory levels
-    parent_dir = os.path.join(script_directory, os.pardir, os.pardir)
+    parent_dir = Path(__file__).parents[1]
 
     # Define the path relative to the script location
     relative_path = "tests/testdata/gsm8k_truncated_70b.json"
