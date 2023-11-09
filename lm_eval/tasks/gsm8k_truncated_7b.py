@@ -10,10 +10,12 @@ class TruncatedGradeSchoolMath8K(gsm8k.GradeSchoolMath8K):
 
     # Go up two directory levels
     parent_dir = os.path.join(script_directory, os.pardir, os.pardir)
+    print(parent_dir)
 
     # Define the path relative to the script location
     relative_path = "tests/testdata/gsm8k_truncated_7b.json"
     DATASET_PATH = os.path.join(parent_dir, relative_path)
+    print(DATASET_PATH)
 
 
     def has_training_docs(self):
