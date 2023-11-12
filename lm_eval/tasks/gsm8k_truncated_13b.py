@@ -6,7 +6,7 @@ import os
 
 class TruncatedGradeSchoolMath8K(gsm8k.GradeSchoolMath8K):
     # Go up two directory levels
-    parent_dir = Path(__file__).parents[1]
+    parent_dir = Path(__file__).parents[2]
 
     # Define the path relative to the script location
     relative_path = "tests/testdata/gsm8k_truncated_13b.json"
