@@ -105,13 +105,13 @@ class OctoAIEndpointRunnerBase():
     self.prepare_msg_data(request)
     for _ in range(REPEAT_REQUEST_TO_OCTOAI_SERVER):
       response = self.call_octoai_inference()
-      if 'choices' in response.keys():
+      if self.response_check(response):
         success = True
         break
     if success:
       results.append(self.get_result(response))
     else:
-      print("ERROR: responce does not have choices. Dummy response was inserted")
+      print("ERROR: response check failed. Dummy response was inserted")
       results.append(self.dummy_result())
 
   def model_generate_batch(self, request_batch, results):
@@ -144,6 +144,12 @@ class OctoAIEndpointRunnerBase():
       for id in range(len(request_batch)):
         results.extend(parallel_results[id])
 
+  def prepare_msg_data(self, request):
+    raise NotImplementedError("prepare_msg_data method is not implemented in base class")
+
+  def response_check(self, response):
+    raise NotImplementedError("response_check method is not implemented in base class")
+
   def get_result(self, response):
     raise NotImplementedError("get_result method is not implemented in base class")
 
@@ -171,6 +177,9 @@ class OctoAIEndpointRunnerGreedyUntil(OctoAIEndpointRunnerBase):
         }
     ]
 
+  def response_check(self, response):
+    return 'choices' in response.keys()
+
   def get_result(self, response):
     return response['choices'][0]['message']['content']
 
@@ -189,6 +198,9 @@ class OctoAIEndpointRunnerLogLikelihood(OctoAIEndpointRunnerBase):
   def prepare_msg_data(self, request):
     self.msg["context"] = request[0]
     self.msg["continuation"] = request[1]
+
+  def response_check(self, response):
+    return 'logprob' in response.keys() and 'is_greedy' in response.keys()
 
   def get_result(self, response):
     logprob = response["logprob"]
