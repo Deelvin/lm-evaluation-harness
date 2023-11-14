@@ -4,15 +4,25 @@ from lm_eval import tasks, evaluator, utils
 import testdata.config as cfg
 import json
 
+
 def check_output(model_name, task_name, num_fewshot):
     write_out_path = f"{model_name}_{task_name}_{num_fewshot}fs_write_out_info.json"
     with open(write_out_path, "r") as f:
         evaluated_output = json.load(f)
-        
+
         assert evaluated_output is not []
 
         for i in evaluated_output:
-            assert i["acc"] == "True", f"Found the wrong answer or the incorrect scoring case:\nPredicted:\n{i['logit_0']}\nTruth:\n{i['truth']}"
+            if task_name.find("gsm8k") != -1:
+                assert (
+                    i["acc"] == "True"
+                ), f"Found the wrong answer or the incorrect scoring case:\nPredicted:\n{i['logit_0']}\nTruth:\n{i['truth']}"
+            elif task_name.find("triviaqa") != -1:
+                assert (
+                    i["em"] == "1.0"
+                ), f"Found the wrong answer or the incorrect scoring case:\nPredicted:\n{i['logit_0']}\nTruth:\n{i['truth']}"
+            # elif task_name.find("truthfulqa_gen") != -1:
+            #     assert i["bleurt_acc"] == "1", f"Found the wrong answer or the incorrect scoring case:\nPredicted:\n{i['logit_0']}\nTruth:\n{i['truth']}"
 
 
 @pytest.mark.parametrize("headers", cfg.HEADERS)
@@ -20,24 +30,23 @@ def check_output(model_name, task_name, num_fewshot):
 def test_endpoints_availability(models, headers):
     data = {
         "model": models[1],
-        "messages": [
-            {
-                "role": "user",
-                "content": ""
-            }
-        ],
+        "messages": [{"role": "user", "content": ""}],
         "stream": False,
-        "max_tokens": 256
+        "max_tokens": 256,
     }
 
-    response = requests.post(models[1]+"/v1/chat/completions", headers=headers, json=data)
+    response = requests.post(
+        models[1] + "/v1/chat/completions", headers=headers, json=data
+    )
 
-    assert response.status_code == 200, f"HTTP Status Code for {models[0]}: {response.status_code}"
+    assert (
+        response.status_code == 200
+    ), f"HTTP Status Code for {models[0]}: {response.status_code}"
 
     assert response.content.strip() != "", f"Response for {models[0]} is empty"
 
 
-@pytest.mark.parametrize("task_name", cfg.TASKS[:1])
+@pytest.mark.parametrize("task_name", cfg.TASKS[:2])
 @pytest.mark.parametrize("models", cfg.MODEL_ENDPOINTS[:3])
 def test_llama2_7b(models, task_name):
     num_fewshot = 0
@@ -63,7 +72,7 @@ def test_llama2_7b(models, task_name):
     check_output(model_name, task_names[0], num_fewshot)
 
 
-@pytest.mark.parametrize("task_name", cfg.TASKS[1:2])
+@pytest.mark.parametrize("task_name", cfg.TASKS[2:4])
 @pytest.mark.parametrize("models", cfg.MODEL_ENDPOINTS[3:6])
 def test_llama2_13b(models, task_name):
     num_fewshot = 0
@@ -89,7 +98,7 @@ def test_llama2_13b(models, task_name):
     check_output(model_name, task_names[0], num_fewshot)
 
 
-@pytest.mark.parametrize("task_name", cfg.TASKS[2:3])
+@pytest.mark.parametrize("task_name", cfg.TASKS[4:6])
 @pytest.mark.parametrize("models", cfg.MODEL_ENDPOINTS[6:9])
 def test_llama2_70b(models, task_name):
     num_fewshot = 0
@@ -115,6 +124,7 @@ def test_llama2_70b(models, task_name):
     )
 
     check_output(model_name, task_names[0], num_fewshot)
+
 
 # @pytest.mark.parametrize("cfg_tasks", cfg.TASKS)
 # @pytest.mark.parametrize("models", cfg.MODEL_ENDPOINTS)
@@ -142,4 +152,3 @@ def test_llama2_70b(models, task_name):
 #     )
 
 #     check_output(model_name, task_names[0], num_fewshot)
-    
