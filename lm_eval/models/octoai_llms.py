@@ -8,37 +8,47 @@ from lm_eval.base import BaseLM
 REPEAT_REQUEST_TO_OCTOAI_SERVER = 10
 
 model_urls = {
-   "codellama-7b-instruct-mlc-q0f16": "https://codellama-7b-instruct-fp16-1gpu-g2ave3d5t9mm.octoai.run",
-   "codellama-7b-instruct-mlc-q4f16_1": "https://codellama-7b-instruct-int4-1gpu-g2ave3d5t9mm.octoai.run",
-   "codellama-7b-instruct-mlc-q8f16_1": "https://codellama-7b-instruct-int8-1gpu-g2ave3d5t9mm.octoai.run",
-   "codellama-13b-instruct-mlc-q0f16": "https://codellama-13b-instruct-fp16-2gpu-g2ave3d5t9mm.octoai.run",
-   "codellama-13b-instruct-mlc-q4f16_1": "https://codellama-13b-instruct-int4-1gpu-g2ave3d5t9mm.octoai.run",
-   "codellama-13b-instruct-mlc-q8f16_1": "https://codellama-13b-instruct-int8-1gpu-g2ave3d5t9mm.octoai.run",
-   "codellama-34b-instruct-mlc-q0f16": "https://codellama-34b-instruct-fp16-4gpu-g2ave3d5t9mm.octoai.run",
-   "codellama-34b-instruct-mlc-q4f16_1": "https://codellama-34b-instruct-int4-1gpu-g2ave3d5t9mm.octoai.run",
-   "codellama-34b-instruct-mlc-q8f16_1": "https://codellama-34b-instruct-int8-2gpu-g2ave3d5t9mm.octoai.run",
-   "llama2-7b-chat-mlc-q0f16": "https://llama2-7b-chat-fp16-1gpu-g2ave3d5t9mm.octoai.run",
-   "llama2-7b-chat-mlc-q4f16_1": "https://llama2-7b-chat-int4-1gpu-g2ave3d5t9mm.octoai.run",
-   "llama2-7b-chat-mlc-q8f16_1": "https://llama2-7b-chat-int8-1gpu-g2ave3d5t9mm.octoai.run",
-   "llama2-13b-chat-mlc-q0f16": "https://llama2-13b-chat-fp16-2gpu-g2ave3d5t9mm.octoai.run",
-   "llama2-13b-chat-mlc-q4f16_1": "https://llama2-13b-chat-int4-1gpu-g2ave3d5t9mm.octoai.run",
-   "llama2-13b-chat-mlc-q8f16_1": "https://llama2-13b-chat-int8-1gpu-g2ave3d5t9mm.octoai.run",
-   "llama2-70b-chat-mlc-q0f16": "https://llama2-70b-chat-fp16-4gpu-g2ave3d5t9mm.octoai.run",
-   "llama2-70b-chat-mlc-q4f16_1": "https://llama2-70b-chat-int4-2gpu-g2ave3d5t9mm.octoai.run",
-   "llama2-70b-chat-mlc-q8f16_1": "https://llama2-70b-chat-int8-4gpu-g2ave3d5t9mm.octoai.run",
-   # TODO(vvchernov): it is demo, may be need to remove
-   "llama-2-70b-chat": "https://llama-2-70b-chat-demo-kk0powt97tmb.octoai.run",
+  "codellama-7b-instruct-mlc-q0f16": "https://codellama-7b-instruct-fp16-1gpu-g2ave3d5t9mm.octoai.run",
+  "codellama-7b-instruct-mlc-q4f16_1": "https://codellama-7b-instruct-int4-1gpu-g2ave3d5t9mm.octoai.run",
+  "codellama-7b-instruct-mlc-q8f16_1": "https://codellama-7b-instruct-int8-1gpu-g2ave3d5t9mm.octoai.run",
+  "codellama-13b-instruct-mlc-q0f16": "https://codellama-13b-instruct-fp16-2gpu-g2ave3d5t9mm.octoai.run",
+  "codellama-13b-instruct-mlc-q4f16_1": "https://codellama-13b-instruct-int4-1gpu-g2ave3d5t9mm.octoai.run",
+  "codellama-13b-instruct-mlc-q8f16_1": "https://codellama-13b-instruct-int8-1gpu-g2ave3d5t9mm.octoai.run",
+  "codellama-34b-instruct-mlc-q0f16": "https://codellama-34b-instruct-fp16-4gpu-g2ave3d5t9mm.octoai.run",
+  "codellama-34b-instruct-mlc-q4f16_1": "https://codellama-34b-instruct-int4-1gpu-g2ave3d5t9mm.octoai.run",
+  "codellama-34b-instruct-mlc-q8f16_1": "https://codellama-34b-instruct-int8-2gpu-g2ave3d5t9mm.octoai.run",
+  "llama2-7b-chat-mlc-q0f16": "https://llama2-7b-chat-fp16-1gpu-g2ave3d5t9mm.octoai.run",
+  "llama2-7b-chat-mlc-q4f16_1": "https://llama2-7b-chat-int4-1gpu-g2ave3d5t9mm.octoai.run",
+  "llama2-7b-chat-mlc-q8f16_1": "https://llama2-7b-chat-int8-1gpu-g2ave3d5t9mm.octoai.run",
+  "llama2-13b-chat-mlc-q0f16": "https://llama2-13b-chat-fp16-2gpu-g2ave3d5t9mm.octoai.run",
+  "llama2-13b-chat-mlc-q4f16_1": "https://llama2-13b-chat-int4-1gpu-g2ave3d5t9mm.octoai.run",
+  "llama2-13b-chat-mlc-q8f16_1": "https://llama2-13b-chat-int8-1gpu-g2ave3d5t9mm.octoai.run",
+  "llama2-70b-chat-mlc-q0f16": "https://llama2-70b-chat-fp16-4gpu-g2ave3d5t9mm.octoai.run",
+  "llama2-70b-chat-mlc-q4f16_1": "https://llama2-70b-chat-int4-2gpu-g2ave3d5t9mm.octoai.run",
+  "llama2-70b-chat-mlc-q8f16_1": "https://llama2-70b-chat-int8-4gpu-g2ave3d5t9mm.octoai.run",
+  # TODO(vvchernov): it is demo, may be need to remove
+  "llama-2-70b-chat": "https://llama-2-70b-chat-demo-kk0powt97tmb.octoai.run",
+  # New endpoints
+  "llama-2-7b-chat-hf-s2q0f16":	"https://text-demo-mlc-serve-llama-2-7b-chc591cb-l6z2ijkgynn7.octoai.run/llama-2-7b-chat-hf-s2q0f16",
+  "codellama-13b-instruct-fp16": "https://text-mlc-serve-codellama-13b-inst57fdc4-l6z2ijkgynn7.octoai.run/codellama-13b-instruct-fp16",
+  "codellama-34b-instruct-int4": "https://text-mlc-serve-codellama-34b-inst087581-l6z2ijkgynn7.octoai.run/codellama-34b-instruct-int4",
+  "codellama-34b-instruct-fp16": "https://text-mlc-serve-codellama-34b-inst73411d-l6z2ijkgynn7.octoai.run/codellama-34b-instruct-fp16",
+  "codellama-7b-instruct-fp16":	"https://text-mlc-serve-codellama-7b-instr48ac9b-l6z2ijkgynn7.octoai.run/codellama-7b-instruct-fp16",
+  "llama-2-13b-chat-fp16": "https://text-mlc-serve-llama-2-13b-chat-fp16-l6z2ijkgynn7.octoai.run/llama-2-13b-chat-fp16",
+  "llama-2-70b-chat-fp16": "https://text-mlc-serve-llama-2-70b-chat-fp16-l6z2ijkgynn7.octoai.run/llama-2-70b-chat-fp16",
+  "llama-2-70b-chat-int4": "https://text-mlc-serve-llama-2-70b-chat-int4-l6z2ijkgynn7.octoai.run/llama-2-70b-chat-int4",
+  "mistral-7b-instruct-fp16": "https://text-mlc-serve-mistral-7b-instruct-fp16-l6z2ijkgynn7.octoai.run/mistral-7b-instruct-fp16",
 }
 
 
 class OctoAIEndpointLM(BaseLM):
   def __init__(
       self,
-      model_name="llama2-7b-chat-mlc-q0f16",
+      model_name="llama-2-70b-chat-int4",
       batch_size=1,
       max_batch_size=None,
       device=None,
-      top_p=0.0,
+      top_p=1,
       temperature=0.0,):
     """
     :param model_name: str
