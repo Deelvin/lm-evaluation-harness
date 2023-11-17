@@ -37,7 +37,7 @@ model_urls = {
   "llama-2-13b-chat-fp16": "https://text-mlc-serve-llama-2-13b-chat-fp16-l6z2ijkgynn7.octoai.run/llama-2-13b-chat-fp16",
   "llama-2-70b-chat-fp16": "https://text-mlc-serve-llama-2-70b-chat-fp16-l6z2ijkgynn7.octoai.run/llama-2-70b-chat-fp16",
   "llama-2-70b-chat-int4": "https://text-mlc-serve-llama-2-70b-chat-int4-l6z2ijkgynn7.octoai.run/llama-2-70b-chat-int4",
-  "mistral-7b-instruct-fp16": "https://text-mlc-serve-mistral-7b-instruct-fp16-l6z2ijkgynn7.octoai.run/mistral-7b-instruct-fp16",
+  "mistral-7b-instruct-v0.1-fp16": "https://text-mlc-serve-mistral-7b-instruct-fp16-l6z2ijkgynn7.octoai.run/mistral-7b-instruct-v0.1-fp16",
 }
 
 
