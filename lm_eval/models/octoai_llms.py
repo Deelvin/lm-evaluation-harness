@@ -32,6 +32,7 @@ model_urls = {
   "llama-2-7b-chat-hf-s2q0f16":	"https://text-demo-mlc-serve-llama-2-7b-chc591cb-l6z2ijkgynn7.octoai.run/llama-2-7b-chat-hf-s2q0f16",
   "codellama-13b-instruct-fp16": "https://text-mlc-serve-codellama-13b-inst57fdc4-l6z2ijkgynn7.octoai.run/codellama-13b-instruct-fp16",
   "codellama-34b-instruct-int4": "https://text-mlc-serve-codellama-34b-inst087581-l6z2ijkgynn7.octoai.run/codellama-34b-instruct-int4",
+  "codellama-34b-instruct-int4-1": "https://text-test-codellama-34b-instruct-int4-1-ht5iv0iul7xi.octoai.run/codellama-34b-instruct-int4",
   "codellama-34b-instruct-fp16": "https://text-mlc-serve-codellama-34b-inst73411d-l6z2ijkgynn7.octoai.run/codellama-34b-instruct-fp16",
   "codellama-7b-instruct-fp16":	"https://text-mlc-serve-codellama-7b-instr48ac9b-l6z2ijkgynn7.octoai.run/codellama-7b-instruct-fp16",
   "llama-2-13b-chat-fp16": "https://text-mlc-serve-llama-2-13b-chat-fp16-l6z2ijkgynn7.octoai.run/llama-2-13b-chat-fp16",
