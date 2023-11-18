@@ -28,7 +28,6 @@ model_urls = {
   "llama2-70b-chat-mlc-q8f16_1": "https://llama2-70b-chat-int8-4gpu-g2ave3d5t9mm.octoai.run",
   # TODO(vvchernov): it is demo, may be need to remove
   "llama-2-70b-chat": "https://llama-2-70b-chat-demo-kk0powt97tmb.octoai.run",
-  # New endpoints
   "llama-2-7b-chat-hf-s2q0f16":	"https://text-demo-mlc-serve-llama-2-7b-chc591cb-l6z2ijkgynn7.octoai.run/llama-2-7b-chat-hf-s2q0f16",
   "codellama-13b-instruct-fp16": "https://text-mlc-serve-codellama-13b-inst57fdc4-l6z2ijkgynn7.octoai.run/codellama-13b-instruct-fp16",
   "codellama-34b-instruct-int4": "https://text-mlc-serve-codellama-34b-inst087581-l6z2ijkgynn7.octoai.run/codellama-34b-instruct-int4",
@@ -38,6 +37,7 @@ model_urls = {
   "llama-2-13b-chat-fp16": "https://text-mlc-serve-llama-2-13b-chat-fp16-l6z2ijkgynn7.octoai.run/llama-2-13b-chat-fp16",
   "llama-2-70b-chat-fp16": "https://text-mlc-serve-llama-2-70b-chat-fp16-l6z2ijkgynn7.octoai.run/llama-2-70b-chat-fp16",
   "llama-2-70b-chat-int4": "https://text-mlc-serve-llama-2-70b-chat-int4-l6z2ijkgynn7.octoai.run/llama-2-70b-chat-int4",
+  "llama-2-70b-chat-int4-1": "https://text-test-llama-2-70b-chat-int4-1-ht5iv0iul7xi.octoai.run/llama-2-70b-chat-int4",
   "mistral-7b-instruct-v0.1-fp16": "https://text-mlc-serve-mistral-7b-instruct-fp16-l6z2ijkgynn7.octoai.run/mistral-7b-instruct-v0.1-fp16",
 }
 
