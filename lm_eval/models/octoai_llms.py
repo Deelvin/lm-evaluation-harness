@@ -75,6 +75,8 @@ class OctoAIEndpointLM(BaseLM):
       raise ValueError("API_KEY not found in the .env file")
 
     self.url = model_urls[self.model_name]
+    if self.model_name.endswith("-1"):
+      self.model_name = self.model_name[:-2]
 
     self.headers = {
       "accept": "text/event-stream",
