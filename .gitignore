@@ -6,3 +6,6 @@ lm_cache
 
 # ignore test results
 *.json
+
+# ignore shell scripts for tests
+*.sh
