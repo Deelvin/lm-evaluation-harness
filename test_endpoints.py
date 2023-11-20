@@ -18,7 +18,6 @@ def parse_endpoints(
                 if remove_prefix and splitted_line[i].startswith(remove_prefix):
                     splitted_line[i] = splitted_line[i][len(remove_prefix):]
             endpoints[splitted_line[0]] = splitted_line[1]
-    print(endpoints)
     return endpoints
 
 def run_smoke_tests(
@@ -29,8 +28,6 @@ def run_smoke_tests(
     if not os.environ.get("OCTOAI_TOKEN"):
         os.environ["OCTOAI_TOKEN"] = os.environ.get("OCTOI_API_KEY")
     for endpoint_name in endpoints.keys():
-        # os.environ["ENDPOINT"] = f"{endpoints[endpoint_name]}/{endpoint_name}"
-        print(os.environ.get("ENDPOINT"))
         print(f"--------------------------------------------------------------------------")
         print(f"Running smoke_tests for {endpoint_name}")
         print(f"--------------------------------------------------------------------------")
