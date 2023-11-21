@@ -46,7 +46,6 @@ So the new task should look like this:
         run: |
           echo "Run smoke testing on $ENDPOINT"
           pytest tests/smoke_tests.py --model_name llama-2-7b-chat
-
 ```
 
 To test the work of a new task, you can create a PR and a new task should appear there, or use the following project to run github actions locally: [link](https://github.com/nektos/act)
