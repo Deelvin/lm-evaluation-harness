@@ -4,6 +4,6 @@ data/
 lm_cache
 .idea
 
-*.json
-*.sh
+/*.json
+/*.sh
 tests_ollm/*.npy
