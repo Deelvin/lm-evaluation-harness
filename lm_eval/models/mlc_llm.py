@@ -7,11 +7,8 @@ import torch
 import numpy as np
 from transformers import AutoTokenizer, PretrainedConfig
 
-import tvm
-from tvm import relax
 
-
-def load_params(params_path: str, device) -> List[tvm.nd.NDArray]:
+def load_params(params_path: str, device):
     from tvm.contrib import tvmjs  # pylint: disable=import-outside-toplevel
 
     params, meta = tvmjs.load_ndarray_cache(f"{params_path}", device)
@@ -31,6 +28,9 @@ class MLCLM(BaseLM):
         max_batch_size: int = None,
         device: str = "cuda" if torch.cuda.is_available() else "cpu"
     ):
+        import tvm
+        from tvm import relax
+
         super().__init__()
         
         self.model_name = model_name
