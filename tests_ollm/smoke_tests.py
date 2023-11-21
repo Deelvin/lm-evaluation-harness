@@ -1,15 +1,27 @@
-import requests
 import os
-import openai
-from openai.error import APIError, AuthenticationError, APIConnectionError
-import pytest
 import types
-from openai.openai_object import OpenAIObject
 import time
-from sentence_transformers import SentenceTransformer
+
+import requests
+import pytest
+
+
 import numpy as np
 from scipy.spatial import distance
 from concurrent.futures import ThreadPoolExecutor
+
+import openai
+
+try:
+    from openai import APIError, AuthenticationError, APIConnectionError
+except ImportError:
+    # For compatibility with OpenAI versions before v1.0
+    # https://github.com/openai/openai-python/pull/677.
+    from openai.error import APIError, AuthenticationError, APIConnectionError
+from sentence_transformers import SentenceTransformer
+
+from openai.openai_object import OpenAIObject
+
 
 api_key = os.environ["OCTOAI_TOKEN"]
 openai.api_key = api_key
@@ -59,6 +71,8 @@ def run_chat_completion(
         if return_completion:
             return completion
     except (APIError, AuthenticationError, APIConnectionError) as e:
+        if return_completion:
+            raise
         print(e.user_message)
         http_response = e.http_status
 
@@ -125,7 +139,8 @@ def test_incorrect_max_tokens(model_name, context_size):
     assert len(completion["choices"][0]["message"]["content"]) > 0
 
 
-def test_temperature(model_name):
+def test_valid_temperature(model_name):
+    """The higher the temperature, the further the distance from the expected."""
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
         {"role": "user", "content": "Write a blog about Seattle"},
@@ -133,23 +148,54 @@ def test_temperature(model_name):
     max_tokens = 784
     model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
     goldev_embed = np.load("golden_temp_0.npy")
-    completion = run_chat_completion(
-        model_name, messages, max_tokens, temperature=0.0, return_completion=True
-    )
-    curr_embeddings = model.encode(completion["choices"][0]["message"]["content"])
-    prev_dist = distance.cosine(curr_embeddings, goldev_embed)
 
-    for temp in [1.0, 2.0]:
+    distances = []
+    for temperature in [0.0, 1.0, 2.0]:
         completion = run_chat_completion(
-            model_name, messages, max_tokens, temperature=temp, return_completion=True
+            model_name,
+            messages,
+            max_tokens,
+            temperature=temperature,
+            return_completion=True,
         )
         curr_embeddings = model.encode(completion["choices"][0]["message"]["content"])
-        cur_distance = distance.cosine(curr_embeddings, goldev_embed)
-        assert prev_dist <= cur_distance
-        prev_dist = cur_distance
+        distances.append(distance.cosine(curr_embeddings, goldev_embed))
 
-    assert run_chat_completion(model_name, messages, temperature=-0.1) == 400
-    assert run_chat_completion(model_name, messages, temperature=2.1) == 400
+    assert distances == sorted(distances)
+
+
+def test_lower_temperature_limit(model_name):
+    """Invalid temperatures should produce an error.
+
+    Temperature is allowed to range from 0 to 2.0.  Outside of this
+    range, an error should be thrown.
+    """
+    messages = [
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user", "content": "Write a blog about Seattle"},
+    ]
+
+    with pytest.raises(APIError):
+        completion = run_chat_completion(
+            model_name, messages, temperature=-0.1, return_completion=True
+        )
+
+
+def test_upper_temperature_limit(model_name):
+    """Invalid temperatures should produce an error.
+
+    Temperature is allowed to range from 0 to 2.0.  Outside of this
+    range, an error should be thrown.
+    """
+    messages = [
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user", "content": "Write a blog about Seattle"},
+    ]
+
+    with pytest.raises(APIError):
+        completion = run_chat_completion(
+            model_name, messages, temperature=2.1, return_completion=True
+        )
 
 
 def test_top_p(model_name):
@@ -277,18 +323,8 @@ def test_frequency_penalty(model_name):
         model.encode(second_completion["choices"][0]["message"]["content"]),
     )
 
-    assert (
-        run_chat_completion(
-            model_name, messages, frequency_penalty=-2.1, return_completion=True
-        )
-        == 400
-    )
-    assert (
-        run_chat_completion(
-            model_name, messages, frequency_penalty=2.1, return_completion=True
-        )
-        == 400
-    )
+    assert run_chat_completion(model_name, messages, frequency_penalty=-2.1) == 400
+    assert run_chat_completion(model_name, messages, frequency_penalty=2.1) == 400
 
 
 def test_presence_penalty(model_name):
@@ -348,18 +384,8 @@ def test_presence_penalty(model_name):
         model.encode(second_completion["choices"][0]["message"]["content"]),
     )
 
-    assert (
-        run_chat_completion(
-            model_name, messages, presence_penalty=-2.1, return_completion=True
-        )
-        == 400
-    )
-    assert (
-        run_chat_completion(
-            model_name, messages, presence_penalty=2.1, return_completion=True
-        )
-        == 400
-    )
+    assert run_chat_completion(model_name, messages, presence_penalty=-2.1) == 400
+    assert run_chat_completion(model_name, messages, presence_penalty=2.1) == 400
 
 
 def test_model_name(model_name):
@@ -421,10 +447,12 @@ def test_created_time(model_name):
         {"role": "system", "content": "You are a helpful assistant."},
         {"role": "user", "content": "Hello!"},
     ]
-    st_time = time.time()
+    # The "created" timestamp is only provided at 1-second
+    # granularity, so we shouldn't compare with a finer granularity.
+    st_time = int(time.time())
     completion = run_chat_completion(model_name, messages, return_completion=True)
-    end_time = time.time()
-    assert st_time < completion["created"] < end_time
+    end_time = int(time.time())
+    assert st_time <= completion["created"] <= end_time
 
 
 @pytest.mark.parametrize(
@@ -531,15 +559,19 @@ def test_canceling_requests(model_name):
     eps = 5
     assert abs(second_run_time - first_run_time) < eps
 
+
 @pytest.mark.parametrize("tokens", [30, 50, 70])
 def test_completion_tokens(model_name, tokens):
     messages = [
         {"role": "user", "content": f"Explain JavaScript objects in {tokens} tokens or less."}
     ]
 
-    completion = run_chat_completion(model_name, messages, temperature=0, top_p=1.0, return_completion=True)
+    completion = run_chat_completion(
+        model_name, messages, temperature=0, top_p=1.0, return_completion=True
+    )
     threshold = 10
     assert abs(completion["usage"]["completion_tokens"] - tokens) < threshold
+
 
 def test_same_completion_len(model_name):
     messages = [
@@ -548,7 +580,9 @@ def test_same_completion_len(model_name):
     tokens_set = set()
 
     for _ in range(4):
-        completion = run_chat_completion(model_name, messages, temperature=0, top_p=1.0, return_completion=True)
+        completion = run_chat_completion(
+            model_name, messages, temperature=0, top_p=1.0, return_completion=True
+        )
         tokens_set.add(completion["usage"]["completion_tokens"])
 
     assert len(tokens_set) == 1
