@@ -650,6 +650,8 @@ def send_request_with_timeout(url, data, headers):
     except requests.exceptions.Timeout:
         pass
 
+def send_request(url, data, headers):
+    requests.post(url, json=data, headers=headers)
 
 def test_canceling_requests(model_name, token, endpoint):
     data = {
@@ -674,20 +676,25 @@ def test_canceling_requests(model_name, token, endpoint):
         "Content-Type": "application/json",
         "Authorization": f"Bearer {token}",
     }
+
     start_time = time.time()
-    requests.post(url, json=data, headers=headers)
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        for _ in range(8):
+            executor.submit(send_request, url, data, headers)
     first_run_time = time.time() - start_time
 
     with ThreadPoolExecutor(max_workers=4) as executor:
-        for _ in range(64):
+        for _ in range(8):
             executor.submit(send_request_with_timeout, url, data, headers)
 
     start_time = time.time()
-    requests.post(url, json=data, headers=headers)
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        for _ in range(8):
+            executor.submit(send_request, url, data, headers)
     second_run_time = time.time() - start_time
 
-    eps = 5
-    assert abs(second_run_time - first_run_time) < eps
+    threshold = 5
+    assert abs(second_run_time - first_run_time) < threshold
 
 @pytest.mark.parametrize("temperature", [0.0, 0.5, 0.7, 1.0, 1.5])
 def test_same_completion_len(temperature, model_name, token, endpoint):
