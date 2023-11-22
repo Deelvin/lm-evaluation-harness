@@ -4,6 +4,8 @@ import os
 import subprocess
 import argparse
 
+TASKS = ["gsm8k", "truthfulqa_gen", "triviaqa"]
+
 def parse_endpoints(path_to_endpoints_file: str, ) -> Dict[str, str]:
     with open(path_to_endpoints_file, "r+") as file:
         endpoints = json.load(file)
@@ -14,7 +16,7 @@ def run_smoke_tests(
         endpoint_type: str, 
         path_to_tests_file: str, 
         write_out_base_path: str = "./"
-    ) -> NoReturn:
+    ) -> None:
     if not os.environ.get("OCTOAI_TOKEN"):
         os.environ["OCTOAI_TOKEN"] = os.environ.get("OCTOI_API_KEY")
     for endpoint_name in endpoints.keys():
@@ -48,7 +50,7 @@ def run_benchmark(
         write_out_base_path: str = "./",
         task: str = "gsm8k",
         
-    ) -> NoReturn:
+    ) -> None:
     if not os.environ.get("OCTOAI_API_KEY"):
         os.environ["OCTOAI_API_KEY"] = os.environ.get("OCTOAI_TOKEN")
     for endpoint_name in endpoints.keys():
@@ -99,10 +101,11 @@ def main() -> NoReturn:
     parser.add_argument("--tests_file", type=str)
     parser.add_argument("--run_benchmark", action="store_true")
     parser.add_argument("--benchmark_repo", type=str)
-    parser.add_argument("--num_fewshot", type=int)
-    parser.add_argument("--write_out_base", type=str)
-    parser.add_argument("--task", type=str)
+    parser.add_argument("--num_fewshot", type=int, default=0)
+    parser.add_argument("--write_out_base", type=str, default="./")
+    parser.add_argument("--task", type=str, default="gsm8k")
     parser.add_argument("--endpoint_type", type=str, default="dev")
+    parser.add_argument("--run_all", action="store_true")
     args = parser.parse_args()
 
     if not os.environ.get("OCTOAI_TOKEN") and not os.environ.get("OCTOAI_API_KEY"):
@@ -114,24 +117,46 @@ def main() -> NoReturn:
         raise RuntimeError("Please specify path to repository with benchmark source (works with lm-evaluation-harness)")
     if args.endpoint_type not in ["dev", "prod"]:
         raise RuntimeError("Please specify only dev or prod type of endpoints")
+    if args.run_all and not (args.test_file and args.benchmark_repo):
+        raise RuntimeError("Please specify both test_file path and path to your local benchmark repository if you want to run all")
 
     endpoints = parse_endpoints(args.endpoints_file)
-    
-    if args.run_tests:
+
+    if args.run_all:
         run_smoke_tests(
             endpoints, 
             args.endpoint_type,
             args.tests_file, 
             write_out_base_path=args.write_out_base,
         )
+        
+        for task in TASKS:
+            run_benchmark(
+                endpoints,
+                args.endpoint_type,
+                args.benchmark_repo,
+                num_fewshot=args.num_fewshot,
+                write_out_base_path=args.write_out_base,
+                task=task
+            )
+    
     else:
-        run_benchmark(
-            endpoints,
-            args.endpoint_type,
-            args.benchmark_repo,
-            num_fewshot=args.num_fewshot,
-            write_out_base_path=args.write_out_base,
-            task=args.task
-        )
+        if args.run_tests:
+            run_smoke_tests(
+                endpoints, 
+                args.endpoint_type,
+                args.tests_file, 
+                write_out_base_path=args.write_out_base,
+            )
+        if args.run_benchmark:
+            run_benchmark(
+                endpoints,
+                args.endpoint_type,
+                args.benchmark_repo,
+                num_fewshot=args.num_fewshot,
+                write_out_base_path=args.write_out_base,
+                task=args.task
+            )
+
 if __name__ == "__main__":
     main()
