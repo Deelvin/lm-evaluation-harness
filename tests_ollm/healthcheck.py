@@ -20,7 +20,7 @@ def construct_request_url(url, model, prod):
     if prod:
         return f"{url}/v1/chat/completions"
     else:
-        return f"{url}/{model}/v1/chat/completions"
+        return f"{url}/v1/chat/completions"
 
 def check_endpoint_health(endpoint, token, prod=True):
 

@@ -19,25 +19,26 @@ def run_smoke_tests(
     ) -> None:
     if not os.environ.get("OCTOAI_TOKEN"):
         os.environ["OCTOAI_TOKEN"] = os.environ.get("OCTOI_API_KEY")
-    for endpoint_name in endpoints.keys():
+    for endpoint in endpoints[endpoint_type]:
+        model_name = endpoint["model"]
         print(f"--------------------------------------------------------------------------")
-        print(f"Running smoke_tests for {endpoint_name}")
+        print(f"Running smoke_tests for {model_name}")
         print(f"--------------------------------------------------------------------------")
         subprocess.run(
-            f"tmux new-session -d -s {endpoint_name} ",
+            f"tmux new-session -d -s {model_name} ",
             shell=True, 
             universal_newlines=True
         )
         subprocess.run(
-            f"tmux send-keys -t {endpoint_name} "
-            f"\"ENDPOINT={endpoints[endpoint_name]}/{endpoint_name} "
+            f"tmux send-keys -t {model_name} "
+            f"\"ENDPOINT={endpoint['url']} "
             f"python3 -m pytest {path_to_tests_file} " 
-            f"--model_name={endpoint_name} > {os.path.join(write_out_base_path, f'test_{endpoint_name}.log')}\" Enter",
+            f"--model_name={model_name} > {os.path.join(write_out_base_path, f'test_{model_name}.log')}\" Enter",
             shell=True,
             universal_newlines=True
         )
         subprocess.run(
-            f"tmux capture-pane -t {endpoint_name} -p",
+            f"tmux capture-pane -t {model_name} -p",
             shell=True, 
             universal_newlines=True
         )
@@ -53,31 +54,31 @@ def run_benchmark(
     ) -> None:
     if not os.environ.get("OCTOAI_API_KEY"):
         os.environ["OCTOAI_API_KEY"] = os.environ.get("OCTOAI_TOKEN")
-    for endpoint_name in endpoints.keys():
-        if not os.path.exists(os.path.join(write_out_base_path, endpoint_name)):
-            os.makedirs(os.path.join(write_out_base_path, endpoint_name))
+    for endpoint in endpoints[endpoint_type]:
+        if not os.path.exists(os.path.join(write_out_base_path, endpoint["model"])):
+            os.makedirs(os.path.join(write_out_base_path, endpoint["model"]))
         work_dir = os.getcwd()
-        os.chdir(os.path.join(write_out_base_path, endpoint_name))
+        os.chdir(os.path.join(write_out_base_path, endpoint["model"]))
 
-        if not os.path.exists(os.path.join(write_out_base_path, endpoint_name,f"nf{num_fewshot}")):
-            os.makedirs(os.path.join(write_out_base_path, endpoint_name, f"nf{num_fewshot}"))
+        if not os.path.exists(os.path.join(write_out_base_path, endpoint["model"],f"nf{num_fewshot}")):
+            os.makedirs(os.path.join(write_out_base_path, endpoint["model"], f"nf{num_fewshot}"))
 
         print(f"--------------------------------------------------------------------------")
-        print(f"Running benchmark for {endpoint_name} with --num_fewshot={num_fewshot}")
+        print(f"Running benchmark for {endpoint['model']} with --num_fewshot={num_fewshot}")
         print(f"--------------------------------------------------------------------------")
 
         subprocess.run(
-            f"tmux new-session -d -s {endpoint_name}-nf{num_fewshot} ",
+            f"tmux new-session -d -s {endpoint['model']}-nf{num_fewshot} ",
             shell=True, 
             universal_newlines=True
         )
         subprocess.run(
-            f"tmux send-keys -t {endpoint_name}-nf{num_fewshot} "
+            f"tmux send-keys -t {endpoint['model']}-nf{num_fewshot} "
             f"\"python3 {path_to_benchmark_repo}/main.py "
             f"--model=octoai "
-            f"--model_args=\'model_name={endpoint_name}\' "
+            f"--model_args=\'model_name={endpoint['model']}\' "
             f"--task={task} "
-            f"--output_path=./nf{num_fewshot}/res_greedy_nf{num_fewshot}_{task}_{endpoint_name}.json " 
+            f"--output_path=./nf{num_fewshot}/res_greedy_nf{num_fewshot}_{task}_{endpoint['model']}.json " 
             f"--no_cache " 
             f"--num_fewshot={num_fewshot} " 
             f"--batch_size=1 " 
@@ -87,7 +88,7 @@ def run_benchmark(
             universal_newlines=True
         )
         subprocess.run(
-            f"tmux capture-pane -t {endpoint_name}-nf{num_fewshot} -p",
+            f"tmux capture-pane -t {endpoint['model']}-nf{num_fewshot} -p",
             shell=True, 
             universal_newlines=True
         )
