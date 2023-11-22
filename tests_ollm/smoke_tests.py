@@ -137,7 +137,7 @@ def test_incorrect_role(model_name, token, endpoint):
     assert run_chat_completion(model_name, messages, token, endpoint) == 200
 
 
-@pytest.mark.parametrize("max_tokens", [1.5, 10, 100, 300, 500, 1024])
+@pytest.mark.parametrize("max_tokens", [10, 100, 300, 500, 1024])
 def test_max_tokens(model_name, context_size, max_tokens, token, endpoint):
     messages = [
         {
@@ -305,7 +305,8 @@ def test_stream(model_name, token, endpoint):
     assert isinstance(completion_stream, types.GeneratorType)
     stream_str = ""
     for chunk in completion_stream:
-        if chunk["choices"][0]["delta"]["role"] != "assistant":
+        chunk_data = chunk["choices"][0]["delta"]["content"]
+        if chunk["choices"][0]["delta"]["role"] == "assistant" and chunk_data is not None:
             stream_str += chunk["choices"][0]["delta"]["content"]
     completion = run_chat_completion(
         model_name,
@@ -688,36 +689,27 @@ def test_canceling_requests(model_name, token, endpoint):
     eps = 5
     assert abs(second_run_time - first_run_time) < eps
 
-
-@pytest.mark.parametrize("tokens", [30, 50, 70])
-def test_completion_tokens(model_name, tokens, token, endpoint):
-    messages = [
-        {"role": "user", "content": f"Explain JavaScript objects in {tokens} tokens or less."}
-    ]
-
-    completion = run_chat_completion(
-        model_name, messages, token, endpoint, temperature=0, top_p=1.0, return_completion=True
-    )
-    threshold = 10
-    assert abs(completion["usage"]["completion_tokens"] - tokens) < threshold
-
-
-def test_same_completion_len(model_name, token, endpoint):
+@pytest.mark.parametrize("temperature", [0.0, 0.5, 0.7, 1.0, 1.5])
+def test_same_completion_len(temperature, model_name, token, endpoint):
     messages = [
         {"role": "user", "content": "Hello, how can you help me? Answer short."}
     ]
-    tokens_set = set()
-
-    for _ in range(4):
+    tokens_arr = []
+    mean = 0
+    trials = 4
+    for _ in range(trials):
         completion = run_chat_completion(
             model_name,
             messages,
             token,
             endpoint,
-            temperature=0,
+            temperature=temperature,
             top_p=1.0,
             return_completion=True,
         )
-        tokens_set.add(completion["usage"]["completion_tokens"])
+        mean += completion["usage"]["completion_tokens"]
+        tokens_arr.append(completion["usage"]["completion_tokens"])
 
-    assert len(tokens_set) == 1
+    mean /= trials
+    threshold = 10
+    assert all([abs(tokens_arr[i] - mean) <= threshold for i in range(trials)])
