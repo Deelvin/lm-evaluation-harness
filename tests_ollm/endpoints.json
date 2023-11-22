@@ -1,103 +1,103 @@
 {
-    "dev": [
-      {
-        "name": "text-test-codellama-34b-instruct-int4-1",
-        "url": "https://text-test-codellama-34b-instruct-int4-1-ht5iv0iul7xi.octoai.run",
-        "model": "codellama-34b-instruct-int4"
-      },
-      {
-        "name": "text-test-llama-2-70b-chat-int4-1",
-        "url": "https://text-test-llama-2-70b-chat-int4-1-ht5iv0iul7xi.octoai.run",
-        "model": "llama-2-70b-chat-int4"
-      },
-      {
-        "name": "text-demo-mlc-serve-llama-2-7b-chat-hf-s2q0f16",
-        "url": "https://text-demo-mlc-serve-llama-2-7b-chc591cb-l6z2ijkgynn7.octoai.run",
-        "model": "llama-2-7b-chat-hf"
-      },
-      {
-        "name": "text-mlc-serve-codellama-13b-instruct-fp16",
-        "url": "https://text-mlc-serve-codellama-13b-inst57fdc4-l6z2ijkgynn7.octoai.run",
-        "model": "codellama-13b-instruct-fp16"
-      },
-      {
-        "name": "text-mlc-serve-codellama-34b-instruct-int4",
-        "url": "https://text-mlc-serve-codellama-34b-inst087581-l6z2ijkgynn7.octoai.run",
-        "model": "codellama-34b-instruct-int4"
-      },
-      {
-        "name": "text-mlc-serve-codellama-34b-instruct-fp16",
-        "url": "https://text-mlc-serve-codellama-34b-inst73411d-l6z2ijkgynn7.octoai.run",
-        "model": "codellama-34b-instruct-fp16"
-      },
-      {
-        "name": "text-mlc-serve-codellama-7b-instruct-fp16",
-        "url": "https://text-mlc-serve-codellama-7b-instr48ac9b-l6z2ijkgynn7.octoai.run",
-        "model": "codellama-7b-instruct-fp16"
-      },
-      {
-        "name": "text-mlc-serve-llama-2-13b-chat-fp16",
-        "url": "https://text-mlc-serve-llama-2-13b-chat-fp16-l6z2ijkgynn7.octoai.run",
-        "model": "llama-2-13b-chat-fp16"
-      },
-      {
-        "name": "text-mlc-serve-llama-2-70b-chat-fp16",
-        "url": "https://text-mlc-serve-llama-2-70b-chat-fp16-l6z2ijkgynn7.octoai.run",
-        "model": "llama-2-70b-chat-fp16"
-      },
-      {
-        "name": "text-mlc-serve-llama-2-70b-chat-int4",
-        "url": "https://text-mlc-serve-llama-2-70b-chat-int4-l6z2ijkgynn7.octoai.run",
-        "model": "llama-2-70b-chat-int4"
-      },
-      {
-        "name": "text-mlc-serve-mistral-7b-instruct-fp16",
-        "url": "https://text-mlc-serve-mistral-7b-instruct-fp16-l6z2ijkgynn7.octoai.run",
-        "model": "mistral-7b-instruct-fp16"
-      }      
-    ],
+  "dev": [
+    {
+      "name": "text-test-codellama-34b-instruct-int4-1",
+      "url": "https://text.customer-endpoints.nimbus.octoml.ai/v1/chat/completions",
+      "model": "codellama-34b-instruct-int4"
+    },
+    {
+      "name": "text-test-llama-2-70b-chat-int4-1",
+      "url": "https://text.customer-endpoints.nimbus.octoml.ai/v1/chat/completions",
+      "model": "llama-2-70b-chat-int4"
+    },
+    {
+      "name": "text-demo-mlc-serve-llama-2-7b-chat-hf-s2q0f16",
+      "url": "https://text.customer-endpoints.nimbus.octoml.ai/v1/chat/completions",
+      "model": "llama-2-7b-chat-hf"
+    },
+    {
+      "name": "text-mlc-serve-codellama-13b-instruct-fp16",
+      "url": "https://text.customer-endpoints.nimbus.octoml.ai/v1/chat/completions",
+      "model": "codellama-13b-instruct-fp16"
+    },
+    {
+      "name": "text-mlc-serve-codellama-34b-instruct-int4",
+      "url": "https://text.customer-endpoints.nimbus.octoml.ai/v1/chat/completions",
+      "model": "codellama-34b-instruct-int4"
+    },
+    {
+      "name": "text-mlc-serve-codellama-34b-instruct-fp16",
+      "url": "https://text.customer-endpoints.nimbus.octoml.ai/v1/chat/completions",
+      "model": "codellama-34b-instruct-fp16"
+    },
+    {
+      "name": "text-mlc-serve-codellama-7b-instruct-fp16",
+      "url": "https://text.customer-endpoints.nimbus.octoml.ai/v1/chat/completions",
+      "model": "codellama-7b-instruct-fp16"
+    },
+    {
+      "name": "text-mlc-serve-llama-2-13b-chat-fp16",
+      "url": "https://text.customer-endpoints.nimbus.octoml.ai/v1/chat/completions",
+      "model": "llama-2-13b-chat-fp16"
+    },
+    {
+      "name": "text-mlc-serve-llama-2-70b-chat-fp16",
+      "url": "https://text.customer-endpoints.nimbus.octoml.ai/v1/chat/completions",
+      "model": "llama-2-70b-chat-fp16"
+    },
+    {
+      "name": "text-mlc-serve-llama-2-70b-chat-int4",
+      "url": "https://text.customer-endpoints.nimbus.octoml.ai/v1/chat/completions",
+      "model": "llama-2-70b-chat-int4"
+    },
+    {
+      "name": "text-mlc-serve-mistral-7b-instruct-fp16",
+      "url": "https://text.customer-endpoints.nimbus.octoml.ai/v1/chat/completions",
+      "model": "mistral-7b-instruct-fp16"
+    }      
+  ],
 
 
-    "prod": [
-      {
-        "url": "https://text.octoai.run",
-        "model": "codellama-34b-instruct-int4"
-      },
-      {
-        "url": "https://text.octoai.run",
-        "model": "llama-2-70b-chat-int4"
-      },
-      {
-        "url": "https://text.octoai.run",
-        "model": "codellama-13b-instruct-fp16"
-      },
-      {
-        "url": "https://text.octoai.run",
-        "model": "codellama-34b-instruct-int4"
-      },
-      {
-        "url": "https://text.octoai.run",
-        "model": "codellama-34b-instruct-fp16"
-      },
-      {
-        "url": "https://text.octoai.run",
-        "model": "codellama-7b-instruct-fp16"
-      },
-      {
-        "url": "https://text.octoai.run",
-        "model": "llama-2-13b-chat-fp16"
-      },
-      {
-        "url": "https://text.octoai.run",
-        "model": "llama-2-70b-chat-fp16"      
-      },
-      {
-        "url": "https://text.octoai.run",
-        "model": "llama-2-70b-chat-int4"
-      },
-      {
-        "url": "https://text.octoai.run",
-        "model": "mistral-7b-instruct-fp16"
-      }      
-    ]
-  }
+  "prod": [
+    {
+      "url": "https://text.octoai.run",
+      "model": "codellama-34b-instruct-int4"
+    },
+    {
+      "url": "https://text.octoai.run",
+      "model": "llama-2-70b-chat-int4"
+    },
+    {
+      "url": "https://text.octoai.run",
+      "model": "codellama-13b-instruct-fp16"
+    },
+    {
+      "url": "https://text.octoai.run",
+      "model": "codellama-34b-instruct-int4"
+    },
+    {
+      "url": "https://text.octoai.run",
+      "model": "codellama-34b-instruct-fp16"
+    },
+    {
+      "url": "https://text.octoai.run",
+      "model": "codellama-7b-instruct-fp16"
+    },
+    {
+      "url": "https://text.octoai.run",
+      "model": "llama-2-13b-chat-fp16"
+    },
+    {
+      "url": "https://text.octoai.run",
+      "model": "llama-2-70b-chat-fp16"      
+    },
+    {
+      "url": "https://text.octoai.run",
+      "model": "llama-2-70b-chat-int4"
+    },
+    {
+      "url": "https://text.octoai.run",
+      "model": "mistral-7b-instruct-fp16"
+    }      
+  ]
+}
