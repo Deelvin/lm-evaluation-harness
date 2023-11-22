@@ -218,8 +218,8 @@ def test_valid_temperature(model_name, token, endpoint):
 def test_temperature_outside_limit(model_name, temperature, token, endpoint):
     """Invalid temperatures should produce an error.
 
-    Temperature is allowed to range from 0 to 2.0.  Outside of this
-    range, an error should be thrown.
+    Temperature is allowed to range from 0 to 2.0. Outside of this
+    range, an error should be returned in the completion.
     """
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
@@ -692,7 +692,7 @@ def test_canceling_requests(model_name, token, endpoint):
         for _ in range(8):
             executor.submit(send_request, url, data, headers)
     second_run_time = time.time() - start_time
-
+ 
     threshold = 5
     assert abs(second_run_time - first_run_time) < threshold
 
@@ -720,3 +720,6 @@ def test_same_completion_len(temperature, model_name, token, endpoint):
     mean /= trials
     threshold = 10
     assert all([abs(tokens_arr[i] - mean) <= threshold for i in range(trials)])
+
+def test_input_token(model_name):
+    pass
