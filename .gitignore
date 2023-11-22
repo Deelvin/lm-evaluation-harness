@@ -7,3 +7,4 @@ lm_cache
 /*.json
 /*.sh
 tests_ollm/*.npy
+*.log

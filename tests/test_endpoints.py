@@ -1,8 +1,14 @@
-from typing import NoReturn, Dict, Optional
+from typing import NoReturn, Dict, List
+from datetime import date
+from pathlib import Path
+from utils import init_gspread_client
 import json
 import os
+import re
 import subprocess
 import argparse
+
+import gspread
 
 TASKS = ["gsm8k", "truthfulqa_gen", "triviaqa"]
 
@@ -15,11 +21,13 @@ def run_smoke_tests(
         endpoints: Dict[str, str],
         endpoint_type: str, 
         path_to_tests_file: str, 
-        write_out_base_path: str = "./"
+        write_out_base_path: str = "./",
+        write_table: bool = True,
     ) -> None:
     if not os.environ.get("OCTOAI_TOKEN"):
         os.environ["OCTOAI_TOKEN"] = os.environ.get("OCTOI_API_KEY")
-    for endpoint in endpoints[endpoint_type]:
+
+    for col_num, endpoint in enumerate(endpoints[endpoint_type]):
         model_name = endpoint["model"]
         print(f"--------------------------------------------------------------------------")
         print(f"Running smoke_tests for {model_name}")
@@ -29,17 +37,21 @@ def run_smoke_tests(
             shell=True, 
             universal_newlines=True
         )
+        log_file = os.path.join(write_out_base_path, f'test_{model_name}.log')
+        write_table_command = ""
+
+        if write_table:
+            write_table_command = f"&& python3 -m {os.path.join(str(Path(__file__).parent), 'process_logs.py')} "
+            f"--path_to_log={log_file} "
+            f"--col_num={col_num}"
+            f"--model_name={model_name}"
+
         subprocess.run(
             f"tmux send-keys -t {model_name} "
             f"\"ENDPOINT={endpoint['url']} "
             f"python3 -m pytest {path_to_tests_file} " 
-            f"--model_name={model_name} > {os.path.join(write_out_base_path, f'test_{model_name}.log')}\" Enter",
+            f"--model_name={model_name} > {log_file}\" {write_table_command} Enter",
             shell=True,
-            universal_newlines=True
-        )
-        subprocess.run(
-            f"tmux capture-pane -t {model_name} -p",
-            shell=True, 
             universal_newlines=True
         )
 
@@ -107,6 +119,7 @@ def main() -> NoReturn:
     parser.add_argument("--task", type=str, default="gsm8k")
     parser.add_argument("--endpoint_type", type=str, default="dev")
     parser.add_argument("--run_all", action="store_true")
+    parser.add_argument("--write_table", action="store_true")
     args = parser.parse_args()
 
     if not os.environ.get("OCTOAI_TOKEN") and not os.environ.get("OCTOAI_API_KEY"):
@@ -123,12 +136,34 @@ def main() -> NoReturn:
 
     endpoints = parse_endpoints(args.endpoints_file)
 
+    if args.write_table:
+        spreadsheet = init_gspread_client()
+        pytest_nodes = subprocess.check_output(
+            f"pytest {args.tests_file} --collect-only",
+            shell=True,
+            text=True
+        )
+        test_names = []
+        for line in pytest_nodes.split('\n'):
+            match = re.search(r"test_[a-zA-Z_]+", line)
+            if match:
+                test_names.append(match[0])
+
+        today = str(date.today())
+        if today not in spreadsheet.worksheets():
+            worksheet = spreadsheet.add_worksheet(title=today, rows=250, cols=100)
+        else:
+            worksheet = spreadsheet.worksheet(today)
+        splitted_test_names = [[test_name] for test_name in test_names]
+        worksheet.update(f"A2:A{2 + len(test_names)}", splitted_test_names)
+
     if args.run_all:
         run_smoke_tests(
             endpoints, 
             args.endpoint_type,
             args.tests_file, 
             write_out_base_path=args.write_out_base,
+            write_table=args.write_table
         )
         
         for task in TASKS:

@@ -1,58 +1,7 @@
 {
   "dev": [
     {
-      "name": "text-test-codellama-34b-instruct-int4-1",
-      "url": "https://text.customer-endpoints.nimbus.octoml.ai/v1/chat/completions",
-      "model": "codellama-34b-instruct-int4"
-    },
-    {
-      "name": "text-test-llama-2-70b-chat-int4-1",
-      "url": "https://text.customer-endpoints.nimbus.octoml.ai/v1/chat/completions",
-      "model": "llama-2-70b-chat-int4"
-    },
-    {
-      "name": "text-demo-mlc-serve-llama-2-7b-chat-hf-s2q0f16",
-      "url": "https://text.customer-endpoints.nimbus.octoml.ai/v1/chat/completions",
-      "model": "llama-2-7b-chat-hf"
-    },
-    {
-      "name": "text-mlc-serve-codellama-13b-instruct-fp16",
-      "url": "https://text.customer-endpoints.nimbus.octoml.ai/v1/chat/completions",
-      "model": "codellama-13b-instruct-fp16"
-    },
-    {
-      "name": "text-mlc-serve-codellama-34b-instruct-int4",
-      "url": "https://text.customer-endpoints.nimbus.octoml.ai/v1/chat/completions",
-      "model": "codellama-34b-instruct-int4"
-    },
-    {
-      "name": "text-mlc-serve-codellama-34b-instruct-fp16",
-      "url": "https://text.customer-endpoints.nimbus.octoml.ai/v1/chat/completions",
-      "model": "codellama-34b-instruct-fp16"
-    },
-    {
-      "name": "text-mlc-serve-codellama-7b-instruct-fp16",
-      "url": "https://text.customer-endpoints.nimbus.octoml.ai/v1/chat/completions",
-      "model": "codellama-7b-instruct-fp16"
-    },
-    {
-      "name": "text-mlc-serve-llama-2-13b-chat-fp16",
-      "url": "https://text.customer-endpoints.nimbus.octoml.ai/v1/chat/completions",
-      "model": "llama-2-13b-chat-fp16"
-    },
-    {
-      "name": "text-mlc-serve-llama-2-70b-chat-fp16",
-      "url": "https://text.customer-endpoints.nimbus.octoml.ai/v1/chat/completions",
-      "model": "llama-2-70b-chat-fp16"
-    },
-    {
-      "name": "text-mlc-serve-llama-2-70b-chat-int4",
-      "url": "https://text.customer-endpoints.nimbus.octoml.ai/v1/chat/completions",
-      "model": "llama-2-70b-chat-int4"
-    },
-    {
-      "name": "text-mlc-serve-mistral-7b-instruct-fp16",
-      "url": "https://text.customer-endpoints.nimbus.octoml.ai/v1/chat/completions",
+      "url": "https://text.customer-endpoints.nimbus.octoml.ai",
       "model": "mistral-7b-instruct-fp16"
     }      
   ],
