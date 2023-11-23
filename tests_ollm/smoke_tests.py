@@ -272,18 +272,8 @@ def test_top_p(model_name, token, endpoint):
         assert prev_dist <= cur_distance
         prev_dist = cur_distance
 
-    assert (
-        run_chat_completion(
-            model_name, messages, token, endpoint, top_p=-0.1, return_completion=True
-        )
-        == 400
-    )
-    assert (
-        run_chat_completion(
-            model_name, messages, token, endpoint, top_p=1.1, return_completion=True
-        )
-        == 400
-    )
+    assert run_chat_completion(model_name, messages, token, endpoint, top_p=-0.1) == 400
+    assert run_chat_completion(model_name, messages, token, endpoint, top_p=1.1) == 400
 
 
 @pytest.mark.parametrize("n", [1, 5, 10])
@@ -415,7 +405,6 @@ def test_frequency_penalty(model_name, token, endpoint):
             token,
             endpoint,
             frequency_penalty=-2.1,
-            return_completion=True,
         )
         == 400
     )
@@ -426,7 +415,6 @@ def test_frequency_penalty(model_name, token, endpoint):
             token,
             endpoint,
             frequency_penalty=2.1,
-            return_completion=True,
         )
         == 400
     )
@@ -500,7 +488,6 @@ def test_presence_penalty(model_name, token, endpoint):
             token,
             endpoint,
             presence_penalty=-2.1,
-            return_completion=True,
         )
         == 400
     )
@@ -511,7 +498,6 @@ def test_presence_penalty(model_name, token, endpoint):
             token,
             endpoint,
             presence_penalty=2.1,
-            return_completion=True,
         )
         == 400
     )
