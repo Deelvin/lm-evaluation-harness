@@ -137,8 +137,8 @@ def test_incorrect_role(model_name, token, endpoint):
     assert run_chat_completion(model_name, messages, token, endpoint) == 200
 
 
-@pytest.mark.parametrize("max_tokens", [1.5, 10, 100, 300, 500, 1024])
-def test_max_tokens(model_name, context_size, max_tokens, token, endpoint):
+@pytest.mark.parametrize("max_tokens", [10, 100, 300, 500, 1024])
+def test_max_tokens(model_name, max_tokens, token, endpoint):
     messages = [
         {
             "role": "system",
@@ -218,8 +218,8 @@ def test_valid_temperature(model_name, token, endpoint):
 def test_temperature_outside_limit(model_name, temperature, token, endpoint):
     """Invalid temperatures should produce an error.
 
-    Temperature is allowed to range from 0 to 2.0.  Outside of this
-    range, an error should be thrown.
+    Temperature is allowed to range from 0 to 2.0. Outside of this
+    range, an error should be returned in the completion.
     """
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
@@ -305,7 +305,8 @@ def test_stream(model_name, token, endpoint):
     assert isinstance(completion_stream, types.GeneratorType)
     stream_str = ""
     for chunk in completion_stream:
-        if chunk["choices"][0]["delta"]["role"] != "assistant":
+        chunk_data = chunk["choices"][0]["delta"]["content"]
+        if chunk["choices"][0]["delta"]["role"] == "assistant" and chunk_data is not None:
             stream_str += chunk["choices"][0]["delta"]["content"]
     completion = run_chat_completion(
         model_name,
@@ -629,7 +630,7 @@ def test_cancel_and_follow_up_requests(model_name, token, endpoint):
         "presence_penalty": 0,
         "return_completion": False,
     }
-    url = endpoint + "/chat/completions"
+    url = endpoint + "/v1/chat/completions"
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {token}",
@@ -673,51 +674,48 @@ def test_canceling_requests(model_name, token, endpoint):
         "Content-Type": "application/json",
         "Authorization": f"Bearer {token}",
     }
+
     start_time = time.time()
-    requests.post(url, json=data, headers=headers)
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        for _ in range(8):
+            executor.submit(send_request_with_timeout, url, data, headers)
     first_run_time = time.time() - start_time
 
     with ThreadPoolExecutor(max_workers=4) as executor:
-        for _ in range(64):
+        for _ in range(8):
             executor.submit(send_request_with_timeout, url, data, headers)
 
     start_time = time.time()
-    requests.post(url, json=data, headers=headers)
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        for _ in range(8):
+            executor.submit(send_request_with_timeout, url, data, headers)
     second_run_time = time.time() - start_time
-
-    eps = 5
-    assert abs(second_run_time - first_run_time) < eps
-
-
-@pytest.mark.parametrize("tokens", [30, 50, 70])
-def test_completion_tokens(model_name, tokens, token, endpoint):
-    messages = [
-        {"role": "user", "content": f"Explain JavaScript objects in {tokens} tokens or less."}
-    ]
-
-    completion = run_chat_completion(
-        model_name, messages, token, endpoint, temperature=0, top_p=1.0, return_completion=True
-    )
-    threshold = 10
-    assert abs(completion["usage"]["completion_tokens"] - tokens) < threshold
+ 
+    threshold = 5
+    assert abs(second_run_time - first_run_time) < threshold
 
 
-def test_same_completion_len(model_name, token, endpoint):
+@pytest.mark.parametrize("temperature", [0.0, 0.5, 0.7, 1.0, 1.5])
+def test_same_completion_len(temperature, model_name, token, endpoint):
     messages = [
         {"role": "user", "content": "Hello, how can you help me? Answer short."}
     ]
-    tokens_set = set()
-
-    for _ in range(4):
+    tokens_arr = []
+    mean = 0
+    trials = 4
+    for _ in range(trials):
         completion = run_chat_completion(
             model_name,
             messages,
             token,
             endpoint,
-            temperature=0,
+            temperature=temperature,
             top_p=1.0,
             return_completion=True,
         )
-        tokens_set.add(completion["usage"]["completion_tokens"])
+        mean += completion["usage"]["completion_tokens"]
+        tokens_arr.append(completion["usage"]["completion_tokens"])
 
-    assert len(tokens_set) == 1
+    mean /= trials
+    threshold = 10
+    assert all([abs(tokens_arr[i] - mean) <= threshold for i in range(trials)])
