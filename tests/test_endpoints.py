@@ -73,7 +73,7 @@ def run_smoke_tests(
     
     for num_session in range(limit):
         subprocess.run(
-            f"tmux send-keys -t {num_session} \"echo 'Finished'\" {'C-m' if not debug else ''}",
+            f"tmux send-keys -t {num_session} \"{'exit' if not debug else 'echo Finished'}\" Enter",
             shell=True,
             universal_newlines=True
         )
