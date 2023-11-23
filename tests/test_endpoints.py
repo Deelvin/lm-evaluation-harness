@@ -44,9 +44,10 @@ def run_smoke_tests(
             os.makedirs(model_log_dir)
         log_file = os.path.join(
             model_log_dir, 
-            f'test_{model_name}_{str(datetime.now()).replace(" ", "_")}.log'
+            f'test_{model_name}_{str(datetime.datetime.now()).replace(" ", "_")}.log'
         )
         print(f"Logs from this run will be saved in the following way: {log_file}")
+        print()
 
         write_table_command = ""
         if write_table:
@@ -72,7 +73,9 @@ def run_smoke_tests(
     
     for num_session in range(limit):
         subprocess.run(
-            f"tmux send-keys -t {num_session} \"echo Finished\" {'C-m' if debug else ''}"
+            f"tmux send-keys -t {num_session} \"echo 'Finished'\" {'C-m' if debug else ''}",
+            shell=True,
+            universal_newlines=True
         )
     print("Done")
 
@@ -96,7 +99,7 @@ def main() -> NoReturn:
         raise ValueError("Please specify only dev or prod type of endpoints")
     
     if not os.path.exists(args.write_out_base):
-        os.mkdirs(args.write_out_base)
+        os.makedirs(args.write_out_base)
 
     endpoints = parse_endpoints(args.endpoints_file)
 
