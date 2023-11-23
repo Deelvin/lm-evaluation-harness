@@ -719,7 +719,3 @@ def test_same_completion_len(temperature, model_name, token, endpoint):
     mean /= trials
     threshold = 10
     assert all([abs(tokens_arr[i] - mean) <= threshold for i in range(trials)])
-
-
-def test_input_token(model_name):
-    pass
