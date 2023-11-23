@@ -21,6 +21,7 @@ def run_smoke_tests(
         path_to_tests_file: str, 
         write_out_base_path: str = "./",
         write_table: bool = True,
+        table_start_column: int = 0,
         limit: int = 3,
         debug: bool = False
     ) -> None:
@@ -39,19 +40,19 @@ def run_smoke_tests(
                 universal_newlines=True
             )
         
-        model_log_dir = os.path.join(write_out_base_path, model_name)
+        model_log_dir = os.path.join(write_out_base_path, f"{endpoint_type}_{model_name}")
         if not os.path.exists(model_log_dir):
             os.makedirs(model_log_dir)
         log_file = os.path.join(
             model_log_dir, 
-            f'test_{model_name}_{str(datetime.datetime.now()).replace(" ", "_")}.log'
+            f'test_{endpoint_type}_{model_name}_{str(datetime.datetime.now()).replace(" ", "_")}.log'
         )
         print(f"Logs from this run will be saved in the following way: {log_file}")
         print()
 
         write_table_command = ""
         if write_table:
-            write_table_command = f"python {os.path.join(str(Path(__file__).parent), 'process_logs.py')} --path_to_log={log_file} --col_num={col_num} --model_name={model_name}"
+            write_table_command = f"python {os.path.join(str(Path(__file__).parent), 'process_logs.py')} --path_to_log={log_file} --col_num={col_num + table_start_column} --model_name={endpoint_type}_{model_name}"
 
         subprocess.run(
             f"tmux send-keys -t {current_session % limit} "
@@ -94,8 +95,8 @@ def main() -> NoReturn:
 
     if not os.path.exists(args.tests_file):
         raise FileNotFoundError("Specified test file not found")
-    if args.endpoint_type not in ["dev", "prod"]:
-        raise ValueError("Please specify only dev or prod type of endpoints")
+    if args.endpoint_type not in ["dev", "prod", "all"]:
+        raise ValueError("Please specify only 'dev', 'prod' or 'all' type of endpoints")
     
     if not os.path.exists(args.write_out_base):
         os.makedirs(args.write_out_base)
@@ -105,7 +106,7 @@ def main() -> NoReturn:
     if args.write_table:
         spreadsheet = init_gspread_client()
         pytest_nodes = subprocess.check_output(
-            f"ENDPOINT=test pytest {args.tests_file} --model_name="" --collect-only",
+            f"pytest {args.tests_file} --model_name="" --endpoint=test --collect-only",
             shell=True,
             text=True
         )
@@ -122,15 +123,36 @@ def main() -> NoReturn:
         splitted_test_names = [[test_name] for test_name in test_names]
         worksheet.update(f"A2:A{2 + len(test_names)}", splitted_test_names)
 
-    run_smoke_tests(
-        endpoints, 
-        args.endpoint_type,
-        args.tests_file, 
-        write_out_base_path=args.write_out_base,
-        write_table=args.write_table,
-        limit=args.limit_sessions,
-        debug=args.debug
-    )
+    if args.endpoint_type == "all":
+        run_smoke_tests(
+            endpoints, 
+            "dev",
+            args.tests_file, 
+            write_out_base_path=args.write_out_base,
+            write_table=args.write_table,
+            limit=args.limit_sessions,
+            debug=args.debug
+        )
+        run_smoke_tests(
+            endpoints, 
+            "prod",
+            args.tests_file, 
+            write_out_base_path=args.write_out_base,
+            write_table=args.write_table,
+            table_start_column=len(endpoints["dev"]),
+            limit=args.limit_sessions,
+            debug=args.debug
+        )
+    else:
+        run_smoke_tests(
+            endpoints, 
+            args.endpoint_type,
+            args.tests_file, 
+            write_out_base_path=args.write_out_base,
+            write_table=args.write_table,
+            limit=args.limit_sessions,
+            debug=args.debug
+        )
 
 if __name__ == "__main__":
     main()

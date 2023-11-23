@@ -14,10 +14,6 @@
     },
     {
       "url": "https://text.customer-endpoints.nimbus.octoml.ai",
-      "model": "codellama-34b-instruct-int4"
-    },
-    {
-      "url": "https://text.customer-endpoints.nimbus.octoml.ai",
       "model": "codellama-34b-instruct-fp16"
     },
     {
@@ -55,10 +51,6 @@
     {
       "url": "https://text.octoai.run",
       "model": "codellama-13b-instruct-fp16"
-    },
-    {
-      "url": "https://text.octoai.run",
-      "model": "codellama-34b-instruct-int4"
     },
     {
       "url": "https://text.octoai.run",
