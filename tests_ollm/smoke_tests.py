@@ -138,7 +138,7 @@ def test_incorrect_role(model_name, token, endpoint):
 
 
 @pytest.mark.parametrize("max_tokens", [10, 100, 300, 500, 1024])
-def test_max_tokens(model_name, context_size, max_tokens, token, endpoint):
+def test_max_tokens(model_name, max_tokens, token, endpoint):
     messages = [
         {
             "role": "system",
@@ -650,8 +650,6 @@ def send_request_with_timeout(url, data, headers):
     except requests.exceptions.Timeout:
         pass
 
-def send_request(url, data, headers):
-    requests.post(url, json=data, headers=headers)
 
 def test_canceling_requests(model_name, token, endpoint):
     data = {
@@ -680,7 +678,7 @@ def test_canceling_requests(model_name, token, endpoint):
     start_time = time.time()
     with ThreadPoolExecutor(max_workers=4) as executor:
         for _ in range(8):
-            executor.submit(send_request, url, data, headers)
+            executor.submit(send_request_with_timeout, url, data, headers)
     first_run_time = time.time() - start_time
 
     with ThreadPoolExecutor(max_workers=4) as executor:
@@ -690,11 +688,12 @@ def test_canceling_requests(model_name, token, endpoint):
     start_time = time.time()
     with ThreadPoolExecutor(max_workers=4) as executor:
         for _ in range(8):
-            executor.submit(send_request, url, data, headers)
+            executor.submit(send_request_with_timeout, url, data, headers)
     second_run_time = time.time() - start_time
  
     threshold = 5
     assert abs(second_run_time - first_run_time) < threshold
+
 
 @pytest.mark.parametrize("temperature", [0.0, 0.5, 0.7, 1.0, 1.5])
 def test_same_completion_len(temperature, model_name, token, endpoint):
@@ -720,6 +719,7 @@ def test_same_completion_len(temperature, model_name, token, endpoint):
     mean /= trials
     threshold = 10
     assert all([abs(tokens_arr[i] - mean) <= threshold for i in range(trials)])
+
 
 def test_input_token(model_name):
     pass
