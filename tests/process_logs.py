@@ -2,6 +2,7 @@ from typing import List, Dict, NoReturn
 from datetime import date
 from utils import init_gspread_client
 import argparse
+import re
 import time
 
 import gspread
@@ -21,7 +22,7 @@ def process_test_logs(
     with open(path_to_log, 'r') as file:
         for num_test, test_name in enumerate(test_names):
             for line in file:
-                if "FAILED" in line and test_name in line:
+                if "FAILED" in line and re.search(r"test_[a-zA-Z_]+", test_name)[0] in line:
                     results[num_test] = 0
             file.seek(0)
     for i in range(len(results)):
