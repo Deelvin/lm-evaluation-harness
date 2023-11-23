@@ -41,19 +41,25 @@ def run_smoke_tests(
         write_table_command = ""
 
         if write_table:
-            write_table_command = f"&& python3 -m {os.path.join(str(Path(__file__).parent), 'process_logs.py')} "
-            f"--path_to_log={log_file} "
-            f"--col_num={col_num}"
-            f"--model_name={model_name}"
+            write_table_command = f"python {os.path.join(str(Path(__file__).parent), 'process_logs.py')} --path_to_log={log_file} --col_num={col_num} --model_name={model_name}"
 
         subprocess.run(
             f"tmux send-keys -t {model_name} "
             f"\"ENDPOINT={endpoint['url']} "
             f"python3 -m pytest {path_to_tests_file} " 
-            f"--model_name={model_name} > {log_file}\" {write_table_command} Enter",
+            f"--model_name={model_name} > {log_file}\" Enter",
             shell=True,
             universal_newlines=True
         )
+
+        subprocess.run(
+            f"tmux send-keys -t {model_name} "
+            f"\"{write_table_command}\" Enter", 
+            shell=True, 
+            universal_newlines=True
+        )
+    
+    print("Done")
 
 def run_benchmark(
         endpoints: Dict[str, str],
@@ -99,6 +105,7 @@ def run_benchmark(
             shell=True, 
             universal_newlines=True
         )
+        
         subprocess.run(
             f"tmux capture-pane -t {endpoint['model']}-nf{num_fewshot} -p",
             shell=True, 
@@ -139,7 +146,7 @@ def main() -> NoReturn:
     if args.write_table:
         spreadsheet = init_gspread_client()
         pytest_nodes = subprocess.check_output(
-            f"pytest {args.tests_file} --collect-only",
+            f"ENDPOINT=test pytest {args.tests_file} --collect-only",
             shell=True,
             text=True
         )
@@ -150,9 +157,9 @@ def main() -> NoReturn:
                 test_names.append(match[0])
 
         today = str(date.today())
-        if today not in spreadsheet.worksheets():
+        try:
             worksheet = spreadsheet.add_worksheet(title=today, rows=250, cols=100)
-        else:
+        except:
             worksheet = spreadsheet.worksheet(today)
         splitted_test_names = [[test_name] for test_name in test_names]
         worksheet.update(f"A2:A{2 + len(test_names)}", splitted_test_names)
@@ -183,6 +190,7 @@ def main() -> NoReturn:
                 args.endpoint_type,
                 args.tests_file, 
                 write_out_base_path=args.write_out_base,
+                write_table=args.write_table
             )
         if args.run_benchmark:
             run_benchmark(

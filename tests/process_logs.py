@@ -2,25 +2,28 @@ from typing import List, Dict, NoReturn
 from datetime import date
 from utils import init_gspread_client
 import argparse
+import time
 
 import gspread
 
-def get_test_names(worksheet: gspread.spreadsheet.worksheet) -> List[str]:
-    return worksheet.col_values(1)
+def get_test_names(worksheet: gspread.spreadsheet.Worksheet) -> List[str]:
+    return worksheet.col_values(1)[1:]
 
 def process_test_logs(
         path_to_log: str, 
-        worksheet: gspread.spreadsheet.worksheet,
+        worksheet: gspread.spreadsheet.Worksheet,
         col_num: int,
         model_name: str
     ) -> None:
     test_names = get_test_names(worksheet=worksheet)
+    worksheet.update(f"{chr(ord('B') + col_num)}1", model_name)
     results = [1] * len(test_names)
     with open(path_to_log, 'r') as file:
         for num_test, test_name in enumerate(test_names):
             for line in file:
                 if "FAILED" in line and test_name in line:
                     results[num_test] = 0
+            file.seek(0)
     for i in range(len(results)):
         worksheet.format(f"{chr(ord('B') + col_num)}{2 + i}", {
             "backgroundColor": {
@@ -29,13 +32,15 @@ def process_test_logs(
                 "blue": 0.0
             }
         })
+        time.sleep(6)
 
 def process_benchmark_logs(
         path_to_log: str
     ) -> Dict[str, float]:
     pass
 
-def main() -> NoReturn:
+def main():
+    print("Processing logs")
     parser = argparse.ArgumentParser()
     parser.add_argument("--path_to_log", type=str, required=True)
     parser.add_argument("--col_num", type=int, required=True)

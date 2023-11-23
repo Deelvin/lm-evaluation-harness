@@ -8,3 +8,4 @@ lm_cache
 /*.sh
 tests_ollm/*.npy
 *.log
+tests/testdata
