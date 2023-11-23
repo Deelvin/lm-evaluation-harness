@@ -12,15 +12,18 @@ from concurrent.futures import ThreadPoolExecutor
 
 import openai
 
-try:
-    from openai import APIError, AuthenticationError, APIConnectionError
-except ImportError:
-    # For compatibility with OpenAI versions before v1.0
-    # https://github.com/openai/openai-python/pull/677.
-    from openai.error import APIError, AuthenticationError, APIConnectionError
-from sentence_transformers import SentenceTransformer
+# For compatibility with OpenAI versions before v1.0
+# https://github.com/openai/openai-python/pull/677.
+OPENAI_VER_MAJ = int(openai.__version__.split(".")[0])
 
-from openai.openai_object import OpenAIObject
+if OPENAI_VER_MAJ >= 1:
+    from openai import APIError, AuthenticationError, APIConnectionError
+    from pydantic import BaseModel as CompletionObject
+else:
+    from openai.error import APIError, AuthenticationError, APIConnectionError
+    from openai.openai_object import OpenAIObject as CompletionObject
+
+from sentence_transformers import SentenceTransformer
 
 
 # Define the model_name fixture
@@ -63,21 +66,41 @@ def run_chat_completion(
     openai.api_key = token
     openai.api_base = endpoint + "/v1"
     try:
-        completion = openai.ChatCompletion.create(
-            model=model_name,
-            messages=messages,
-            max_tokens=max_tokens,
-            stream=stream,
-            n=n,
-            stop=stop,
-            top_p=top_p,
-            temperature=temperature,
-            frequency_penalty=frequency_penalty,
-            presence_penalty=presence_penalty,
-        )
+        if OPENAI_VER_MAJ >= 1:
+            client = openai.OpenAI(
+                api_key=token,
+            )
+            completion = client.chat.completions.create(
+                model=model_name,
+                messages=messages,
+                max_tokens=max_tokens,
+                stream=stream,
+                n=n,
+                stop=stop,
+                top_p=top_p,
+                temperature=temperature,
+                frequency_penalty=frequency_penalty,
+                presence_penalty=presence_penalty,
+            )
+        else:
+            completion = openai.ChatCompletion.create(
+                model=model_name,
+                messages=messages,
+                max_tokens=max_tokens,
+                stream=stream,
+                n=n,
+                stop=stop,
+                top_p=top_p,
+                temperature=temperature,
+                frequency_penalty=frequency_penalty,
+                presence_penalty=presence_penalty,
+            )
 
         if return_completion:
-            return completion
+            if OPENAI_VER_MAJ >= 1:
+                return completion.model_dump(exclude_unset=True)
+            else:
+                return completion
     except (APIError, AuthenticationError, APIConnectionError) as e:
         if return_completion:
             raise
@@ -555,7 +578,7 @@ def test_object_type(model_name, token, endpoint):
     completion = run_chat_completion(
         model_name, messages, token, endpoint, return_completion=True
     )
-    assert isinstance(completion, OpenAIObject)
+    assert isinstance(completion, CompletionObject)
 
 
 def test_created_time(model_name, token, endpoint):
@@ -598,10 +621,8 @@ def test_content(model_name, prompt, token, endpoint):
 
 
 def test_user_authentication(model_name, token, endpoint):
-    openai.api_key = "invalid"
     messages = [{"role": "user", "content": "Tell a story about a cat"}]
-    assert run_chat_completion(model_name, messages, token, endpoint) == 401
-    openai.api_key = token
+    assert run_chat_completion(model_name, messages, "invalid", endpoint) == 401
 
 
 def test_cancel_and_follow_up_requests(model_name, token, endpoint):
