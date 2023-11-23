@@ -630,7 +630,7 @@ def test_cancel_and_follow_up_requests(model_name, token, endpoint):
         "presence_penalty": 0,
         "return_completion": False,
     }
-    url = endpoint + "/chat/completions"
+    url = endpoint + "/v1/chat/completions"
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {token}",
