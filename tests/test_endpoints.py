@@ -23,20 +23,22 @@ def run_smoke_tests(
         path_to_tests_file: str, 
         write_out_base_path: str = "./",
         write_table: bool = True,
+        limit: int = 4
     ) -> None:
     if not os.environ.get("OCTOAI_TOKEN"):
         os.environ["OCTOAI_TOKEN"] = os.environ.get("OCTOI_API_KEY")
-
+    current_session = 0
     for col_num, endpoint in enumerate(endpoints[endpoint_type]):
         model_name = endpoint["model"]
         print(f"--------------------------------------------------------------------------")
         print(f"Running smoke_tests for {model_name}")
         print(f"--------------------------------------------------------------------------")
-        subprocess.run(
-            f"tmux new-session -d -s {model_name} ",
-            shell=True, 
-            universal_newlines=True
-        )
+        if current_session < limit:
+            subprocess.run(
+                f"tmux new-session -d -s {current_session} ",
+                shell=True, 
+                universal_newlines=True
+            )
         log_file = os.path.join(write_out_base_path, f'test_{model_name}.log')
         write_table_command = ""
 
@@ -44,7 +46,7 @@ def run_smoke_tests(
             write_table_command = f"python {os.path.join(str(Path(__file__).parent), 'process_logs.py')} --path_to_log={log_file} --col_num={col_num} --model_name={model_name}"
 
         subprocess.run(
-            f"tmux send-keys -t {model_name} "
+            f"tmux send-keys -t {current_session % limit} "
             f"\"ENDPOINT={endpoint['url']} "
             f"python3 -m pytest {path_to_tests_file} " 
             f"--model_name={model_name} > {log_file}\" Enter",
@@ -53,11 +55,13 @@ def run_smoke_tests(
         )
 
         subprocess.run(
-            f"tmux send-keys -t {model_name} "
+            f"tmux send-keys -t {current_session % limit} "
             f"\"{write_table_command}\" Enter", 
             shell=True, 
             universal_newlines=True
         )
+
+        current_session += 1
     
     print("Done")
 
@@ -127,6 +131,7 @@ def main() -> NoReturn:
     parser.add_argument("--endpoint_type", type=str, default="dev")
     parser.add_argument("--run_all", action="store_true")
     parser.add_argument("--write_table", action="store_true")
+    parser.add_argument("--limit_sessions", type=int, default=4)
     args = parser.parse_args()
 
     if not os.environ.get("OCTOAI_TOKEN") and not os.environ.get("OCTOAI_API_KEY"):
@@ -146,16 +151,15 @@ def main() -> NoReturn:
     if args.write_table:
         spreadsheet = init_gspread_client()
         pytest_nodes = subprocess.check_output(
-            f"ENDPOINT=test pytest {args.tests_file} --collect-only",
+            f"ENDPOINT=test pytest {args.tests_file} --model_name="" --collect-only",
             shell=True,
             text=True
         )
         test_names = []
         for line in pytest_nodes.split('\n'):
-            match = re.search(r"test_[a-zA-Z_]+", line)
+            match = re.search(r"test_[a-zA-Z_]+\[.*\]", line)
             if match:
                 test_names.append(match[0])
-
         today = str(date.today())
         try:
             worksheet = spreadsheet.add_worksheet(title=today, rows=250, cols=100)
@@ -170,7 +174,8 @@ def main() -> NoReturn:
             args.endpoint_type,
             args.tests_file, 
             write_out_base_path=args.write_out_base,
-            write_table=args.write_table
+            write_table=args.write_table,
+            limit=args.limit_sessions
         )
         
         for task in TASKS:
@@ -190,7 +195,8 @@ def main() -> NoReturn:
                 args.endpoint_type,
                 args.tests_file, 
                 write_out_base_path=args.write_out_base,
-                write_table=args.write_table
+                write_table=args.write_table,
+                limit=args.limit_sessions
             )
         if args.run_benchmark:
             run_benchmark(

@@ -32,7 +32,7 @@ def process_test_logs(
                 "blue": 0.0
             }
         })
-        time.sleep(6)
+        time.sleep(4)
 
 def process_benchmark_logs(
         path_to_log: str
