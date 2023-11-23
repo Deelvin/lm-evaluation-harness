@@ -55,9 +55,8 @@ def run_smoke_tests(
 
         subprocess.run(
             f"tmux send-keys -t {current_session % limit} "
-            f"\"ENDPOINT={endpoint['url']} "
-            f"python3 -m pytest {path_to_tests_file} " 
-            f"--model_name={model_name} > {log_file}\" Enter",
+            f"\"python3 -m pytest {path_to_tests_file} " 
+            f"--model_name={model_name} --endpoint={endpoint['url']} > {log_file}\" Enter",
             shell=True,
             universal_newlines=True
         )
@@ -73,7 +72,7 @@ def run_smoke_tests(
     
     for num_session in range(limit):
         subprocess.run(
-            f"tmux send-keys -t {num_session} \"echo 'Finished'\" {'C-m' if debug else ''}",
+            f"tmux send-keys -t {num_session} \"echo 'Finished'\" {'C-m' if not debug else ''}",
             shell=True,
             universal_newlines=True
         )
@@ -112,7 +111,7 @@ def main() -> NoReturn:
         )
         test_names = []
         for line in pytest_nodes.split('\n'):
-            match = re.search(r"test_[a-zA-Z_]+\[.*\]", line)
+            match = re.search(r"test_[a-zA-Z_\-\[\]0-9\.]+", line)
             if match:
                 test_names.append(match[0])
         today = str(datetime.date.today())
