@@ -64,9 +64,9 @@ def run_chat_completion(
 ):
     http_response = 200
     openai.api_key = token
-    openai.api_base = endpoint + "/v1"
     try:
-        if OPENAI_VER_MAJ >= 1:
+        if OPENAI_VER_MAJ > 0:
+            openai.base_url = endpoint + "/v1"
             client = openai.OpenAI(
                 api_key=token,
             )
@@ -83,6 +83,7 @@ def run_chat_completion(
                 presence_penalty=presence_penalty,
             )
         else:
+            openai.api_base = endpoint + "/v1"
             completion = openai.ChatCompletion.create(
                 model=model_name,
                 messages=messages,
@@ -104,8 +105,12 @@ def run_chat_completion(
     except (APIError, AuthenticationError, APIConnectionError) as e:
         if return_completion:
             raise
-        print(e.user_message)
-        http_response = e.http_status
+        if OPENAI_VER_MAJ > 0:
+            print(e.message)
+            http_response = e.status_code
+        else:
+            print(e.user_message)
+            http_response = e.http_status
 
     return http_response
 
