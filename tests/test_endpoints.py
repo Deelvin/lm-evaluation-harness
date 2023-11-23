@@ -21,7 +21,8 @@ def run_smoke_tests(
         path_to_tests_file: str, 
         write_out_base_path: str = "./",
         write_table: bool = True,
-        limit: int = 4
+        limit: int = 3,
+        debug: bool = False
     ) -> None:
     if not os.environ.get("OCTOAI_TOKEN"):
         os.environ["OCTOAI_TOKEN"] = os.environ.get("OCTOI_API_KEY")
@@ -45,9 +46,9 @@ def run_smoke_tests(
             model_log_dir, 
             f'test_{model_name}_{str(datetime.now()).replace(" ", "_")}.log'
         )
+        print(f"Logs from this run will be saved in the following way: {log_file}")
 
         write_table_command = ""
-
         if write_table:
             write_table_command = f"python {os.path.join(str(Path(__file__).parent), 'process_logs.py')} --path_to_log={log_file} --col_num={col_num} --model_name={model_name}"
 
@@ -68,6 +69,11 @@ def run_smoke_tests(
         )
 
         current_session += 1
+    
+    for num_session in range(limit):
+        subprocess.run(
+            f"tmux send-keys -t {num_session} \"echo Finished\" {'C-m' if debug else ''}"
+        )
     print("Done")
 
 def main() -> NoReturn:
@@ -77,7 +83,8 @@ def main() -> NoReturn:
     parser.add_argument("--endpoint_type", type=str, default="dev")
     parser.add_argument("--write_out_base", type=str, default="./logs")
     parser.add_argument("--write_table", action="store_true")
-    parser.add_argument("--limit_sessions", type=int, default=4)
+    parser.add_argument("--limit_sessions", type=int, default=3)
+    parser.add_argument("--debug", action="store_true")
     args = parser.parse_args()
 
     if not os.environ.get("OCTOAI_TOKEN") and not os.environ.get("OCTOAI_API_KEY"):
@@ -119,7 +126,8 @@ def main() -> NoReturn:
         args.tests_file, 
         write_out_base_path=args.write_out_base,
         write_table=args.write_table,
-        limit=args.limit_sessions
+        limit=args.limit_sessions,
+        debug=args.debug
     )
 
 if __name__ == "__main__":
