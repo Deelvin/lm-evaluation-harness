@@ -35,11 +35,6 @@ def process_test_logs(
         })
         time.sleep(4)
 
-def process_benchmark_logs(
-        path_to_log: str
-    ) -> Dict[str, float]:
-    pass
-
 def main():
     print("Processing logs")
     parser = argparse.ArgumentParser()
