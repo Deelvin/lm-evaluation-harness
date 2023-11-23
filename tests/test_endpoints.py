@@ -1,8 +1,8 @@
 from typing import NoReturn, Dict, List
-from datetime import date
 from pathlib import Path
 from utils import init_gspread_client
 import json
+import datetime
 import os
 import re
 import subprocess
@@ -37,7 +37,15 @@ def run_smoke_tests(
                 shell=True, 
                 universal_newlines=True
             )
-        log_file = os.path.join(write_out_base_path, f'test_{model_name}.log')
+        
+        model_log_dir = os.path.join(write_out_base_path, model_name)
+        if not os.path.exists(model_log_dir):
+            os.makedirs(model_log_dir)
+        log_file = os.path.join(
+            model_log_dir, 
+            f'test_{model_name}_{str(datetime.now()).replace(" ", "_")}.log'
+        )
+
         write_table_command = ""
 
         if write_table:
@@ -67,6 +75,7 @@ def main() -> NoReturn:
     parser.add_argument("--endpoints_file", required=True, type=str)
     parser.add_argument("--tests_file", type=str, default=os.path.join(str(Path(__file__).parent.parent), 'tests/smoke_tests.py'))
     parser.add_argument("--endpoint_type", type=str, default="dev")
+    parser.add_argument("--write_out_base", type=str, default="./logs")
     parser.add_argument("--write_table", action="store_true")
     parser.add_argument("--limit_sessions", type=int, default=4)
     args = parser.parse_args()
@@ -78,6 +87,9 @@ def main() -> NoReturn:
         raise FileNotFoundError("Specified test file not found")
     if args.endpoint_type not in ["dev", "prod"]:
         raise ValueError("Please specify only dev or prod type of endpoints")
+    
+    if not os.path.exists(args.write_out_base):
+        os.mkdirs(args.write_out_base)
 
     endpoints = parse_endpoints(args.endpoints_file)
 
@@ -93,7 +105,7 @@ def main() -> NoReturn:
             match = re.search(r"test_[a-zA-Z_]+\[.*\]", line)
             if match:
                 test_names.append(match[0])
-        today = str(date.today())
+        today = str(datetime.date.today())
         try:
             worksheet = spreadsheet.add_worksheet(title=today, rows=250, cols=100)
         except:
