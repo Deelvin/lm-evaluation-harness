@@ -49,7 +49,7 @@ def run_chat_completion(
     messages,
     token,
     endpoint,
-    max_tokens=300,
+    max_tokens=10,
     n=1,
     stream=False,
     stop=None,
@@ -308,7 +308,13 @@ def test_stream(model_name, token, endpoint):
 def test_stop(model_name, stop, token, endpoint):
     messages = [{"role": "user", "content": "How to cook tomato paste?"}]
     completion = run_chat_completion(
-        model_name, messages, token, endpoint, stop=stop, return_completion=True
+        model_name,
+        messages,
+        token,
+        endpoint,
+        max_tokens=300,
+        stop=stop,
+        return_completion=True,
     )
     for seq in stop:
         assert (
@@ -571,18 +577,22 @@ def test_created_time(model_name, token, endpoint):
         [1, "123"],
         {"text": "How are you?"},
         ("Hello!", "You are a helpful assistant"),
-        None,
         10,
         10.5,
         True,
     ],
 )
 def test_incorrect_content(model_name, prompt, token, endpoint):
-    messages = [
-        {"role": "system", "content": prompt},
-    ]
+    message = {"role": "system", "content": prompt}
 
-    assert run_chat_completion(model_name, messages, token, endpoint) == 400
+    assert run_chat_completion(model_name, [message], token, endpoint) == 400
+
+
+@pytest.mark.parametrize("prompt", ["Hi!", None])
+def test_content(model_name, prompt, token, endpoint):
+    message = {"role": "system", "content": prompt}
+
+    assert run_chat_completion(model_name, [message], token, endpoint) == 200
 
 
 def test_user_authentication(model_name, token, endpoint):
