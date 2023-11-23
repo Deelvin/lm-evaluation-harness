@@ -1,7 +1,6 @@
 def pytest_addoption(parser):
-    parser.addoption(
-        "--model_name", type=str, default="llama-2-7b-chat", action="store"
-    )
+    parser.addoption("--model_name", required=True, type=str, action="store")
+    parser.addoption("--endpoint", required=True, type=str, action="store")
     parser.addoption("--context_size", type=int, default=2048, action="store")
 
 
