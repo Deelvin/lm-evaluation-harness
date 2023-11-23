@@ -60,7 +60,6 @@ def run_chat_completion(
     return_completion=False,
 ):
     http_response = 200
-
     openai.api_key = token
     openai.api_base = endpoint + "/v1"
     try:
@@ -148,7 +147,10 @@ def test_incorrect_max_tokens(model_name, context_size, token, endpoint):
         run_chat_completion(model_name, messages, token, endpoint, max_tokens=-1) == 400
     )
     assert (
-        run_chat_completion(model_name, messages, token, endpoint, max_tokens=context_size * 2) == 400
+        run_chat_completion(
+            model_name, messages, token, endpoint, max_tokens=context_size * 2
+        )
+        == 400
     )
     completion = run_chat_completion(
         model_name,
@@ -634,7 +636,7 @@ def test_cancel_and_follow_up_requests(model_name, token, endpoint):
     assert "created" in follow_up_request
 
 
-def send_request_with_timeout(url, data, headers, token, endpoint):
+def send_request_with_timeout(url, data, headers):
     try:
         requests.post(url, json=data, headers=headers, timeout=1)
     except requests.exceptions.Timeout:
