@@ -338,18 +338,23 @@ def test_stop(model_name, stop, token, endpoint):
         stop=stop,
         return_completion=True,
     )
+    for seq in stop:
+        assert (
+            seq not in completion["choices"][0]["message"]["content"]
+        ) and completion["choices"][0]["finish_reason"] == "stop"
 
-    assert completion["choices"][0]["finish_reason"] == "stop"
-    text = completion["choices"][0]["message"]["content"]
-    if "." in stop:
-        assert text[-1] in stop
-        for seq in stop:
-            assert seq not in text[:-1]
-    else:
-        words = text.split()
-        assert words[-1] in stop
-        for seq in stop:
-            assert seq not in words[:-1]
+    # These test assumes that stop token return with completion
+    # assert completion["choices"][0]["finish_reason"] == "stop"
+    # text = completion["choices"][0]["message"]["content"]
+    # if "." in stop:
+    #     assert text[-1] in stop
+    #     for seq in stop:
+    #         assert seq not in text[:-1]
+    # else:
+    #     words = text.split()
+    #     assert words[-1] in stop
+    #     for seq in stop:
+    #         assert seq not in words[:-1]
 
 
 def test_frequency_penalty(model_name, token, endpoint):
