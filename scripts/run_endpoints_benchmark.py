@@ -30,7 +30,7 @@ def run_benchmark(
 
     ) -> None:
     if not os.environ.get("OCTOAI_API_KEY"):
-        os.environ["OCTOAI_API_KEY"] = os.environ.get("OCTOAI_TOKEN")
+        os.environ["OCTOAI_API_KEY"] = os.environ.get(f"OCTOAI_TOKEN_{endpoint_type.upper()}")
 
     current_session = 0
     for col_num, endpoint in enumerate(endpoints[endpoint_type]):
