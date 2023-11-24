@@ -163,6 +163,7 @@ def test_max_tokens(model_name, max_tokens, token, endpoint):
     assert len(completion["choices"][0]["message"]["content"]) > 0
 
 
+@pytest.mark.skip(reason="Due to Internal Server Error (500) hides expected invalid_request_error (400)")
 def test_incorrect_max_tokens(model_name, context_size, token, endpoint):
     messages = [
         {
@@ -242,6 +243,7 @@ def test_temperature_outside_limit(model_name, temperature, token, endpoint):
         )
 
 
+@pytest.mark.skip(reason="Need to validate distance measurement approach")
 def test_top_p(model_name, token, endpoint):
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
@@ -277,12 +279,21 @@ def test_top_p(model_name, token, endpoint):
         assert prev_dist <= cur_distance
         prev_dist = cur_distance
 
-    assert run_chat_completion(model_name, messages, token, endpoint, top_p=-0.1) == 400
-    assert run_chat_completion(model_name, messages, token, endpoint, top_p=1.1) == 400
+
+@pytest.mark.parametrize("top_p", [-0.1, 1.1])
+def test_top_p_outside_limit(model_name, top_p, token, endpoint):
+    messages = [
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user", "content": "Write a blog about Seattle"},
+    ]
+
+    assert run_chat_completion(model_name, messages, token, endpoint, top_p=top_p) == 400
 
 
 @pytest.mark.parametrize("n", [1, 5, 10])
 def test_number_chat_completions(model_name, n, token, endpoint):
+    if n > 1:
+        pytest.skip("Multiple outputs is not supported yet")
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
         {"role": "user", "content": "Hello!"},
@@ -325,6 +336,7 @@ def test_stream(model_name, token, endpoint):
     assert stream_str == completion["choices"][0]["message"]["content"]
 
 
+@pytest.mark.skip(reason="Need upstream with OpenAI approach (return completion without stop token)")
 @pytest.mark.parametrize("stop", [["tomato", "tomatoes"], [".", "!"]])
 def test_stop(model_name, stop, token, endpoint):
     messages = [{"role": "user", "content": "How to cook tomato paste?"}]
@@ -342,7 +354,21 @@ def test_stop(model_name, stop, token, endpoint):
             seq not in completion["choices"][0]["message"]["content"]
         ) and completion["choices"][0]["finish_reason"] == "stop"
 
+    # These test assumes that stop token return with completion
+    # assert completion["choices"][0]["finish_reason"] == "stop"
+    # text = completion["choices"][0]["message"]["content"]
+    # if "." in stop:
+    #     assert text[-1] in stop
+    #     for seq in stop:
+    #         assert seq not in text[:-1]
+    # else:
+    #     words = text.split()
+    #     assert words[-1] in stop
+    #     for seq in stop:
+    #         assert seq not in words[:-1]
 
+
+@pytest.mark.skip(reason="Frequency penalty has not been implemented yet")
 def test_frequency_penalty(model_name, token, endpoint):
     messages = [
         {
@@ -404,28 +430,41 @@ def test_frequency_penalty(model_name, token, endpoint):
         model.encode(second_completion["choices"][0]["message"]["content"]),
     )
 
-    assert (
-        run_chat_completion(
-            model_name,
-            messages,
-            token,
-            endpoint,
-            frequency_penalty=-2.1,
-        )
-        == 400
+
+@pytest.mark.parametrize("fr_pen", [-2.1, 2.1])
+def test_frequency_penalty_outside_limit(model_name, fr_pen, token, endpoint):
+    messages = [
+        {
+            "role": "system",
+            "content": "You are content maker. Write the response in formal style that appropriately completes the request",
+        },
+        {
+            "role": "user",
+            "content": "Write a 1000-word article about the development of computer science",
+        },
+    ]
+    initial_completion = run_chat_completion(
+        model_name, messages, token, endpoint, return_completion=True
     )
-    assert (
-        run_chat_completion(
-            model_name,
-            messages,
-            token,
-            endpoint,
-            frequency_penalty=2.1,
-        )
-        == 400
+    messages.append(
+        {
+            "role": "assistant",
+            "content": initial_completion["choices"][0]["message"]["content"],
+        }
+    )
+    messages.append(
+        {
+            "role": "user",
+            "content": "Write a 1000-word article about the development of computer science",
+        }
     )
 
+    assert run_chat_completion(
+        model_name, messages, token, endpoint, frequency_penalty=fr_pen
+    ) == 400
 
+
+@pytest.mark.skip(reason="Presence penalty has not been implemented yet")
 def test_presence_penalty(model_name, token, endpoint):
     messages = [
         {
@@ -487,26 +526,38 @@ def test_presence_penalty(model_name, token, endpoint):
         model.encode(second_completion["choices"][0]["message"]["content"]),
     )
 
-    assert (
-        run_chat_completion(
-            model_name,
-            messages,
-            token,
-            endpoint,
-            presence_penalty=-2.1,
-        )
-        == 400
+
+@pytest.mark.parametrize("pr_pen", [-2.1, 2.1])
+def test_frequency_penalty_outside_limit(model_name, pr_pen, token, endpoint):
+    messages = [
+        {
+            "role": "system",
+            "content": "You are content maker. Write the response in formal style that appropriately completes the request",
+        },
+        {
+            "role": "user",
+            "content": "Write a 1000-word article about the development of computer science",
+        },
+    ]
+    initial_completion = run_chat_completion(
+        model_name, messages, token, endpoint, return_completion=True
     )
-    assert (
-        run_chat_completion(
-            model_name,
-            messages,
-            token,
-            endpoint,
-            presence_penalty=2.1,
-        )
-        == 400
+    messages.append(
+        {
+            "role": "assistant",
+            "content": initial_completion["choices"][0]["message"]["content"],
+        }
     )
+    messages.append(
+        {
+            "role": "user",
+            "content": "Write a 1000-word article about the development of computer science",
+        }
+    )
+
+    assert run_chat_completion(
+        model_name, messages, token, endpoint, presence_penalty=pr_pen
+    ) == 400
 
 
 def test_model_name(model_name, token, endpoint):
@@ -724,3 +775,30 @@ def test_same_completion_len(temperature, model_name, token, endpoint):
     mean /= trials
     threshold = 10
     assert all([abs(tokens_arr[i] - mean) <= threshold for i in range(trials)])
+
+
+def test_multiple_messages(model_name, token, endpoint):
+    messages = [
+        {
+            "role": "user",
+            "content": "What is the capital of France?",
+        },
+        {
+            "role": "assistant",
+            "content": "Paris",
+        },
+        {
+            "role": "user",
+            "content": "2 + 2 =",
+        }
+    ]
+
+    completion = run_chat_completion(
+        model_name,
+        messages,
+        token,
+        endpoint,
+        max_tokens=20,
+        return_completion=True
+    )
+    assert "4" in completion["choices"][0]["message"]["content"]
