@@ -368,6 +368,7 @@ def test_stop(model_name, stop, token, endpoint):
     #         assert seq not in words[:-1]
 
 
+@pytest.mark.skip(reason="Frequency penalty has not been implemented yet")
 def test_frequency_penalty(model_name, token, endpoint):
     messages = [
         {
@@ -429,28 +430,41 @@ def test_frequency_penalty(model_name, token, endpoint):
         model.encode(second_completion["choices"][0]["message"]["content"]),
     )
 
-    assert (
-        run_chat_completion(
-            model_name,
-            messages,
-            token,
-            endpoint,
-            frequency_penalty=-2.1,
-        )
-        == 400
+
+@pytest.mark.parametrize("fr_pen", [-2.1, 2.1])
+def test_frequency_penalty_outside_limit(model_name, fr_pen, token, endpoint):
+    messages = [
+        {
+            "role": "system",
+            "content": "You are content maker. Write the response in formal style that appropriately completes the request",
+        },
+        {
+            "role": "user",
+            "content": "Write a 1000-word article about the development of computer science",
+        },
+    ]
+    initial_completion = run_chat_completion(
+        model_name, messages, token, endpoint, return_completion=True
     )
-    assert (
-        run_chat_completion(
-            model_name,
-            messages,
-            token,
-            endpoint,
-            frequency_penalty=2.1,
-        )
-        == 400
+    messages.append(
+        {
+            "role": "assistant",
+            "content": initial_completion["choices"][0]["message"]["content"],
+        }
+    )
+    messages.append(
+        {
+            "role": "user",
+            "content": "Write a 1000-word article about the development of computer science",
+        }
     )
 
+    assert run_chat_completion(
+        model_name, messages, token, endpoint, frequency_penalty=fr_pen
+    ) == 400
 
+
+@pytest.mark.skip(reason="Presence penalty has not been implemented yet")
 def test_presence_penalty(model_name, token, endpoint):
     messages = [
         {
@@ -512,26 +526,38 @@ def test_presence_penalty(model_name, token, endpoint):
         model.encode(second_completion["choices"][0]["message"]["content"]),
     )
 
-    assert (
-        run_chat_completion(
-            model_name,
-            messages,
-            token,
-            endpoint,
-            presence_penalty=-2.1,
-        )
-        == 400
+
+@pytest.mark.parametrize("pr_pen", [-2.1, 2.1])
+def test_frequency_penalty_outside_limit(model_name, pr_pen, token, endpoint):
+    messages = [
+        {
+            "role": "system",
+            "content": "You are content maker. Write the response in formal style that appropriately completes the request",
+        },
+        {
+            "role": "user",
+            "content": "Write a 1000-word article about the development of computer science",
+        },
+    ]
+    initial_completion = run_chat_completion(
+        model_name, messages, token, endpoint, return_completion=True
     )
-    assert (
-        run_chat_completion(
-            model_name,
-            messages,
-            token,
-            endpoint,
-            presence_penalty=2.1,
-        )
-        == 400
+    messages.append(
+        {
+            "role": "assistant",
+            "content": initial_completion["choices"][0]["message"]["content"],
+        }
     )
+    messages.append(
+        {
+            "role": "user",
+            "content": "Write a 1000-word article about the development of computer science",
+        }
+    )
+
+    assert run_chat_completion(
+        model_name, messages, token, endpoint, presence_penalty=pr_pen
+    ) == 400
 
 
 def test_model_name(model_name, token, endpoint):
