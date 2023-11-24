@@ -775,3 +775,30 @@ def test_same_completion_len(temperature, model_name, token, endpoint):
     mean /= trials
     threshold = 10
     assert all([abs(tokens_arr[i] - mean) <= threshold for i in range(trials)])
+
+
+def test_multiple_messages(model_name, token, endpoint):
+    messages = [
+        {
+            "role": "user",
+            "content": "What is the capital of France?",
+        },
+        {
+            "role": "assistant",
+            "content": "Paris",
+        },
+        {
+            "role": "user",
+            "content": "2 + 2 =",
+        }
+    ]
+
+    completion = run_chat_completion(
+        model_name,
+        messages,
+        token,
+        endpoint,
+        max_tokens=20,
+        return_completion=True
+    )
+    assert "4" in completion["choices"][0]["message"]["content"]
