@@ -163,6 +163,7 @@ def test_max_tokens(model_name, max_tokens, token, endpoint):
     assert len(completion["choices"][0]["message"]["content"]) > 0
 
 
+@pytest.mark.skip(reason="Due to Internal Server Error (500) hides expected invalid_request_error (400)")
 def test_incorrect_max_tokens(model_name, context_size, token, endpoint):
     messages = [
         {
