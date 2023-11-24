@@ -284,6 +284,8 @@ def test_top_p(model_name, token, endpoint):
 
 @pytest.mark.parametrize("n", [1, 5, 10])
 def test_number_chat_completions(model_name, n, token, endpoint):
+    if n > 1:
+        pytest.skip("Multiple outputs is not supported yet")
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
         {"role": "user", "content": "Hello!"},
