@@ -243,6 +243,7 @@ def test_temperature_outside_limit(model_name, temperature, token, endpoint):
         )
 
 
+@pytest.mark.skip(reason="Need to validate distance measurement approach")
 def test_top_p(model_name, token, endpoint):
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
@@ -278,8 +279,15 @@ def test_top_p(model_name, token, endpoint):
         assert prev_dist <= cur_distance
         prev_dist = cur_distance
 
-    assert run_chat_completion(model_name, messages, token, endpoint, top_p=-0.1) == 400
-    assert run_chat_completion(model_name, messages, token, endpoint, top_p=1.1) == 400
+
+@pytest.mark.parametrize("top_p", [-0.1, 1.1])
+def test_top_p_outside_limit(model_name, top_p, token, endpoint):
+    messages = [
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user", "content": "Write a blog about Seattle"},
+    ]
+
+    assert run_chat_completion(model_name, messages, token, endpoint, top_p=top_p) == 400
 
 
 @pytest.mark.parametrize("n", [1, 5, 10])
