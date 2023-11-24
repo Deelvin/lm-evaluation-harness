@@ -336,6 +336,7 @@ def test_stream(model_name, token, endpoint):
     assert stream_str == completion["choices"][0]["message"]["content"]
 
 
+@pytest.mark.skip(reason="Need upstream with OpenAI approach (return completion without stop token)")
 @pytest.mark.parametrize("stop", [["tomato", "tomatoes"], [".", "!"]])
 def test_stop(model_name, stop, token, endpoint):
     messages = [{"role": "user", "content": "How to cook tomato paste?"}]
