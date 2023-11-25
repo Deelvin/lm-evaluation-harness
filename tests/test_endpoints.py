@@ -82,7 +82,7 @@ def run_smoke_tests(
 def main() -> NoReturn:
     parser = argparse.ArgumentParser()
     parser.add_argument("--endpoints_file", required=True, type=str)
-    parser.add_argument("--tests_file", type=str, default=os.path.join(str(Path(__file__).parent.parent), 'tests/smoke_tests.py'))
+    parser.add_argument("--tests_file", type=str, default=os.path.join(str(Path(__file__).parent.parent), 'tests_ollm/smoke_tests.py'))
     parser.add_argument("--endpoint_type", type=str, default="dev")
     parser.add_argument("--write_out_base", type=str, default="./logs")
     parser.add_argument("--write_table", action="store_true")
