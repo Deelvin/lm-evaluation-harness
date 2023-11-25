@@ -25,14 +25,14 @@ def run_smoke_tests(
         limit: int = 3,
         debug: bool = False
     ) -> None:
-    if not os.environ.get("OCTOAI_TOKEN"):
-        os.environ["OCTOAI_TOKEN"] = os.environ.get("OCTOI_API_KEY")
+    os.environ["OCTOAI_TOKEN"] = os.environ.get(f"OCTOAI_TOKEN_{endpoint_type.upper()}")
     current_session = 0
     for col_num, endpoint in enumerate(endpoints[endpoint_type]):
         model_name = endpoint["model"]
-        print(f"--------------------------------------------------------------------------")
-        print(f"Running smoke_tests for {model_name}")
-        print(f"--------------------------------------------------------------------------")
+        print()
+        print(f"  ------------------------------------------------------------------------")
+        print(f"| Running smoke_tests for {model_name}")
+        print(f"  ------------------------------------------------------------------------")
         if current_session < limit:
             subprocess.run(
                 f"tmux new-session -d -s {current_session} ",
@@ -90,8 +90,8 @@ def main() -> NoReturn:
     parser.add_argument("--debug", action="store_true")
     args = parser.parse_args()
 
-    if not os.environ.get("OCTOAI_TOKEN") and not os.environ.get("OCTOAI_API_KEY"):
-        raise RuntimeError("Please export your OctoAI token to environment variable OCTOAI_TOKEN or to OCTOAI_API_KEY")
+    if not os.environ.get("OCTOAI_TOKEN_DEV") and not os.environ.get("OCTOAI_TOKEN_PROD"):
+        raise RuntimeError("Please export your OctoAI token to environment variable OCTOAI_TOKEN_DEV or OCTOAI_TOKEN_PROD depending on type of endpoints you are going to test")
 
     if not os.path.exists(args.tests_file):
         raise FileNotFoundError("Specified test file not found")
