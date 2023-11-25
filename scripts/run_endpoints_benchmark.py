@@ -12,7 +12,7 @@ import gspread
 
 FEWSHOTS_PER_TASK = {
     "gsm8k": [0, 5, 8], 
-    # "truthfulqa_gen": [0], 
+    "truthfulqa_gen": [0], 
     "triviaqa": [0, 5]
 }
 
@@ -45,8 +45,8 @@ def run_benchmark(
         work_dir = os.getcwd()
         os.chdir(res_path)
 
-        if not os.path.exists(os.path.join(write_out_base_path, endpoint["model"],f"nf{num_fewshot}")):
-            os.makedirs(os.path.join(write_out_base_path, endpoint["model"], f"nf{num_fewshot}"))
+        if not os.path.exists(os.path.join(res_path, f"nf{num_fewshot}")):
+            os.makedirs(os.path.join(res_path, f"nf{num_fewshot}"))
         
         print()
         print(f"  ---------------------------------------------------------------------------------")
@@ -66,7 +66,8 @@ def run_benchmark(
 
         res_output = os.path.join(
             res_path, 
-            f"nf{num_fewshot}/res_greedy_nf{num_fewshot}_{task}_{endpoint_type}_{model_name}.json"
+            f"nf{num_fewshot}",
+            f"{task}_nf{num_fewshot}_{endpoint_type}_{model_name}_{str(date.today()).replace(' ', '_')}.json"
         )
 
         if write_table:
