@@ -824,15 +824,15 @@ def test_multiple_messages(model_name, token, endpoint):
         model_name, messages, token, endpoint, max_tokens=20, return_completion=True
     )
     assert "4" in completion["choices"][0]["message"]["content"]
-    
-def test_large_input_tokens(model_name, token, endpoint):
+
+def test_large_input_content(model_name, token, endpoint):
     with open("text_4014_tokens.txt", "r") as file:
         prompt = file.read()
     messages = [
         {"role": "user", "content": prompt}
     ]
     
-    print(run_chat_completion(model_name, messages, token, endpoint, max_tokens=1000, return_completion=True))
+    # print(run_chat_completion(model_name, messages, token, endpoint, max_tokens=1000, return_completion=True))
     assert run_chat_completion(model_name, messages, token, endpoint, max_tokens=1000) == 400
 
 def test_scalability(model_name, token, endpoint):
@@ -876,3 +876,37 @@ def test_scalability(model_name, token, endpoint):
     assert (responses_code_set == {200}), f"There is a problem with sending request"
 
     assert (second_run_time / first_run_time) < 10.0
+
+def test_send_many_request(model_name, token, endpoint):
+    data = {
+        "model": model_name,
+        "messages": [
+            {
+                "role": "user",
+                "content": "Create a short story about a friendship between a cat and a dog.",
+            }
+        ],
+        "max_tokens": 300,
+        "n": 1,
+        "stream": False,
+        "stop": None,
+        "temperature": 0.0,
+        "top_p": 1.0,
+        "presence_penalty": 0,
+        "return_completion": False,
+    }
+
+    url = endpoint + "/v1/chat/completions"
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {token}",
+    }
+    responses_code_set = set()
+    num_workers = 64
+
+    with ThreadPoolExecutor(max_workers=num_workers) as executor:
+        futures = [executor.submit(send_request_get_response, url, data, headers) for _ in range(num_workers)]
+        for future in concurrent.futures.as_completed(futures):
+            responses_code_set.add(future.result().status_code)
+
+    assert responses_code_set == {200}
