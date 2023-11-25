@@ -817,21 +817,12 @@ def test_multiple_messages(model_name, token, endpoint):
     )
     assert "4" in completion["choices"][0]["message"]["content"]
     
-def test_large_input_tokens(model_name):
-    prompt = """
-    Generate a detailed and comprehensive report on the topic of "The Impact of Artificial Intelligence on Society". 
-    The report should cover a wide range of topics including but not limited to the role of AI in various industries, 
-    the potential benefits and risks of AI, the ethical considerations surrounding AI, and the societal implications of AI. 
-    The report should also include a discussion on how to ensure the responsible and ethical use of AI. 
-    The report should be written in a clear and concise style, with a focus on providing a comprehensive understanding of the topic.
-    """
+def test_large_input_tokens(model_name, token, endpoint):
+    with open("text_4000_tokens.txt", "r") as file:
+        prompt = file.read()
     messages = [
         {"role": "user", "content": prompt}
     ]
-
-    assert run_chat_completion(
-        model_name, 
-        messages, 
-        max_tokens = 30
-        ) == 400
     
+    print(run_chat_completion(model_name, messages, token, endpoint, max_tokens=1000, return_completion=True))
+    assert run_chat_completion(model_name, messages, token, endpoint, max_tokens=1000) == 400
