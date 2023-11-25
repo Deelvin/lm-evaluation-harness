@@ -2,11 +2,7 @@
     "dev": [
       {
         "url": "https://text.customer-endpoints.nimbus.octoml.ai",
-        "model": "codellama-34b-instruct-int4"
-      },
-      {
-        "url": "https://text.customer-endpoints.nimbus.octoml.ai",
-        "model": "llama-2-70b-chat-int4"
+        "model": "codellama-7b-instruct-fp16"
       },
       {
         "url": "https://text.customer-endpoints.nimbus.octoml.ai",
@@ -14,11 +10,11 @@
       },
       {
         "url": "https://text.customer-endpoints.nimbus.octoml.ai",
-        "model": "codellama-34b-instruct-fp16"
+        "model": "codellama-34b-instruct-int4"
       },
       {
         "url": "https://text.customer-endpoints.nimbus.octoml.ai",
-        "model": "codellama-7b-instruct-fp16"
+        "model": "codellama-34b-instruct-fp16"
       },
       {
         "url": "https://text.customer-endpoints.nimbus.octoml.ai",
@@ -26,27 +22,23 @@
       },
       {
         "url": "https://text.customer-endpoints.nimbus.octoml.ai",
-        "model": "llama-2-70b-chat-fp16"      
+        "model": "llama-2-70b-chat-int4"
       },
       {
         "url": "https://text.customer-endpoints.nimbus.octoml.ai",
-        "model": "llama-2-70b-chat-int4"
+        "model": "llama-2-70b-chat-fp16"      
       },
       {
         "url": "https://text.customer-endpoints.nimbus.octoml.ai",
         "model": "mistral-7b-instruct-fp16"
       }      
-  
+
     ],
   
     "prod": [
       {
         "url": "https://text.octoai.run",
-        "model": "codellama-34b-instruct-int4"
-      },
-      {
-        "url": "https://text.octoai.run",
-        "model": "llama-2-70b-chat-int4"
+        "model": "codellama-7b-instruct-fp16"
       },
       {
         "url": "https://text.octoai.run",
@@ -54,11 +46,11 @@
       },
       {
         "url": "https://text.octoai.run",
-        "model": "codellama-34b-instruct-fp16"
+        "model": "codellama-34b-instruct-int4"
       },
       {
         "url": "https://text.octoai.run",
-        "model": "codellama-7b-instruct-fp16"
+        "model": "codellama-34b-instruct-fp16"
       },
       {
         "url": "https://text.octoai.run",
@@ -66,11 +58,11 @@
       },
       {
         "url": "https://text.octoai.run",
-        "model": "llama-2-70b-chat-fp16"      
+        "model": "llama-2-70b-chat-int4"
       },
       {
         "url": "https://text.octoai.run",
-        "model": "llama-2-70b-chat-int4"
+        "model": "llama-2-70b-chat-fp16"      
       },
       {
         "url": "https://text.octoai.run",

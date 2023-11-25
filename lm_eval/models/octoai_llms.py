@@ -80,13 +80,10 @@ class OctoAIEndpointLM(BaseLM):
     }
 
   def construct_request_url(self, prod):
-    url = model_urls[self.model_name]
-    # Clip model name, need in both cases
-    if self.model_name.endswith("-1"):
-      self.model_name = self.model_name[:-2]
-    url = f"{url}/{self.model_name}"
     if prod:
         url = "https://text.octoai.run"
+    else:
+        url = "https://text.customer-endpoints.nimbus.octoml.ai"
 
     return url
 
