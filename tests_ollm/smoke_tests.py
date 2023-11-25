@@ -827,7 +827,7 @@ def test_multiple_messages(model_name, token, endpoint):
 
 @pytest.mark.parametrize("input_tokens", [496, 963, 2031, 3119, 3957, 5173])
 def test_large_input_content(input_tokens, model_name, context_size, token, endpoint):
-    with open(f"text_about_{input_tokens}_tokens.txt", "r") as file:
+    with open(f"input_context/text_about_{input_tokens}_tokens.txt", "r") as file:
         prompt = file.read()
     messages = [
         {"role": "user", "content": prompt}
@@ -838,7 +838,7 @@ def test_large_input_content(input_tokens, model_name, context_size, token, endp
         assert run_chat_completion(model_name, messages, token, endpoint, max_tokens=max_tokens) == 200
     else:
         assert run_chat_completion(model_name, messages, token, endpoint, max_tokens=max_tokens) == 400
-        
+
 def test_scalability(model_name, token, endpoint):
     data = {
         "model": model_name,
