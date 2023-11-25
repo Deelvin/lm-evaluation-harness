@@ -10,6 +10,7 @@ import pytest
 import numpy as np
 from scipy.spatial import distance
 from concurrent.futures import ThreadPoolExecutor
+import concurrent.futures
 
 import openai
 
@@ -721,10 +722,11 @@ def send_request_with_timeout(url, data, headers):
     try:
         requests.post(url, json=data, headers=headers, timeout=1)
     except requests.exceptions.Timeout:
-        pass
+        return None
 
-def send_request(url, data, headers):
-    requests.post(url, json=data, headers=headers)
+def send_request_get_response(url, data, headers):
+    response = requests.post(url, json=data, headers=headers)
+    return response
 
 def test_canceling_requests(model_name, token, endpoint):
     data = {
@@ -739,33 +741,39 @@ def test_canceling_requests(model_name, token, endpoint):
         "n": 1,
         "stream": False,
         "stop": None,
-        "temperature": 0.8,
+        "temperature": 0.0,
         "top_p": 1.0,
         "presence_penalty": 0,
         "return_completion": False,
     }
-    url = endpoint + "/chat/completions"
+    url = endpoint + "/v1/chat/completions"
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {token}",
     }
+    num_workers = 8
+    responses_code_set = set()
 
     start_time = time.time()
-    with ThreadPoolExecutor(max_workers=4) as executor:
-        for _ in range(8):
-            executor.submit(send_request, url, data, headers)
+    with ThreadPoolExecutor(max_workers=num_workers) as executor:
+        futures = [executor.submit(send_request_get_response, url, data, headers) for _ in range(num_workers)]
+        for future in concurrent.futures.as_completed(futures):
+            responses_code_set.add(future.result().status_code)
     first_run_time = time.time() - start_time
-
-    with ThreadPoolExecutor(max_workers=4) as executor:
-        for _ in range(8):
-            executor.submit(send_request_with_timeout, url, data, headers)
+    assert (responses_code_set == {200}), f"There is a problem with sending request"
+    
+    with ThreadPoolExecutor(max_workers=num_workers) as executor:
+        futures = [executor.submit(send_request_with_timeout, url, data, headers) for _ in range(num_workers)]
 
     start_time = time.time()
-    with ThreadPoolExecutor(max_workers=4) as executor:
-        for _ in range(8):
-            executor.submit(send_request, url, data, headers)
+    with ThreadPoolExecutor(max_workers=num_workers) as executor:
+        futures = [executor.submit(send_request_get_response, url, data, headers) for _ in range(num_workers)]
+        for future in concurrent.futures.as_completed(futures):
+            responses_code_set.add(future.result().status_code)
     second_run_time = time.time() - start_time
+    assert (responses_code_set == {200}), f"There is a problem with sending request"
 
+    print(first_run_time, second_run_time)
     threshold = 5
     assert abs(second_run_time - first_run_time) < threshold
 
@@ -818,7 +826,7 @@ def test_multiple_messages(model_name, token, endpoint):
     assert "4" in completion["choices"][0]["message"]["content"]
     
 def test_large_input_tokens(model_name, token, endpoint):
-    with open("text_4000_tokens.txt", "r") as file:
+    with open("text_4014_tokens.txt", "r") as file:
         prompt = file.read()
     messages = [
         {"role": "user", "content": prompt}
@@ -826,3 +834,45 @@ def test_large_input_tokens(model_name, token, endpoint):
     
     print(run_chat_completion(model_name, messages, token, endpoint, max_tokens=1000, return_completion=True))
     assert run_chat_completion(model_name, messages, token, endpoint, max_tokens=1000) == 400
+
+def test_scalability(model_name, token, endpoint):
+    data = {
+        "model": model_name,
+        "messages": [
+            {
+                "role": "user",
+                "content": "Create a big story about a friendship between a cat and a dog.",
+            }
+        ],
+        "max_tokens": 500,
+        "n": 1,
+        "stream": False,
+        "stop": None,
+        "temperature": 0.8,
+        "top_p": 1.0,
+        "presence_penalty": 0,
+        "return_completion": False,
+    }
+
+    url = endpoint + "/v1/chat/completions"
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {token}",
+    }
+    responses_code_set = set()
+    num_workers = 10
+
+    start_time = time.time()
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        response = executor.submit(send_request_get_response, url, data, headers).result()
+        
+    first_run_time = time.time() - start_time
+
+    with ThreadPoolExecutor(max_workers=num_workers) as executor:
+        futures = [executor.submit(send_request_get_response, url, data, headers) for _ in range(num_workers)]
+        for future in concurrent.futures.as_completed(futures):
+            responses_code_set.add(future.result().status_code)
+    second_run_time = time.time() - start_time
+    assert (responses_code_set == {200}), f"There is a problem with sending request"
+
+    assert (second_run_time / first_run_time) < 10.0
