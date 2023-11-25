@@ -9,3 +9,4 @@ lm_cache
 tests_ollm/*.npy
 *.log
 tests/testdata
+tests_ollm/input_context
