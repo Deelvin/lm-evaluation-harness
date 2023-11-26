@@ -52,7 +52,7 @@ def run_smoke_tests(
 
         write_table_command = ""
         if write_table:
-            write_table_command = f"python {os.path.join(str(Path(__file__).parent), 'process_logs.py')} --path_to_log={log_file} --col_num={col_num + table_start_column} --model_name={endpoint_type}_{model_name}"
+            write_table_command = f"python {os.path.join(str(Path(__file__).parent.parent), 'scripts', 'process_logs.py')} --path_to_log={log_file} --col_num={col_num + table_start_column} --model_name={endpoint_type}_{model_name}"
 
         subprocess.run(
             f"tmux send-keys -t {current_session % limit} "
