@@ -1,14 +1,16 @@
 from typing import NoReturn, Dict, List
 from pathlib import Path
-from utils import init_gspread_client
+from scripts.utils import init_gspread_client
 import json
 import datetime
 import os
 import re
+import pickle
 import subprocess
 import argparse
 
 import gspread
+import libtmux
 
 def parse_endpoints(path_to_endpoints_file: str, ) -> Dict[str, str]:
     with open(path_to_endpoints_file, "r+") as file:
@@ -25,19 +27,20 @@ def run_smoke_tests(
         limit: int = 3,
         debug: bool = False
     ) -> None:
+    tmux_server = libtmux.Server()
     os.environ["OCTOAI_TOKEN"] = os.environ.get(f"OCTOAI_TOKEN_{endpoint_type.upper()}")
     current_session = 0
-    for col_num, endpoint in enumerate(endpoints[endpoint_type]):
+    for current_session, endpoint in enumerate(endpoints[endpoint_type]):
         model_name = endpoint["model"]
         print()
         print(f"  ------------------------------------------------------------------------")
         print(f"| Running smoke_tests for {model_name}")
         print(f"  ------------------------------------------------------------------------")
         if current_session < limit:
-            subprocess.run(
-                f"tmux new-session -d -s {current_session} ",
-                shell=True, 
-                universal_newlines=True
+            tmux_server.new_session(
+                session_name=str(current_session),
+                kill_session=False,
+                attach=False
             )
         
         model_log_dir = os.path.join(write_out_base_path, f"{endpoint_type}_{model_name}")
@@ -50,33 +53,28 @@ def run_smoke_tests(
         print(f"Logs from this run will be saved in the following way: {log_file}")
         print()
 
-        write_table_command = ""
-        if write_table:
-            write_table_command = f"python {os.path.join(str(Path(__file__).parent.parent), 'scripts', 'process_logs.py')} --path_to_log={log_file} --col_num={col_num + table_start_column} --model_name={endpoint_type}_{model_name}"
+        process_logs_command = f"""python {os.path.join(str(Path(__file__).parent.parent), 'scripts', 'process_logs.py')} \
+                                   --path_to_log={log_file} \
+                                   --model_name={endpoint_type}_{model_name}"""
 
-        subprocess.run(
-            f"tmux send-keys -t {current_session % limit} "
-            f"\"python3 -m pytest {path_to_tests_file} " 
-            f"--model_name={model_name} --endpoint={endpoint['url']} > {log_file}\" Enter",
-            shell=True,
-            universal_newlines=True
+        tmux_server.sessions[current_session % limit].panes[0].send_keys(
+            f"python3 -m pytest {path_to_tests_file}::test_response " 
+            f"--model_name={model_name} --endpoint={endpoint['url']} > {log_file} "
+            f"&& {process_logs_command} "
+            f"{'&& exit' if current_session >= len(endpoints[endpoint_type]) - limit else ''}",
+            enter=True
         )
+    while len(tmux_server.sessions) > 0: # wait until all tmux sessions running tests are killed
+        pass
 
-        subprocess.run(
-            f"tmux send-keys -t {current_session % limit} "
-            f"\"{write_table_command}\" Enter", 
-            shell=True, 
-            universal_newlines=True
-        )
-
-        current_session += 1
-    
-    for num_session in range(limit):
-        subprocess.run(
-            f"tmux send-keys -t {num_session} \"{'exit' if not debug else 'echo Finished'}\" Enter",
-            shell=True,
-            universal_newlines=True
-        )
+    subprocess.run(
+        f"""python {os.path.join(str(Path(__file__).parent.parent), 'scripts', 'process_logs.py')} \
+        --create_summary \
+        --path_to_artifacts={os.path.join(write_out_base_path, 'test_results')} \
+        --summary_path={os.path.join(write_out_base_path, "summary.csv")} \
+        {'--write_table' if write_table else ''}""",
+        shell=True
+    )
     print("Done")
 
 def main() -> NoReturn:
@@ -103,19 +101,21 @@ def main() -> NoReturn:
 
     endpoints = parse_endpoints(args.endpoints_file)
 
+    pytest_nodes = subprocess.check_output(
+        f"pytest {args.tests_file} --model_name="" --endpoint=test --collect-only",
+        shell=True,
+        text=True
+    )
+    test_names = []
+    for line in pytest_nodes.split('\n'):
+        match = re.search(r"test_[a-zA-Z_\-\[\]0-9\.]+", line)
+        if match:
+            test_names.append(match[0])
+    with open(os.path.join(args.write_out_base, "test_names"), "wb") as file:
+        pickle.dump(test_names, file)
     if args.write_table:
-        spreadsheet = init_gspread_client()
-        pytest_nodes = subprocess.check_output(
-            f"pytest {args.tests_file} --model_name="" --endpoint=test --collect-only",
-            shell=True,
-            text=True
-        )
-        test_names = []
-        for line in pytest_nodes.split('\n'):
-            match = re.search(r"test_[a-zA-Z_\-\[\]0-9\.]+", line)
-            if match:
-                test_names.append(match[0])
         today = str(datetime.date.today())
+        spreadsheet = init_gspread_client()
         try:
             worksheet = spreadsheet.add_worksheet(title=today, rows=250, cols=100)
         except:
