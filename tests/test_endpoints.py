@@ -33,7 +33,7 @@ def run_smoke_tests(
         model_name = endpoint["model"]
         print()
         print(f"  ------------------------------------------------------------------------")
-        print(f"| Running smoke_tests for {model_name}")
+        print(f"| Running smoke_tests for {endpoint_type}_{model_name}")
         print(f"  ------------------------------------------------------------------------")
         if current_session < limit:
             tmux_server.new_session(
