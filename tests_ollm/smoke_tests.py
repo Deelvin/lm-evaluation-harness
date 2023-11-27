@@ -545,7 +545,7 @@ def test_presence_penalty(model_name, token, endpoint):
 
 
 @pytest.mark.parametrize("pr_pen", [-2.1, 2.1])
-def test_frequency_penalty_outside_limit(model_name, pr_pen, token, endpoint):
+def test_presence_penalty_outside_limit(model_name, pr_pen, token, endpoint):
     messages = [
         {
             "role": "system",
