@@ -1,17 +1,16 @@
-from typing import List, Optional
+from typing import List
 from datetime import date
-from utils import init_gspread_client
 from pathlib import Path
 import argparse
 import re
-import time
 import os
 import pickle
 
-import gspread
 import gspread_dataframe as gd
 import gspread_formatting as gf
 import pandas as pd
+
+from utils import init_gspread_client
 
 def get_test_names(path_to_log_dir: str) -> List[str]:
     with open(os.path.join(path_to_log_dir, "test_names"), "rb") as file:
@@ -19,7 +18,7 @@ def get_test_names(path_to_log_dir: str) -> List[str]:
     return test_names
 
 def process_test_logs(
-        path_to_log: str, 
+        path_to_log: str,
         model_name: str,
     ) -> None:
     path_to_log_root = str(Path(path_to_log).parent.parent)
@@ -42,8 +41,8 @@ def process_test_logs(
     ).set_index("test_case").to_csv(os.path.join(artifacts_dir, f"results_{model_name}.csv"))
 
 def create_summary(
-        path_to_artifacts: str, 
-        path_to_summary: str, 
+        path_to_artifacts: str,
+        path_to_summary: str,
         remove_artifacts: bool = True
     ) -> None:
     print("Creating summary...")
@@ -109,7 +108,7 @@ def main() -> None:
 
     if args.create_summary:
         create_summary(
-            path_to_artifacts=args.path_to_artifacts, 
+            path_to_artifacts=args.path_to_artifacts,
             path_to_summary=args.summary_path,
             remove_artifacts=args.remove_artifacts
         )

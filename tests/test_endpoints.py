@@ -1,6 +1,5 @@
-from typing import NoReturn, Dict, List
+from typing import NoReturn, Dict
 from pathlib import Path
-from scripts.utils import init_gspread_client
 import json
 import datetime
 import os
@@ -9,8 +8,9 @@ import pickle
 import subprocess
 import argparse
 
-import gspread
 import libtmux
+
+from scripts.utils import init_gspread_client
 
 def parse_endpoints(path_to_endpoints_file: str, ) -> Dict[str, str]:
     with open(path_to_endpoints_file, "r+") as file:
@@ -19,8 +19,8 @@ def parse_endpoints(path_to_endpoints_file: str, ) -> Dict[str, str]:
 
 def run_smoke_tests(
         endpoints: Dict[str, str],
-        endpoint_type: str, 
-        path_to_tests_file: str, 
+        endpoint_type: str,
+        path_to_tests_file: str,
         write_out_base_path: str = "./",
         write_table: bool = True,
         limit: int = 3,
@@ -39,12 +39,12 @@ def run_smoke_tests(
                 kill_session=False,
                 attach=False
             )
-        
+
         model_log_dir = os.path.join(write_out_base_path, f"{endpoint_type}_{model_name}")
         if not os.path.exists(model_log_dir):
             os.makedirs(model_log_dir)
         log_file = os.path.join(
-            model_log_dir, 
+            model_log_dir,
             f'test_{endpoint_type}_{model_name}_{str(datetime.datetime.now()).replace(" ", "_")}.log'
         )
         print(f"Logs from this run will be saved in the following path: {log_file}")
@@ -81,7 +81,11 @@ def run_smoke_tests(
 def main() -> NoReturn:
     parser = argparse.ArgumentParser()
     parser.add_argument("--endpoints_file", required=True, type=str)
-    parser.add_argument("--tests_file", type=str, default=os.path.join(str(Path(__file__).parent.parent), 'tests_ollm/smoke_tests.py'))
+    parser.add_argument(
+        "--tests_file",
+        type=str,
+        default=os.path.join(str(Path(__file__).parent.parent), 'tests_ollm/smoke_tests.py')
+    )
     parser.add_argument("--endpoint_type", type=str, default="dev")
     parser.add_argument("--write_out_base", type=str, default="./logs")
     parser.add_argument("--write_table", action="store_true")
@@ -95,7 +99,7 @@ def main() -> NoReturn:
         raise FileNotFoundError("Specified test file not found")
     if args.endpoint_type not in ["dev", "prod", "all"]:
         raise ValueError("Please specify only 'dev', 'prod' or 'all' type of endpoints")
-    
+
     if not os.path.exists(args.write_out_base):
         os.makedirs(args.write_out_base)
 
@@ -125,26 +129,26 @@ def main() -> NoReturn:
 
     if args.endpoint_type == "all":
         run_smoke_tests(
-            endpoints, 
+            endpoints,
             "dev",
-            args.tests_file, 
+            args.tests_file,
             write_out_base_path=args.write_out_base,
             write_table=args.write_table,
             limit=args.limit_sessions,
         )
         run_smoke_tests(
-            endpoints, 
+            endpoints,
             "prod",
-            args.tests_file, 
+            args.tests_file,
             write_out_base_path=args.write_out_base,
             write_table=args.write_table,
             limit=args.limit_sessions,
         )
     else:
         run_smoke_tests(
-            endpoints, 
+            endpoints,
             args.endpoint_type,
-            args.tests_file, 
+            args.tests_file,
             write_out_base_path=args.write_out_base,
             write_table=args.write_table,
             limit=args.limit_sessions,
