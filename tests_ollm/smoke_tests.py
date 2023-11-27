@@ -1,6 +1,7 @@
 import os
 import types
 import time
+from pathlib import Path
 
 import requests
 import pytest
@@ -201,7 +202,7 @@ def test_valid_temperature(model_name, token, endpoint):
     ]
     max_tokens = 784
     model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
-    goldev_embed = np.load("golden_temp_0.npy")
+    goldev_embed = np.load(os.path.join(Path(__file__).parent, "golden_temp_0.npy"))
 
     distances = []
     for temperature in [0.0, 1.0, 2.0]:
@@ -251,7 +252,7 @@ def test_top_p(model_name, token, endpoint):
     ]
     max_tokens = 784
     model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
-    goldev_embed = np.load("golden_top_p_0.npy")
+    goldev_embed = np.load(os.path.join(Path(__file__).parent, "golden_top_p_0.npy"))
     completion = run_chat_completion(
         model_name,
         messages,
