@@ -58,7 +58,7 @@ def run_smoke_tests(
                                    --model_name={endpoint_type}_{model_name}"""
 
         tmux_server.sessions[current_session % limit].panes[0].send_keys(
-            f"python3 -m pytest {path_to_tests_file}::test_response " 
+            f"python3 -m pytest {path_to_tests_file} " 
             f"--model_name={model_name} --endpoint={endpoint['url']} > {log_file} "
             f"&& {process_logs_command} "
             f"{'&& exit' if current_session >= len(endpoints[endpoint_type]) - limit else ''}",

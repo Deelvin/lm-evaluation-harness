@@ -10,6 +10,7 @@ import pickle
 
 import gspread
 import gspread_dataframe as gd
+import gspread_formatting as gf
 import pandas as pd
 
 def get_test_names(path_to_log_dir: str) -> List[str]:
@@ -62,9 +63,9 @@ def create_summary(
             if filename.startswith("results_") and filename.endswith(".csv"):
                 os.remove(os.path.join(path_to_artifacts, filename))
     print()
-    print(f"  ------------------------------------------------------------")
+    print(f"  ------------------------------------------------------------------------")
     print(f"| Summary is stored in {os.path.abspath(path_to_summary)}")
-    print(f"  ------------------------------------------------------------")
+    print(f"  ------------------------------------------------------------------------")
     print()
 
 def write_table(path_to_summary: str) -> None:
@@ -72,6 +73,24 @@ def write_table(path_to_summary: str) -> None:
     spreadsheet = init_gspread_client()
     today = str(date.today())
     worksheet = spreadsheet.worksheet(today)
+    rules = gf.get_conditional_format_rules(worksheet)
+    rules.clear()
+    rule_passed = gf.ConditionalFormatRule(
+        ranges=[gf.GridRange.from_a1_range('A1:CT100', worksheet)],
+        booleanRule=gf.BooleanRule(
+            condition=gf.BooleanCondition("TEXT_CONTAINS", ["Passed"]),
+            format=gf.CellFormat(backgroundColor=gf.Color(0,1,0))
+        )
+    )
+    rule_failed = gf.ConditionalFormatRule(
+        ranges=[gf.GridRange.from_a1_range('A1:CT100', worksheet)],
+        booleanRule=gf.BooleanRule(
+            condition=gf.BooleanCondition("TEXT_CONTAINS", ["Failed"]),
+            format=gf.CellFormat(backgroundColor=gf.Color(1,0,0))
+        )
+    )
+    rules.append(rule_passed), rules.append(rule_failed)
+    rules.save()
     results = pd.read_csv(path_to_summary)
     gd.set_with_dataframe(worksheet, results)
     print("Done")
