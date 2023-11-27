@@ -48,6 +48,8 @@ def endpoint(request):
 def context_size(request):
     return request.config.getoption("--context_size", default=2048)
 
+def path_to_file(file_name):
+    return os.path.join(os.path.dirname(__file__), file_name)
 
 def run_chat_completion(
     model_name,
@@ -206,7 +208,7 @@ def test_valid_temperature(model_name, token, endpoint):
     ]
     max_tokens = 784
     model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
-    goldev_embed = np.load(os.path.join(Path(__file__).parent, "golden_temp_0.npy"))
+    goldev_embed = np.load(path_to_file("golden_temp_0.npy"))
 
     distances = []
     for temperature in [0.0, 1.0, 2.0]:
@@ -256,7 +258,7 @@ def test_top_p(model_name, token, endpoint):
     ]
     max_tokens = 784
     model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
-    goldev_embed = np.load(os.path.join(Path(__file__).parent, "golden_top_p_0.npy"))
+    goldev_embed = np.load(path_to_file("golden_top_p_0.npy"))
     completion = run_chat_completion(
         model_name,
         messages,
@@ -827,7 +829,7 @@ def test_multiple_messages(model_name, token, endpoint):
 
 @pytest.mark.parametrize("input_tokens", [496, 963, 2031, 3119, 3957, 5173])
 def test_large_input_content(input_tokens, model_name, context_size, token, endpoint):
-    with open(f"input_context/text_about_{input_tokens}_tokens.txt", "r") as file:
+    with open(path_to_file(f"input_context/text_about_{input_tokens}_tokens.txt"), "r") as file:
         prompt = file.read()
     messages = [
         {"role": "user", "content": prompt}
