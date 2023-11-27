@@ -28,7 +28,7 @@ def process_test_logs(
     with open(path_to_log, 'r') as file:
         for num_test, test_name in enumerate(test_names):
             for line in file:
-                if "FAILED" in line and re.search(r"test_[a-zA-Z_\-\[\]0-9\.]+", test_name)[0] in line:
+                if "FAILED" in line and re.search(r"test_[a-zA-Z_\-\[\]0-9\.!?,]+", test_name)[0] in line:
                     results[num_test] = "Failed"
             file.seek(0)
     artifacts_dir = os.path.join(path_to_log_root, "test_results")

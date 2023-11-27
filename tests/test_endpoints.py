@@ -23,9 +23,7 @@ def run_smoke_tests(
         path_to_tests_file: str, 
         write_out_base_path: str = "./",
         write_table: bool = True,
-        table_start_column: int = 0,
         limit: int = 3,
-        debug: bool = False
     ) -> None:
     tmux_server = libtmux.Server()
     os.environ["OCTOAI_TOKEN"] = os.environ.get(f"OCTOAI_TOKEN_{endpoint_type.upper()}")
@@ -49,7 +47,7 @@ def run_smoke_tests(
             model_log_dir, 
             f'test_{endpoint_type}_{model_name}_{str(datetime.datetime.now()).replace(" ", "_")}.log'
         )
-        print(f"Logs from this run will be saved in the following way: {log_file}")
+        print(f"Logs from this run will be saved in the following path: {log_file}")
         print()
 
         process_logs_command = f"""python {os.path.join(str(Path(__file__).parent.parent), 'scripts', 'process_logs.py')} \
@@ -57,9 +55,12 @@ def run_smoke_tests(
                                    --model_name={endpoint_type}_{model_name}"""
 
         tmux_server.sessions[current_session % limit].panes[0].send_keys(
-            f"python3 -m pytest {path_to_tests_file}::test_response " 
-            f"--model_name={model_name} --endpoint={endpoint['url']} > {log_file} "
-            f"&& {process_logs_command} ",
+            f"python3 -m pytest {path_to_tests_file} " 
+            f"--model_name={model_name} --endpoint={endpoint['url']} > {log_file} ",
+            enter=True
+        )
+        tmux_server.sessions[current_session % limit].panes[0].send_keys(
+            process_logs_command,
             enter=True
         )
     while len(tmux_server.sessions) > 0: # wait until all tmux sessions running tests are killed
@@ -85,7 +86,6 @@ def main() -> NoReturn:
     parser.add_argument("--write_out_base", type=str, default="./logs")
     parser.add_argument("--write_table", action="store_true")
     parser.add_argument("--limit_sessions", type=int, default=3)
-    parser.add_argument("--debug", action="store_true")
     args = parser.parse_args()
 
     if not os.environ.get("OCTOAI_TOKEN_DEV") and not os.environ.get("OCTOAI_TOKEN_PROD"):
@@ -108,7 +108,7 @@ def main() -> NoReturn:
     )
     test_names = []
     for line in pytest_nodes.split('\n'):
-        match = re.search(r"test_[a-zA-Z_\-\[\]0-9\.]+", line)
+        match = re.search(r"test_[a-zA-Z_\-\[\]0-9\.!?,]+", line)
         if match:
             test_names.append(match[0])
     with open(os.path.join(args.write_out_base, "test_names"), "wb") as file:
@@ -131,7 +131,6 @@ def main() -> NoReturn:
             write_out_base_path=args.write_out_base,
             write_table=args.write_table,
             limit=args.limit_sessions,
-            debug=args.debug
         )
         run_smoke_tests(
             endpoints, 
@@ -139,9 +138,7 @@ def main() -> NoReturn:
             args.tests_file, 
             write_out_base_path=args.write_out_base,
             write_table=args.write_table,
-            table_start_column=len(endpoints["dev"]),
             limit=args.limit_sessions,
-            debug=args.debug
         )
     else:
         run_smoke_tests(
@@ -151,7 +148,6 @@ def main() -> NoReturn:
             write_out_base_path=args.write_out_base,
             write_table=args.write_table,
             limit=args.limit_sessions,
-            debug=args.debug
         )
 
 if __name__ == "__main__":
