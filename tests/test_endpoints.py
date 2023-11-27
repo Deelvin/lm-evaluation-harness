@@ -29,7 +29,6 @@ def run_smoke_tests(
     ) -> None:
     tmux_server = libtmux.Server()
     os.environ["OCTOAI_TOKEN"] = os.environ.get(f"OCTOAI_TOKEN_{endpoint_type.upper()}")
-    current_session = 0
     for current_session, endpoint in enumerate(endpoints[endpoint_type]):
         model_name = endpoint["model"]
         print()
@@ -58,14 +57,15 @@ def run_smoke_tests(
                                    --model_name={endpoint_type}_{model_name}"""
 
         tmux_server.sessions[current_session % limit].panes[0].send_keys(
-            f"python3 -m pytest {path_to_tests_file} " 
+            f"python3 -m pytest {path_to_tests_file}::test_response " 
             f"--model_name={model_name} --endpoint={endpoint['url']} > {log_file} "
-            f"&& {process_logs_command} "
-            f"{'&& exit' if current_session >= len(endpoints[endpoint_type]) - limit else ''}",
+            f"&& {process_logs_command} ",
             enter=True
         )
     while len(tmux_server.sessions) > 0: # wait until all tmux sessions running tests are killed
-        pass
+        for session in tmux_server.sessions:
+            if session.panes[0].capture_pane()[-1].endswith("$"):
+                session.panes[0].send_keys("exit", enter=True)
 
     subprocess.run(
         f"""python {os.path.join(str(Path(__file__).parent.parent), 'scripts', 'process_logs.py')} \
