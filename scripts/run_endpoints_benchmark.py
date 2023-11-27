@@ -4,11 +4,11 @@ from pathlib import Path
 from utils import init_gspread_client
 import json
 import os
-import re
 import subprocess
 import argparse
 
 import gspread
+import libtnux
 
 FEWSHOTS_PER_TASK = {
     "gsm8k": [0, 5, 8], 
@@ -33,11 +33,9 @@ def run_benchmark(
         limit: int = 3,
 
     ) -> None:
-    if not os.environ.get("OCTOAI_API_KEY"):
-        os.environ["OCTOAI_API_KEY"] = os.environ.get(f"OCTOAI_TOKEN_{endpoint_type.upper()}")
-
-    current_session = 0
-    for col_num, endpoint in enumerate(endpoints[endpoint_type]):
+    tmux_server = libtmux.Server()
+    os.environ["OCTOAI_API_KEY"] = os.environ.get(f"OCTOAI_TOKEN_{endpoint_type.upper()}")
+    for num_endpoint, endpoint in enumerate(endpoints[endpoint_type]):
         model_name = endpoint["model"]
         res_path = os.path.join(write_out_base_path, model_name)
         if not os.path.exists(res_path):
@@ -55,9 +53,9 @@ def run_benchmark(
         print(f"  ---------------------------------------------------------------------------------")
         print()
 
-        if current_session < limit:
+        if num_endpoint < limit:
             subprocess.run(
-                f"tmux new-session -d -s {current_session} ",
+                f"tmux new-session -d -s {num_endpoint} ",
                 shell=True, 
                 universal_newlines=True
             )
@@ -73,13 +71,13 @@ def run_benchmark(
         if write_table:
             write_table_command = f"python {os.path.join(str(Path(__file__).parent), 'process_logs.py')} --path_to_results={res_output} --model_name={endpoint_type}_{model_name}"
 
-        extra_args = "--limit=0.1" if task == "triviaqa" else ""
+        # extra_args = "--limit=0.1" if task == "triviaqa" else ""
+        extra_args = "--limit=8"
 
-        subprocess.run(
-            f"tmux send-keys -t {current_session % limit} "
-            f"\"python3 {path_to_benchmark_repo}/main.py "
+        tmux_server.sessions[num_endpoint % limit].panes[0].send_keys(
+            f"python3 {path_to_benchmark_repo}/main.py "
             f"--model=octoai "
-            f"--model_args=\'model_name={model_name}\' "
+            f"--model_args=\'model_name={model_name},prod={True if endpoint_type == 'prod' else False}\' "
             f"--task={task} "
             f"--output_path={res_output} " 
             f"--no_cache " 
@@ -87,27 +85,21 @@ def run_benchmark(
             f"--batch_size=1 " 
             f"--write_out " 
             f"{extra_args} "
-            f"--output_base_path=./nf{num_fewshot}/\" Enter", 
-            shell=True, 
-            universal_newlines=True
+            f"--output_base_path=./nf{num_fewshot}/", 
+            enter=True
         )
 
-        subprocess.run(
-            f"tmux send-keys -t {current_session % limit} "
-            f"\"{write_table_command}\" Enter", 
-            shell=True, 
-            universal_newlines=True
+        tmux_server.sessions[num_endpoint % limit].panes[0].send_keys(
+            write_table_command,
+            enter=True
         )
         
         os.chdir(work_dir)
-        current_session += 1
 
-    for num_session in range(limit):
-        subprocess.run(
-            f"tmux send-keys -t {num_session} \"{'exit' if not debug else 'echo Finished'}\" Enter",
-            shell=True,
-            universal_newlines=True
-        )
+    while len(tmux_server.sessions) > 0: # wait until all tmux sessions running tests are killed
+        for session in tmux_server.sessions:
+            if session.panes[0].capture_pane()[-1].endswith("$"):
+                session.panes[0].send_keys("exit", enter=True)
 
     print("Done")
 
@@ -144,8 +136,8 @@ def main() -> NoReturn:
                 idx += 1
 
     chosen_types = ["dev", "prod"] if args.endpoint_type == "all" else [args.endpoint_type]
-    for endpoint_type in chosen_types:
-        for num_fewshot in [0, 5, 8]:
+    for num_fewshot in [0, 5, 8]:
+        for endpoint_type in chosen_types:
             for task in FEWSHOTS_PER_TASK.keys():
                 if num_fewshot in FEWSHOTS_PER_TASK[task]:
                     run_benchmark(
