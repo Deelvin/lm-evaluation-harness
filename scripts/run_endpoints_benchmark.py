@@ -134,20 +134,14 @@ def main() -> NoReturn:
         spreadsheet = init_gspread_client()
         today = str(date.today())
         try:
-            worksheet = spreadsheet.add_worksheet(title=today, rows=250, cols=100)
-        except:
             worksheet = spreadsheet.worksheet(today)
+        except:
+            worksheet = spreadsheet.worksheet("Template").duplicate(new_sheet_name=today)
         idx = 0
         for endpoint_type in ["dev", "prod"]:
             for endpoint in endpoints[endpoint_type]:
                 worksheet.update(f"A{3 + idx}", f"{endpoint_type}_{endpoint['model']}")
                 idx += 1
-        worksheet.update("B1", "gsm8k")
-        worksheet.update("B2:D2", [["accuracy (few shot = 0)", "accuracy (few shot = 5)", "accuracy (few shot = 8)"]])
-        worksheet.update("E1", "truthfulqa_gen")
-        worksheet.update("E2:I2", [["bleurt_accuracy (few shot = 0)", "bleu_accuracy (few shot = 0)", "rouge1_accuracy (few shot = 0)", "rouge2_accuracy (few shot = 0)", "rougeL_accuracy (few shot = 0)"]])
-        worksheet.update("J1", "triviaqa")
-        worksheet.update("J2:K2", [["accuracy (few shot = 0)", "accuracy (few shot = 5)"]])
 
     chosen_types = ["dev", "prod"] if args.endpoint_type == "all" else [args.endpoint_type]
     for endpoint_type in chosen_types:

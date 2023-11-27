@@ -16,11 +16,11 @@ COLUMN_BY_TASK = {
         8: 'D'
     }, 
     "truthfulqa_gen": {
-        0: 'E'
+        0: 'G'
     },
     "triviaqa": {
-        0: 'J',
-        5: 'K'
+        0: 'N',
+        5: 'O'
     }
 }
 
