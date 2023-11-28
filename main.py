@@ -31,6 +31,7 @@ def parse_args():
     parser.add_argument("--write_out", action="store_true", default=False)
     parser.add_argument("--output_base_path", type=str, default=None)
     parser.add_argument("--samples_choice", nargs="+", type=str, default=None)
+    parser.add_argument("--no_shuffle", action="store_true", default=False)
 
     return parser.parse_args()
 
@@ -73,6 +74,7 @@ def main():
         write_out=args.write_out,
         output_base_path=args.output_base_path,
         samples_choice=args.samples_choice,
+        no_shuffle=args.no_shuffle,
     )
 
     dumped = json.dumps(results, indent=2)

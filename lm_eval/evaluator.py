@@ -27,6 +27,7 @@ def simple_evaluate(
     write_out=False,
     output_base_path=None,
     samples_choice=None,
+    no_shuffle=False,
 ):
     """Instantiate and evaluate a model on a list of tasks.
 
@@ -59,6 +60,10 @@ def simple_evaluate(
         If True, write details about prompts and logits to json for all tasks
     :param output_base_path: str, optional
         Directory to which detailed eval info will be written. Defaults to present working dir.
+    :param samples_choice: list, optional
+        Create subset of the dataset with specified indexes of samples.
+    :param no_shuffle: bool
+        If True, no shuffling would be performed and downloaded dataset would be determined in terms of indexing.
     :return
         Dictionary of results
     """
@@ -103,6 +108,7 @@ def simple_evaluate(
         output_base_path=output_base_path,
         model_name=model_args[12:-1],
         samples_choice=samples_choice,
+        no_shuffle=no_shuffle,
     )
 
     # add info about the model and few shot config
@@ -139,6 +145,7 @@ def evaluate(
     output_base_path=None,
     model_name='',
     samples_choice=None,
+    no_shuffle=False,
 ):
     """Instantiate and evaluate a model on a list of tasks.
 
@@ -160,6 +167,12 @@ def evaluate(
         If True, write all prompts, logits and metrics to json for offline analysis
     :param output_base_path: str, optional
         Directory to which detailed eval info will be written. Defaults to present working dir
+    :param model_name: str, optional
+        Name of the model for output json file.
+    :param samples_choice: list, optional
+        Create subset of the dataset with specified indexes of samples.
+    :param no_shuffle: bool
+        If True, no shuffling would be performed and downloaded dataset would be determined in terms of indexing.
     :return
         Dictionary of results
     """
@@ -218,7 +231,8 @@ def evaluate(
         task_docs = list(task_doc_func())
         rnd = random.Random()
         rnd.seed(42)
-        rnd.shuffle(task_docs)
+        if not no_shuffle:
+            rnd.shuffle(task_docs)
         print(f"Task: {task_name}; number of docs: {len(task_docs)}")
 
         if write_out:

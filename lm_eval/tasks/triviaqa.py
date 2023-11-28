@@ -62,6 +62,7 @@ class TriviaQA(Task):
         return doc["question"]
 
     def doc_to_target(self, doc):
+        print(doc)
         return " " + doc["answer"]["value"]
 
     def _remove_prefixes(self, aliases):

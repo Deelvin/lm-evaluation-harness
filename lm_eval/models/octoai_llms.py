@@ -7,29 +7,6 @@ from lm_eval.base import BaseLM
 
 REPEAT_REQUEST_TO_OCTOAI_SERVER = 10
 
-model_urls = {
-   "codellama-7b-instruct-mlc-q0f16": "https://codellama-7b-instruct-fp16-1gpu-g2ave3d5t9mm.octoai.run",
-   "codellama-7b-instruct-mlc-q4f16_1": "https://codellama-7b-instruct-int4-1gpu-g2ave3d5t9mm.octoai.run",
-   "codellama-7b-instruct-mlc-q8f16_1": "https://codellama-7b-instruct-int8-1gpu-g2ave3d5t9mm.octoai.run",
-   "codellama-13b-instruct-mlc-q0f16": "https://codellama-13b-instruct-fp16-2gpu-g2ave3d5t9mm.octoai.run",
-   "codellama-13b-instruct-mlc-q4f16_1": "https://codellama-13b-instruct-int4-1gpu-g2ave3d5t9mm.octoai.run",
-   "codellama-13b-instruct-mlc-q8f16_1": "https://codellama-13b-instruct-int8-1gpu-g2ave3d5t9mm.octoai.run",
-   "codellama-34b-instruct-mlc-q0f16": "https://codellama-34b-instruct-fp16-4gpu-g2ave3d5t9mm.octoai.run",
-   "codellama-34b-instruct-mlc-q4f16_1": "https://codellama-34b-instruct-int4-1gpu-g2ave3d5t9mm.octoai.run",
-   "codellama-34b-instruct-mlc-q8f16_1": "https://codellama-34b-instruct-int8-2gpu-g2ave3d5t9mm.octoai.run",
-   "llama2-7b-chat-mlc-q0f16": "https://llama2-7b-chat-fp16-1gpu-g2ave3d5t9mm.octoai.run",
-   "llama2-7b-chat-mlc-q4f16_1": "https://llama2-7b-chat-int4-1gpu-g2ave3d5t9mm.octoai.run",
-   "llama2-7b-chat-mlc-q8f16_1": "https://llama2-7b-chat-int8-1gpu-g2ave3d5t9mm.octoai.run",
-   "llama2-13b-chat-mlc-q0f16": "https://llama2-13b-chat-fp16-2gpu-g2ave3d5t9mm.octoai.run",
-   "llama2-13b-chat-mlc-q4f16_1": "https://llama2-13b-chat-int4-1gpu-g2ave3d5t9mm.octoai.run",
-   "llama2-13b-chat-mlc-q8f16_1": "https://llama2-13b-chat-int8-1gpu-g2ave3d5t9mm.octoai.run",
-   "llama2-70b-chat-mlc-q0f16": "https://llama2-70b-chat-fp16-4gpu-g2ave3d5t9mm.octoai.run",
-   "llama2-70b-chat-mlc-q4f16_1": "https://llama2-70b-chat-int4-2gpu-g2ave3d5t9mm.octoai.run",
-   "llama2-70b-chat-mlc-q8f16_1": "https://llama2-70b-chat-int8-4gpu-g2ave3d5t9mm.octoai.run",
-   # TODO(vvchernov): it is demo, may be need to remove
-   "llama-2-70b-chat": "https://llama-2-70b-chat-demo-kk0powt97tmb.octoai.run",
-}
-
 
 class OctoAIEndpointLM(BaseLM):
   def __init__(
@@ -38,8 +15,8 @@ class OctoAIEndpointLM(BaseLM):
       batch_size=1,
       max_batch_size=None,
       device=None,
-      top_p=0.0,
-      temperature=0.0,):
+      top_p=0.001,
+      temperature=0.001,):
     """
     :param model_name: str
         Model name from the list of models supported by OctoAI
@@ -63,7 +40,7 @@ class OctoAIEndpointLM(BaseLM):
     if api_key is None:
       raise ValueError("API_KEY not found in the .env file")
 
-    self.url = model_urls[self.model_name]
+    self.url = "https://text.customer-endpoints.nimbus.octoml.ai"
 
     self.headers = {
       "accept": "text/event-stream",
