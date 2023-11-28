@@ -77,7 +77,7 @@ def run_benchmark(
         tmux_server.sessions[num_endpoint % limit].panes[0].send_keys(
             f"python3 {path_to_benchmark_repo}/main.py "
             f"--model=octoai "
-            f"--model_args=\'model_name={model_name},prod={True if endpoint_type == 'prod' else False}\' "
+            f"--model_args=\'model_name={model_name},prod={'True' if endpoint_type == 'prod' else 'False'}\' "
             f"--task={task} "
             f"--output_path={res_output} " 
             f"--no_cache " 
@@ -85,7 +85,7 @@ def run_benchmark(
             f"--batch_size=1 " 
             f"--write_out " 
             f"{extra_args} "
-            f"--output_base_path=./nf{num_fewshot}/", 
+            f"--output_base_path={os.path.join(res_path, 'nf' + str(num_fewshot))}/", 
             enter=True
         )
 
@@ -107,11 +107,12 @@ def main() -> NoReturn:
     parser = argparse.ArgumentParser()
     parser.add_argument("--endpoints_file", required=True, type=str)
     parser.add_argument("--benchmark_repo", type=str, default=str(Path(__file__).parent.parent))
-    parser.add_argument("--write_out_base", type=str, default="./")
+    parser.add_argument("--write_out_base", type=str, default="./logs")
     parser.add_argument("--task", type=str, default="all") # one of [gsm8k, truthfulqa, triviaqa, all]
     parser.add_argument("--endpoint_type", type=str, default="dev")
     parser.add_argument("--write_table", action="store_true")
     parser.add_argument("--limit_sessions", type=int, default=2)
+    parser.add_argument("--debug", action="store_true")
     args = parser.parse_args()
 
     if not os.environ.get("OCTOAI_TOKEN") and not os.environ.get("OCTOAI_API_KEY"):
@@ -125,10 +126,11 @@ def main() -> NoReturn:
     if args.write_table:
         spreadsheet = init_gspread_client()
         today = str(date.today())
+        table_name = "debug_table" if args.debug else today
         try:
-            worksheet = spreadsheet.worksheet(today)
+            worksheet = spreadsheet.worksheet(table_name)
         except:
-            worksheet = spreadsheet.worksheet("Template").duplicate(new_sheet_name=today)
+            worksheet = spreadsheet.worksheet("Template").duplicate(new_sheet_name=table_name)
         idx = 0
         for endpoint_type in ["dev", "prod"]:
             for endpoint in endpoints[endpoint_type]:
@@ -149,7 +151,7 @@ def main() -> NoReturn:
                         task=task,
                         limit=args.limit_sessions,
                         write_table=args.write_table,
-                        debug=True
+                        debug=args.debug
                     )
     
 
