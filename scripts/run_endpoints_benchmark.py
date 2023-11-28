@@ -26,7 +26,7 @@ def run_benchmark(
         endpoint_type: str,
         path_to_benchmark_repo: str,
         num_fewshot: int = 0,
-        write_out_base_path: str = "./",
+        write_out_base_path: str = "./logs",
         task: str = "gsm8k",
         write_table: bool = True,
         debug: bool = False,
@@ -37,7 +37,7 @@ def run_benchmark(
     os.environ["OCTOAI_API_KEY"] = os.environ.get(f"OCTOAI_TOKEN_{endpoint_type.upper()}")
     for num_endpoint, endpoint in enumerate(endpoints[endpoint_type]):
         model_name = endpoint["model"]
-        res_path = os.path.join(write_out_base_path, model_name)
+        res_path = os.path.join(write_out_base_path, task, model_name)
         if not os.path.exists(res_path):
             os.makedirs(res_path)
         work_dir = os.getcwd()
@@ -69,7 +69,7 @@ def run_benchmark(
         )
 
         if write_table:
-            write_table_command = f"python {os.path.join(str(Path(__file__).parent), 'process_logs.py')} --path_to_results={res_output} --model_name={endpoint_type}_{model_name}"
+            write_table_command = f"python {os.path.join(str(Path(__file__).parent), 'process_logs.py')} --path_to_results={res_output} --model_name={endpoint_type}_{model_name} {'--write_table' if write_table else ''}"
 
         # extra_args = "--limit=0.1" if task == "triviaqa" else ""
         extra_args = "--limit=8"

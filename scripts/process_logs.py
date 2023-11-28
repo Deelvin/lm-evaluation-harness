@@ -1,26 +1,44 @@
 from typing import List, Dict, NoReturn
 from datetime import date
 from utils import init_gspread_client
+from pathlib import Path
 import argparse
 import re
 import time
 import json
+import os
 
 import gspread
+import pandas as pd
 
 TASKS = ["gsm8k", "truthfulqa_gen", "triviaqa"]
-COLUMN_BY_TASK = {
+TASK_CONFIG = {
     "gsm8k": {
-        0: 'B', 
-        5: 'C', 
-        8: 'D'
-    }, 
+        "column_by_fewshot": {
+            0: 'B', 
+            5: 'C', 
+            8: 'D'
+        },
+        "metrics": ["acc"]
+    },
     "truthfulqa_gen": {
-        0: 'G'
+        "column_by_fewshot": {
+            0: 'G'
+        },
+        "metrics": [
+            "bleurt_acc", 
+            "bleu_acc", 
+            "rouge1_acc", 
+            "rouge2_acc", 
+            "rougeL_acc"
+        ]
     },
     "triviaqa": {
-        0: 'N',
-        5: 'O'
+        "column_by_fewshot": {
+            0: 'N',
+            5: 'O'
+        },
+        "metrics": ["em"]
     }
 }
 
@@ -33,9 +51,15 @@ def get_row_by_model_name(
 
 def process_benchmark_results(
         path_to_results: str, 
-        worksheet: gspread.spreadsheet.Worksheet,
-        model_name: str
+        model_name: str,
+        write_table: bool = True
     ) -> None:
+    if write_table:
+        spreadsheet = init_gspread_client()
+        today = str(date.today())
+        worksheet = spreadsheet.worksheet(today)
+    path_to_results_root = str(Path(path_to_results).parent.parent.parent)
+    artifacts_dir = os.path.join(path_to_results_root, "results_per_task")
     with open(path_to_results) as file:
         res_file = json.load(file)
         for task in TASKS:
@@ -45,38 +69,35 @@ def process_benchmark_results(
                 num_fewshot = res_file["config"]["num_fewshot"]
             except:
                 continue
-        if task_name == "truthfulqa_gen":
-            start_column = COLUMN_BY_TASK[task_name][num_fewshot]
-            for idx, metric in enumerate(["bleurt_acc", "bleu_acc", "rouge1_acc", "rouge2_acc", "rougeL_acc"]):
+        start_column = TASK_CONFIG[task_name]["column_by_fewshot"]
+        current_results = dict()
+        for idx, metric in enumerate(TASK_CONFIG[task_name]["metrics"]):
+            current_results[metric] = res_file["results"][task_name][metric]
+            if write_table:
                 worksheet.update(
                     f"{chr(ord(start_column) + idx)}{get_row_by_model_name(worksheet, model_name)}", 
                     res_file["results"][task_name][metric]
                 )
-        elif task_name == "triviaqa":
-            worksheet.update(
-                f"{COLUMN_BY_TASK[task_name][num_fewshot]}{get_row_by_model_name(worksheet, model_name)}", 
-                res_file["results"][task_name]["em"]
-            )
-        else:
-            worksheet.update(
-                f"{COLUMN_BY_TASK[task_name][num_fewshot]}{get_row_by_model_name(worksheet, model_name)}", 
-                res_file["results"][task_name]["acc"]
-            )
+        current_results["endpoint"] = model_name
+        results_dataframe = pd.DataFrame(current_results, index="endpoint")
+        artifact_path = os.path.join(artifacts_dir, f"{task_name}_summary.csv")
+        if os.path.exists(artifact_path):
+            temp_dataframe = pd.read_csv(artifact_path)
+            results_dataframe = pd.concat([temp_dataframe, results_dataframe], axis=1, ignore_index=False)
+        results_dataframe.to_csv(artifact_path)
 
 def main():
-    print("Processing logs")
+    print("Processing results...")
     parser = argparse.ArgumentParser()
     parser.add_argument("--path_to_results", type=str, required=True)
     parser.add_argument("--model_name", type=str, required=True)
+    parser.add_argument("--write_table", action="store_true")
     args = parser.parse_args()
 
-    spreadsheet = init_gspread_client()
-    today = str(date.today())
-    worksheet = spreadsheet.worksheet(today)
     process_benchmark_results(
         path_to_results=args.path_to_results,
-        worksheet=worksheet,
-        model_name=args.model_name
+        model_name=args.model_name,
+        write_table=args.write_table
     )
 
 if __name__ == "__main__":
