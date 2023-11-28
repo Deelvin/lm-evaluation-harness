@@ -8,7 +8,7 @@ import subprocess
 import argparse
 
 import gspread
-import libtnux
+import libtmux
 
 FEWSHOTS_PER_TASK = {
     "gsm8k": [0, 5, 8], 
@@ -31,7 +31,6 @@ def run_benchmark(
         write_table: bool = True,
         debug: bool = False,
         limit: int = 3,
-
     ) -> None:
     tmux_server = libtmux.Server()
     os.environ["OCTOAI_API_KEY"] = os.environ.get(f"OCTOAI_TOKEN_{endpoint_type.upper()}")
@@ -63,13 +62,12 @@ def run_benchmark(
         write_table_command = ""
 
         res_output = os.path.join(
-            res_path, 
             f"nf{num_fewshot}",
             f"{task}_nf{num_fewshot}_{endpoint_type}_{model_name}_{str(date.today()).replace(' ', '_')}.json"
         )
 
         if write_table:
-            write_table_command = f"python {os.path.join(str(Path(__file__).parent), 'process_logs.py')} --path_to_results={res_output} --model_name={endpoint_type}_{model_name} {'--write_table' if write_table else ''}"
+            write_table_command = f"python {os.path.join(str(Path(__file__).parent), 'process_logs.py')} --path_to_results={res_output} --model_name={endpoint_type}_{model_name} {'--write_table' if write_table else ''} {'--debug_table' if debug else ''}"
 
         # extra_args = "--limit=0.1" if task == "triviaqa" else ""
         extra_args = "--limit=8"
@@ -85,7 +83,7 @@ def run_benchmark(
             f"--batch_size=1 " 
             f"--write_out " 
             f"{extra_args} "
-            f"--output_base_path={os.path.join(res_path, 'nf' + str(num_fewshot))}/", 
+            f"--output_base_path={Path(res_output).parent}/", 
             enter=True
         )
 
@@ -115,13 +113,14 @@ def main() -> NoReturn:
     parser.add_argument("--debug", action="store_true")
     args = parser.parse_args()
 
-    if not os.environ.get("OCTOAI_TOKEN") and not os.environ.get("OCTOAI_API_KEY"):
-        raise RuntimeError("Please export your OctoAI token to environment variable OCTOAI_TOKEN or to OCTOAI_API_KEY")
+    if not os.environ.get("OCTOAI_TOKEN_DEV") and not os.environ.get("OCTOAI_TOKEN_PROD"):
+        raise RuntimeError("Please export your OctoAI token to environment variable OCTOAI_TOKEN_DEV or OCTOAI_TOKEN_PROD depending on type of endpoints you are going to test")
 
     if args.endpoint_type not in ["dev", "prod", "all"]:
         raise RuntimeError("Please specify only 'dev', 'prod' or 'all' type of endpoints")
 
     endpoints = parse_endpoints(args.endpoints_file)
+    chosen_types = ["dev", "prod"] if args.endpoint_type == "all" else [args.endpoint_type]
 
     if args.write_table:
         spreadsheet = init_gspread_client()
@@ -132,12 +131,11 @@ def main() -> NoReturn:
         except:
             worksheet = spreadsheet.worksheet("Template").duplicate(new_sheet_name=table_name)
         idx = 0
-        for endpoint_type in ["dev", "prod"]:
+        for endpoint_type in chosen_types:
             for endpoint in endpoints[endpoint_type]:
                 worksheet.update(f"A{3 + idx}", f"{endpoint_type}_{endpoint['model']}")
                 idx += 1
-
-    chosen_types = ["dev", "prod"] if args.endpoint_type == "all" else [args.endpoint_type]
+    
     for num_fewshot in [0, 5, 8]:
         for endpoint_type in chosen_types:
             for task in FEWSHOTS_PER_TASK.keys():

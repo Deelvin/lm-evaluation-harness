@@ -52,12 +52,14 @@ def get_row_by_model_name(
 def process_benchmark_results(
         path_to_results: str, 
         model_name: str,
-        write_table: bool = True
+        write_table: bool = True,
+        debug_table: bool = False
     ) -> None:
     if write_table:
         spreadsheet = init_gspread_client()
         today = str(date.today())
-        worksheet = spreadsheet.worksheet(today)
+        table_name = "debug_table" if debug_table else today
+        worksheet = spreadsheet.worksheet(table_name)
     path_to_results_root = str(Path(path_to_results).parent.parent.parent)
     artifacts_dir = os.path.join(path_to_results_root, "results_per_task")
     with open(path_to_results) as file:
@@ -69,7 +71,7 @@ def process_benchmark_results(
                 num_fewshot = res_file["config"]["num_fewshot"]
             except:
                 continue
-        start_column = TASK_CONFIG[task_name]["column_by_fewshot"]
+        start_column = TASK_CONFIG[task_name]["column_by_fewshot"][num_fewshot]
         current_results = dict()
         for idx, metric in enumerate(TASK_CONFIG[task_name]["metrics"]):
             current_results[metric] = res_file["results"][task_name][metric]
@@ -79,7 +81,7 @@ def process_benchmark_results(
                     res_file["results"][task_name][metric]
                 )
         current_results["endpoint"] = model_name
-        results_dataframe = pd.DataFrame(current_results, index="endpoint")
+        results_dataframe = pd.DataFrame(current_results, index=[model_name])
         artifact_path = os.path.join(artifacts_dir, f"{task_name}_summary.csv")
         if os.path.exists(artifact_path):
             temp_dataframe = pd.read_csv(artifact_path)
@@ -92,12 +94,14 @@ def main():
     parser.add_argument("--path_to_results", type=str, required=True)
     parser.add_argument("--model_name", type=str, required=True)
     parser.add_argument("--write_table", action="store_true")
+    parser.add_argument("--debug_table", action="store_true")
     args = parser.parse_args()
 
     process_benchmark_results(
         path_to_results=args.path_to_results,
         model_name=args.model_name,
-        write_table=args.write_table
+        write_table=args.write_table,
+        debug_table=args.debug_table
     )
 
 if __name__ == "__main__":
