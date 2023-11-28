@@ -1,10 +1,10 @@
 from typing import List, Dict, NoReturn
-from datetime import date
 from utils import init_gspread_client
 from pathlib import Path
 import argparse
 import re
 import time
+import datetime
 import json
 import os
 
@@ -51,16 +51,17 @@ def get_row_by_model_name(
 
 def process_benchmark_results(
         path_to_results: str, 
+        write_out_base: str,
         model_name: str,
         write_table: bool = True,
         debug_table: bool = False
     ) -> None:
     if write_table:
         spreadsheet = init_gspread_client()
-        today = str(date.today())
+        today = str(datetime.date.today())
         table_name = "debug_table" if debug_table else today
         worksheet = spreadsheet.worksheet(table_name)
-    path_to_results_root = str(Path(path_to_results).parent.parent.parent)
+    path_to_results_root = write_out_base
     artifacts_dir = os.path.join(path_to_results_root, "results_per_task")
     with open(path_to_results) as file:
         res_file = json.load(file)
@@ -81,19 +82,20 @@ def process_benchmark_results(
                     res_file["results"][task_name][metric]
                 )
         current_results["endpoint"] = model_name
-        results_dataframe = pd.DataFrame(current_results, index=[model_name])
+        results_dataframe = pd.DataFrame(current_results, index=[0])
         artifact_path = os.path.join(artifacts_dir, f"{task_name}_summary.csv")
         if os.path.exists(artifact_path):
             temp_dataframe = pd.read_csv(artifact_path)
-            results_dataframe = pd.concat([temp_dataframe, results_dataframe], axis=1, ignore_index=False)
-        else:
+            results_dataframe = pd.concat([temp_dataframe, results_dataframe], axis=0, ignore_index=True)
+        if not os.path.exists(os.path.dirname(artifact_path)):
             os.makedirs(os.path.dirname(artifact_path))
-        results_dataframe.to_csv(artifact_path)
+        results_dataframe.to_csv(artifact_path, index=False)
 
 def main():
     print("Processing results...")
     parser = argparse.ArgumentParser()
     parser.add_argument("--path_to_results", type=str, required=True)
+    parser.add_argument("--write_out_base", type=str, required=True)
     parser.add_argument("--model_name", type=str, required=True)
     parser.add_argument("--write_table", action="store_true")
     parser.add_argument("--debug_table", action="store_true")
@@ -101,6 +103,7 @@ def main():
 
     process_benchmark_results(
         path_to_results=args.path_to_results,
+        write_out_base=args.write_out_base,
         model_name=args.model_name,
         write_table=args.write_table,
         debug_table=args.debug_table

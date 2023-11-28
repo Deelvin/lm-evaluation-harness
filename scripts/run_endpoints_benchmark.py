@@ -1,9 +1,9 @@
 from typing import NoReturn, Dict, List
-from datetime import date
 from pathlib import Path
 from utils import init_gspread_client
 import json
 import os
+import datetime
 import subprocess
 import argparse
 
@@ -42,8 +42,8 @@ def run_benchmark(
         work_dir = os.getcwd()
         os.chdir(res_path)
 
-        if not os.path.exists(os.path.join(res_path, f"nf{num_fewshot}")):
-            os.makedirs(os.path.join(res_path, f"nf{num_fewshot}"))
+        if not os.path.exists(f"./nf{num_fewshot}"):
+            os.makedirs(f"./nf{num_fewshot}")
         
         print()
         print(f"  ---------------------------------------------------------------------------------")
@@ -63,11 +63,11 @@ def run_benchmark(
 
         res_output = os.path.join(
             f"nf{num_fewshot}",
-            f"{task}_nf{num_fewshot}_{endpoint_type}_{model_name}_{str(date.today()).replace(' ', '_')}.json"
+            f"{endpoint_type}_{model_name}_{str(datetime.datetime.now()).replace(' ', '_')}.json"
         )
 
         if write_table:
-            write_table_command = f"python {os.path.join(str(Path(__file__).parent), 'process_logs.py')} --path_to_results={res_output} --model_name={endpoint_type}_{model_name} {'--write_table' if write_table else ''} {'--debug_table' if debug else ''}"
+            write_table_command = f"python {os.path.join(str(Path(__file__).parent), 'process_logs.py')} --path_to_results={res_output} --model_name={endpoint_type}_{model_name} {'--write_table' if write_table else ''} {'--debug_table' if debug else ''} --write_out_base={os.path.join(work_dir, write_out_base_path)}"
 
         # extra_args = "--limit=0.1" if task == "triviaqa" else ""
         extra_args = "--limit=8"
@@ -124,7 +124,7 @@ def main() -> NoReturn:
 
     if args.write_table:
         spreadsheet = init_gspread_client()
-        today = str(date.today())
+        today = str(datetime.date.today())
         table_name = "debug_table" if args.debug else today
         try:
             worksheet = spreadsheet.worksheet(table_name)
