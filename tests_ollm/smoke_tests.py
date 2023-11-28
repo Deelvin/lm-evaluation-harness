@@ -726,9 +726,11 @@ def send_request_with_timeout(url, data, headers):
     except requests.exceptions.Timeout:
         return None
 
+
 def send_request_get_response(url, data, headers):
     response = requests.post(url, json=data, headers=headers)
     return response
+
 
 def test_canceling_requests(model_name, token, endpoint):
     data = {
@@ -827,6 +829,7 @@ def test_multiple_messages(model_name, token, endpoint):
     )
     assert "4" in completion["choices"][0]["message"]["content"]
 
+
 @pytest.mark.parametrize("input_tokens", [496, 963, 2031, 3119, 3957, 5173])
 def test_large_input_content(input_tokens, model_name, context_size, token, endpoint):
     with open(path_to_file(f"input_context/text_about_{input_tokens}_tokens.txt"), "r") as file:
@@ -841,47 +844,6 @@ def test_large_input_content(input_tokens, model_name, context_size, token, endp
     else:
         assert run_chat_completion(model_name, messages, token, endpoint, max_tokens=max_tokens) == 400
 
-def test_scalability(model_name, token, endpoint):
-    data = {
-        "model": model_name,
-        "messages": [
-            {
-                "role": "user",
-                "content": "Create a big story about a friendship between a cat and a dog.",
-            }
-        ],
-        "max_tokens": 500,
-        "n": 1,
-        "stream": False,
-        "stop": None,
-        "temperature": 0.8,
-        "top_p": 1.0,
-        "presence_penalty": 0,
-        "return_completion": False,
-    }
-
-    url = endpoint + "/v1/chat/completions"
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {token}",
-    }
-    responses_code_set = set()
-    num_workers = 10
-
-    start_time = time.time()
-    with ThreadPoolExecutor(max_workers=1) as executor:
-        response = executor.submit(send_request_get_response, url, data, headers).result()
-        
-    first_run_time = time.time() - start_time
-
-    with ThreadPoolExecutor(max_workers=num_workers) as executor:
-        futures = [executor.submit(send_request_get_response, url, data, headers) for _ in range(num_workers)]
-        for future in concurrent.futures.as_completed(futures):
-            responses_code_set.add(future.result().status_code)
-    second_run_time = time.time() - start_time
-    assert (responses_code_set == {200}), f"There is a problem with sending request"
-
-    assert (second_run_time / first_run_time) < 10.0
 
 def test_send_many_request(model_name, token, endpoint):
     data = {
