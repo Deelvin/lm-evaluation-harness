@@ -86,6 +86,8 @@ def process_benchmark_results(
         if os.path.exists(artifact_path):
             temp_dataframe = pd.read_csv(artifact_path)
             results_dataframe = pd.concat([temp_dataframe, results_dataframe], axis=1, ignore_index=False)
+        else:
+            os.makedirs(os.path.dirname(artifact_path))
         results_dataframe.to_csv(artifact_path)
 
 def main():

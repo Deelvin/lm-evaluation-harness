@@ -12,7 +12,7 @@ import libtmux
 
 FEWSHOTS_PER_TASK = {
     "gsm8k": [0, 5, 8], 
-    "truthfulqa_gen": [0], 
+    # "truthfulqa_gen": [0], 
     "triviaqa": [0, 5]
 }
 
