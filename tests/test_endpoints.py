@@ -24,6 +24,7 @@ def run_smoke_tests(
         write_out_base_path: str = "./",
         write_table: bool = True,
         limit: int = 3,
+        debug: bool = False
     ) -> None:
     tmux_server = libtmux.Server()
     os.environ["OCTOAI_TOKEN"] = os.environ.get(f"OCTOAI_TOKEN_{endpoint_type.upper()}")
@@ -73,7 +74,8 @@ def run_smoke_tests(
         --create_summary \
         --path_to_artifacts={os.path.join(write_out_base_path, 'test_results')} \
         --summary_path={os.path.join(write_out_base_path, "summary.csv")} \
-        {'--write_table' if write_table else ''}""",
+        {'--write_table' if write_table else ''} \
+        {'--debug_table' if debug else ''}""",
         shell=True
     )
     print("Done")
@@ -90,6 +92,7 @@ def main() -> NoReturn:
     parser.add_argument("--write_out_base", type=str, default="./logs")
     parser.add_argument("--write_table", action="store_true")
     parser.add_argument("--limit_sessions", type=int, default=3)
+    parser.add_argument("--debug", action="store_true")
     args = parser.parse_args()
 
     if not os.environ.get("OCTOAI_TOKEN_DEV") and not os.environ.get("OCTOAI_TOKEN_PROD"):
@@ -120,38 +123,24 @@ def main() -> NoReturn:
     if args.write_table:
         today = str(datetime.date.today())
         spreadsheet = init_gspread_client()
+        table_name = "debug_table" if args.debug else today
         try:
-            worksheet = spreadsheet.add_worksheet(title=today, rows=250, cols=100)
+            worksheet = spreadsheet.add_worksheet(title=table_name, rows=250, cols=100)
         except:
-            worksheet = spreadsheet.worksheet(today)
+            worksheet = spreadsheet.worksheet(table_name)
         splitted_test_names = [[test_name] for test_name in test_names]
         worksheet.update(f"A2:A{2 + len(test_names)}", splitted_test_names)
 
-    if args.endpoint_type == "all":
+    chosen_types = ["dev", "prod"] if args.endpoint_type == "all" else [args.endpoint_type]
+    for endpoint_type in chosen_types:
         run_smoke_tests(
             endpoints,
-            "dev",
+            endpoint_type,
             args.tests_file,
             write_out_base_path=args.write_out_base,
             write_table=args.write_table,
             limit=args.limit_sessions,
-        )
-        run_smoke_tests(
-            endpoints,
-            "prod",
-            args.tests_file,
-            write_out_base_path=args.write_out_base,
-            write_table=args.write_table,
-            limit=args.limit_sessions,
-        )
-    else:
-        run_smoke_tests(
-            endpoints,
-            args.endpoint_type,
-            args.tests_file,
-            write_out_base_path=args.write_out_base,
-            write_table=args.write_table,
-            limit=args.limit_sessions,
+            debug=args.debug
         )
 
 if __name__ == "__main__":

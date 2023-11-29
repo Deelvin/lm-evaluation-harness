@@ -67,11 +67,12 @@ def create_summary(
     print(f"  ------------------------------------------------------------------------")
     print()
 
-def write_table(path_to_summary: str) -> None:
+def write_table(path_to_summary: str, debug_table: bool = False) -> None:
     print("Writing table...")
     spreadsheet = init_gspread_client()
     today = str(date.today())
-    worksheet = spreadsheet.worksheet(today)
+    table_name = "debug_table" if debug_table else today
+    worksheet = spreadsheet.worksheet(table_name)
     rules = gf.get_conditional_format_rules(worksheet)
     rules.clear()
     rule_passed = gf.ConditionalFormatRule(
