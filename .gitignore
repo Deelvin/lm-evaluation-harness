@@ -9,3 +9,4 @@ lm_cache
 
 # ignore shell scripts for tests in the root
 /*.sh
+/logs/
