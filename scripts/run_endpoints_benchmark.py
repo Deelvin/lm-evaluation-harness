@@ -12,7 +12,7 @@ from utils import init_gspread_client
 
 FEWSHOTS_PER_TASK = {
     "gsm8k": [0, 5, 8],
-    # "truthfulqa_gen": [0],
+    "truthfulqa_gen": [0],
     "triviaqa": [0, 5],
 }
 
@@ -82,8 +82,7 @@ def run_benchmark(
                                         {'--debug_table' if debug else ''} \
                                         --write_out_base={write_out_abs}"""
 
-        # extra_args = "--limit=0.1" if task == "triviaqa" else ""
-        extra_args = "--limit=8"
+        extra_args = "--limit=0.1" if task == "triviaqa" else ""
 
         tmux_server.sessions[num_endpoint % limit].panes[0].send_keys(
             f"python3 {path_to_benchmark_repo}/main.py "
