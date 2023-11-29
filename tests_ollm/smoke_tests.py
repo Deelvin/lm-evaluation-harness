@@ -46,7 +46,7 @@ def endpoint(request):
 
 @pytest.fixture
 def context_size(request):
-    return request.config.getoption("--context_size", default=2048)
+    return request.config.getoption("--context_size", default=4096)
 
 def path_to_file(file_name):
     return os.path.join(os.path.dirname(__file__), file_name)
