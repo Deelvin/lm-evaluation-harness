@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Dict
 from datetime import date
 from pathlib import Path
 import argparse
@@ -17,6 +17,21 @@ def get_test_names(path_to_log_dir: str) -> List[str]:
         test_names = pickle.load(file)
     return test_names
 
+def extract_error_messages(path_to_log: str) -> Dict[str, str]:
+    error_messages = {}
+    with open(path_to_log, 'r') as file:
+        current_message = ""
+        current_test_name = ""
+        for line in file:
+            if line.startswith("___") and line.endswith("___"):
+                current_test_name = line.replace("_", "").replace(" ", "")
+                current_message += line
+            if line.startswith("___") and line.endswith("___") or \
+               line.startswith("===") and line.endswith("==="):
+                error_messages[current_test_name] = current_message
+                current_test_name, current_message = "", ""
+    return error_messages
+
 def process_test_logs(
         path_to_log: str,
         model_name: str,
@@ -24,21 +39,21 @@ def process_test_logs(
     path_to_log_root = str(Path(path_to_log).parent.parent)
     test_names = get_test_names(path_to_log_dir=path_to_log_root)
     results = ["Passed"] * len(test_names)
-    with open(path_to_log, 'r') as file:
-        for num_test, test_name in enumerate(test_names):
-            for line in file:
-                if "FAILED" in line and re.search(r"test_[a-zA-Z_\-\[\]0-9\.!?,]+", test_name)[0] in line:
-                    results[num_test] = "Failed"
-            file.seek(0)
+    error_messages = extract_error_messages(path_to_log=path_to_log)
+    for num_test, test_name in enumerate(test_names):
+        if test_name in error_messages.keys():
+            results[num_test] = "Failed"
     artifacts_dir = os.path.join(path_to_log_root, "test_results")
-    if not os.path.exists(artifacts_dir):
-        os.makedirs(artifacts_dir)
+    errors_dir = os.path.join(artifacts_dir, f"{model_name}_error_messages")
+    if not os.path.exists(errors_dir):
+        os.makedirs(errors_dir)
     pd.DataFrame(
         {
             "test_case": test_names,
             model_name: results
         }
     ).set_index("test_case").to_csv(os.path.join(artifacts_dir, f"results_{model_name}.csv"))
+    
 
 def create_summary(
         path_to_artifacts: str,
@@ -67,7 +82,11 @@ def create_summary(
     print(f"  ------------------------------------------------------------------------")
     print()
 
-def write_table(path_to_summary: str, debug_table: bool = False) -> None:
+def write_table(
+        path_to_summary: str,
+        path_to_errors: str = None,
+        debug_table: bool = False,
+    ) -> None:
     print("Writing table...")
     spreadsheet = init_gspread_client()
     today = str(date.today())
@@ -93,6 +112,7 @@ def write_table(path_to_summary: str, debug_table: bool = False) -> None:
     rules.save()
     results = pd.read_csv(path_to_summary)
     gd.set_with_dataframe(worksheet, results)
+    # TODO: add search for cell coordinates by test and model names and put a note with error message there
     print("Done")
 
 def main() -> None:
