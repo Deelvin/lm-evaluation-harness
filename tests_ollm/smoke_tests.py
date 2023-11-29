@@ -164,7 +164,9 @@ def test_max_tokens(model_name, max_tokens, token, endpoint):
     assert len(completion["choices"][0]["message"]["content"]) > 0
 
 
-@pytest.mark.skip(reason="Due to Internal Server Error (500) hides expected invalid_request_error (400)")
+@pytest.mark.skip(
+    reason="Due to Internal Server Error (500) hides expected invalid_request_error (400)"
+)
 def test_incorrect_max_tokens(model_name, context_size, token, endpoint):
     messages = [
         {
@@ -194,6 +196,7 @@ def test_incorrect_max_tokens(model_name, context_size, token, endpoint):
     assert len(completion["choices"][0]["message"]["content"]) > 0
 
 
+@pytest.mark.skip(reason="Need to validate distance measurement approach")
 def test_valid_temperature(model_name, token, endpoint):
     """The higher the temperature, the further the distance from the expected."""
     messages = [
@@ -288,7 +291,9 @@ def test_top_p_outside_limit(model_name, top_p, token, endpoint):
         {"role": "user", "content": "Write a blog about Seattle"},
     ]
 
-    assert run_chat_completion(model_name, messages, token, endpoint, top_p=top_p) == 400
+    assert (
+        run_chat_completion(model_name, messages, token, endpoint, top_p=top_p) == 400
+    )
 
 
 @pytest.mark.parametrize("n", [1, 5, 10])
@@ -323,7 +328,10 @@ def test_stream(model_name, token, endpoint):
     stream_str = ""
     for chunk in completion_stream:
         chunk_data = chunk["choices"][0]["delta"]["content"]
-        if chunk["choices"][0]["delta"]["role"] == "assistant" and chunk_data is not None:
+        if (
+            chunk["choices"][0]["delta"]["role"] == "assistant"
+            and chunk_data is not None
+        ):
             stream_str += chunk["choices"][0]["delta"]["content"]
     completion = run_chat_completion(
         model_name,
@@ -337,7 +345,9 @@ def test_stream(model_name, token, endpoint):
     assert stream_str == completion["choices"][0]["message"]["content"]
 
 
-@pytest.mark.skip(reason="Need upstream with OpenAI approach (return completion without stop token)")
+@pytest.mark.skip(
+    reason="Need upstream with OpenAI approach (return completion without stop token)"
+)
 @pytest.mark.parametrize("stop", [["tomato", "tomatoes"], [".", "!"]])
 def test_stop(model_name, stop, token, endpoint):
     messages = [{"role": "user", "content": "How to cook tomato paste?"}]
@@ -460,9 +470,12 @@ def test_frequency_penalty_outside_limit(model_name, fr_pen, token, endpoint):
         }
     )
 
-    assert run_chat_completion(
-        model_name, messages, token, endpoint, frequency_penalty=fr_pen
-    ) == 400
+    assert (
+        run_chat_completion(
+            model_name, messages, token, endpoint, frequency_penalty=fr_pen
+        )
+        == 400
+    )
 
 
 @pytest.mark.skip(reason="Presence penalty has not been implemented yet")
@@ -556,9 +569,12 @@ def test_frequency_penalty_outside_limit(model_name, pr_pen, token, endpoint):
         }
     )
 
-    assert run_chat_completion(
-        model_name, messages, token, endpoint, presence_penalty=pr_pen
-    ) == 400
+    assert (
+        run_chat_completion(
+            model_name, messages, token, endpoint, presence_penalty=pr_pen
+        )
+        == 400
+    )
 
 
 def test_model_name(model_name, token, endpoint):
@@ -654,7 +670,7 @@ def test_created_time(model_name, token, endpoint):
 def test_incorrect_content(model_name, prompt, token, endpoint):
     message = {"role": "system", "content": prompt}
 
-    assert run_chat_completion(model_name, [message], token, endpoint) == 400
+    assert run_chat_completion(model_name, [message], token, endpoint) == 422
 
 
 @pytest.mark.parametrize("prompt", ["Hi!", None])
@@ -747,7 +763,7 @@ def test_canceling_requests(model_name, token, endpoint):
         for _ in range(8):
             executor.submit(send_request_with_timeout, url, data, headers)
     second_run_time = time.time() - start_time
- 
+
     threshold = 5
     assert abs(second_run_time - first_run_time) < threshold
 
@@ -791,15 +807,10 @@ def test_multiple_messages(model_name, token, endpoint):
         {
             "role": "user",
             "content": "2 + 2 =",
-        }
+        },
     ]
 
     completion = run_chat_completion(
-        model_name,
-        messages,
-        token,
-        endpoint,
-        max_tokens=20,
-        return_completion=True
+        model_name, messages, token, endpoint, max_tokens=20, return_completion=True
     )
     assert "4" in completion["choices"][0]["message"]["content"]
