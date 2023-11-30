@@ -3,10 +3,11 @@ import json
 from typing import List, Tuple, Union, Iterable, Optional
 from lm_eval.base import BaseLM
 
+import tvm
 import torch
 import numpy as np
 from transformers import AutoTokenizer, PretrainedConfig
-
+from tvm import relax
 
 def load_params(params_path: str, device):
     from tvm.contrib import tvmjs  # pylint: disable=import-outside-toplevel
@@ -28,11 +29,8 @@ class MLCLM(BaseLM):
         max_batch_size: int = None,
         device: str = "cuda" if torch.cuda.is_available() else "cpu"
     ):
-        import tvm
-        from tvm import relax
-
         super().__init__()
-        
+
         self.model_name = model_name
         self._batch_size = int(batch_size)
         self.max_batch_size = max_batch_size
@@ -48,10 +46,8 @@ class MLCLM(BaseLM):
             self.mlc_config = json.load(file)
 
         self.tokenizer = AutoTokenizer.from_pretrained(
-            self.params_path, 
+            self.params_path,
             trust_remote_code=True,
-            # config=PretrainedConfig(name_or_path=os.path.join(self.params_path, "tokenizer_config.json")),
-            # use_fast=True
         )
 
         self.tokenizer.pad_token_id = self.tokenizer.eos_token_id
@@ -66,7 +62,7 @@ class MLCLM(BaseLM):
                 f"{model_name}-{self._device}.so",
             )
         )
-        
+
         self.vm = relax.VirtualMachine(ex, self._tvm_device)
 
         self.tot_seq_len = 0
@@ -121,8 +117,8 @@ class MLCLM(BaseLM):
         self.tot_seq_len = 0
 
     def _model_call(
-        self, 
-        inps: torch.Tensor, 
+        self,
+        inps: torch.Tensor,
         seq_len: int = 1,
         reset: bool = False
     ) -> torch.Tensor:
@@ -146,8 +142,8 @@ class MLCLM(BaseLM):
         return torch.from_dlpack(logits)
 
     def _model_generate(
-        self, 
-        context: torch.Tensor, 
+        self,
+        context: torch.Tensor,
         max_length: int,
         eos_token_id: Optional[List[str]] = None
     ) -> torch.Tensor:
@@ -155,9 +151,9 @@ class MLCLM(BaseLM):
         total_len = max_length + prompt_len
         tvm_tokens = tvm.nd.array(
             np.zeros(
-                (1, total_len), 
+                (1, total_len),
                 dtype="int32"
-            ), 
+            ),
             device=self._tvm_device
         )
         tokens = torch.from_dlpack(tvm_tokens)
@@ -169,20 +165,16 @@ class MLCLM(BaseLM):
             else:
                 tvm_to_model = tvm.nd.array(
                     np.zeros(
-                        (1, 1), 
+                        (1, 1),
                         dtype="int32"
-                    ), 
+                    ),
                     device=self._tvm_device
                 )
                 to_model = torch.from_dlpack(tvm_to_model)
                 to_model[0, 0] = tokens[:, cur_pos - 1 : cur_pos]
                 logits = self._model_call(to_model)
             logits = logits[:, -1, :].to(torch.float32)
-            if self.mlc_config["temperature"] > 0:
-                probs = torch.softmax(logits / self.mlc_config["temperature"], dim=-1)
-                next_token = self._sample_top_p(probs, self.mlc_config["top_p"])
-            else:
-                next_token = torch.argmax(logits, dim=-1)
+            next_token = torch.argmax(logits, dim=-1)
             next_token = next_token.reshape(-1)
             tokens[:, cur_pos] = next_token
 
