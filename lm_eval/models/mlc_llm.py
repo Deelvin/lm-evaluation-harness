@@ -3,11 +3,10 @@ import json
 from typing import List, Tuple, Union, Iterable, Optional
 from lm_eval.base import BaseLM
 
-import tvm
 import torch
 import numpy as np
-from transformers import AutoTokenizer, PretrainedConfig
-from tvm import relax
+from transformers import AutoTokenizer
+
 
 def load_params(params_path: str, device):
     from tvm.contrib import tvmjs  # pylint: disable=import-outside-toplevel
@@ -27,8 +26,12 @@ class MLCLM(BaseLM):
         model_path: str,
         batch_size: int = 1,
         max_batch_size: int = None,
-        device: str = "cuda" if torch.cuda.is_available() else "cpu"
+        device: str = "cuda" if torch.cuda.is_available() else "cpu",
+        temperature: float = 0.0,
+        top_p: float = 0.0,
     ):
+        import tvm  # pylint: disable=import-outside-toplevel
+        from tvm import relax  # pylint: disable=import-outside-toplevel
         super().__init__()
 
         self.model_name = model_name
@@ -44,6 +47,11 @@ class MLCLM(BaseLM):
         self.mlc_config = {}
         with open(self.config_path) as file:
             self.mlc_config = json.load(file)
+
+        if temperature is not None:
+            self.mlc_config["temperature"] = temperature
+        if top_p is not None:
+            self.mlc_config["top_p"] = top_p
 
         self.tokenizer = AutoTokenizer.from_pretrained(
             self.params_path,
@@ -174,7 +182,11 @@ class MLCLM(BaseLM):
                 to_model[0, 0] = tokens[:, cur_pos - 1 : cur_pos]
                 logits = self._model_call(to_model)
             logits = logits[:, -1, :].to(torch.float32)
-            next_token = torch.argmax(logits, dim=-1)
+            if self.mlc_config["temperature"] > 0:
+                probs = torch.softmax(logits / self.mlc_config["temperature"], dim=-1)
+                next_token = self._sample_top_p(probs, self.mlc_config["top_p"])
+            else:
+                next_token = torch.argmax(logits, dim=-1)
             next_token = next_token.reshape(-1)
             tokens[:, cur_pos] = next_token
 
