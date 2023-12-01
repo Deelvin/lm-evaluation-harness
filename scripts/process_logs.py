@@ -40,7 +40,7 @@ def process_benchmark_results(
         worksheet = spreadsheet.worksheet(table_name)
     path_to_results_root = write_out_base
     artifacts_dir = os.path.join(path_to_results_root, "results_per_task")
-    with open(path_to_results, "rb", encoding="utf-8") as file:
+    with open(path_to_results, 'r', encoding="utf-8") as file:
         res_file = json.load(file)
         for task in TASKS:
             if task in res_file["results"]:

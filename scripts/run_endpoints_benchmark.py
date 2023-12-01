@@ -115,13 +115,13 @@ def run_benchmark(
 
 def main() -> None: # pylint: disable=missing-function-docstring
     parser = argparse.ArgumentParser()
-    parser.add_argument("--endpoints_file", required=True, type=str)
+    parser.add_argument("--endpoints_file", type=str, default=os.path.join(str(Path(__file__).parent), "endpoints.json"))
     parser.add_argument("--benchmark_repo", type=str, default=str(Path(__file__).parent.parent))
     parser.add_argument("--write_out_base", type=str, default="./logs")
     parser.add_argument("--task", type=str, default="all")  # [gsm8k, truthfulqa, triviaqa, all]
     parser.add_argument("--endpoint_type", type=str, default="dev")
     parser.add_argument("--write_table", action="store_true")
-    parser.add_argument("--limit_sessions", type=int, default=2)
+    parser.add_argument("--limit_sessions", type=int, default=4)
     parser.add_argument("--debug", action="store_true")
     args = parser.parse_args()
 
