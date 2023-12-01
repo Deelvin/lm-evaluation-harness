@@ -31,7 +31,6 @@ class MLCLM(BaseLM):
         top_p: float = 0.0,
     ):
         import tvm  # pylint: disable=import-outside-toplevel
-        from tvm import relax  # pylint: disable=import-outside-toplevel
         super().__init__()
 
         self.model_name = model_name
@@ -71,7 +70,7 @@ class MLCLM(BaseLM):
             )
         )
 
-        self.vm = relax.VirtualMachine(ex, self._tvm_device)
+        self.vm = tvm.relax.VirtualMachine(ex, self._tvm_device)
 
         self.tot_seq_len = 0
         self.kv_cache = self.vm["create_kv_cache"]()
@@ -130,6 +129,7 @@ class MLCLM(BaseLM):
         seq_len: int = 1,
         reset: bool = False
     ) -> torch.Tensor:
+        import tvm  # pylint: disable=import-outside-toplevel
         if reset:
             self.reset()
         self.tot_seq_len += seq_len
@@ -155,6 +155,7 @@ class MLCLM(BaseLM):
         max_length: int,
         eos_token_id: Optional[List[str]] = None
     ) -> torch.Tensor:
+        import tvm  # pylint: disable=import-outside-toplevel
         prompt_len = context.shape[0]
         total_len = max_length + prompt_len
         tvm_tokens = tvm.nd.array(
