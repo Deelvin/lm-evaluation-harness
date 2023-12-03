@@ -1,3 +1,4 @@
+from typing import Dict
 import argparse
 import datetime
 import json
@@ -10,13 +11,13 @@ from utils import init_gspread_client
 
 TASKS = ["gsm8k", "truthfulqa_gen", "triviaqa"]
 TASK_CONFIG = {
-    "gsm8k": {"start_column": {0: "B", 5: "C", 8: "D"}, "metrics": ["acc"]},
+    "gsm8k": {"start_column": {0: "B", 5: "C", 8: "D"}, "paper_results_column": "E", "metrics": ["acc"]},
     "truthfulqa_gen": {
         "start_column": {0: "I"},
         "metrics": ["bleurt_acc", "bleu_acc", "rouge1_acc", "rouge2_acc", "rougeL_acc"],
     },
     "triviaqa": {"start_column": {0: "P", 5: "Q"}, "metrics": ["em"]},
-    "human_eval": {"start_column": {0: "T"}, "metrics": ["acc"]}
+    "human_eval": {"start_column": {0: "T"}, "paper_results_column": "U", "metrics": ["acc"]}
 }
 
 
@@ -25,6 +26,55 @@ def get_row_by_model_name(
 ) -> int:
     models = worksheet.col_values(1)
     return models.index(model_name) + 1
+
+def get_paper_results(
+    spreadsheet: gspread.spreadsheet.Spreadsheet
+) -> Dict[str, Dict[str, float]]:
+    worksheet = spreadsheet.worksheet("Paper Results")
+    models = worksheet.col_values(1)
+    gsm8k_results = worksheet.col_values(2)
+    human_eval_results = worksheet.col_values(4)
+    result_by_model = {}
+    for i in range(len(models)):
+        if models[i] and gsm8k_results[i]:
+            result_by_model[models[i]]["gsm8k"] = gsm8k_results[i]
+        if models[i] and human_eval_results[i]:
+            result_by_model[models[i]]["human_eval"] = human_eval_results[i]
+
+def fill_paper_result(
+    spreadsheet: gspread.spreadsheet.Spreadsheet,
+    worksheet: gspread.spreadsheet.Worksheet,
+    table_name: str,
+    task: str,
+    model_name: str,
+    row: int
+) -> None:
+    if task not in ["gsm8k", "human_eval"]:
+        return
+    result_by_model = get_paper_results(spreadsheet)
+    for model in result_by_model:
+        if model in model_name:
+            result = result_by_model[model][task]
+            break
+    paper_res_col = TASK_CONFIG[task]['paper_results_column']
+    worksheet.update(
+        paper_res_col + str(row), 
+        result
+    )
+    diff_cell = chr(ord(paper_res_col) + 1) + str(row)
+    worksheet.update(
+        diff_cell, 
+        f"={TASK_CONFIG[task]['start_column']}{row}-{paper_res_col}{row}"
+    )
+    diff_value = worksheet.acell(diff_cell)
+    statistics_worksheet = spreadsheet.worksheet(f"Statistics {task}")
+    col_names = statistics_worksheet.row_values(24) # row with column names for diffs by endpoint
+    dates = statistics_worksheet.col_values(1)
+    stat_diff_cell = chr(ord('A') + col_names.index(model_name)) + str(dates.index(table_name) + 1)
+    statistics_worksheet.update(
+        stat_diff_cell,
+        diff_value
+    )
 
 
 def process_benchmark_results(
@@ -52,9 +102,18 @@ def process_benchmark_results(
         for idx, metric in enumerate(TASK_CONFIG[task_name]["metrics"]):
             current_results[metric] = res_file["results"][task_name][metric]
             if write_table:
+                current_row = get_row_by_model_name(worksheet, model_name)
                 worksheet.update(
-                    f"{chr(ord(start_column) + idx)}{get_row_by_model_name(worksheet, model_name)}",
+                    f"{chr(ord(start_column) + idx)}{current_row}",
                     res_file["results"][task_name][metric],
+                )
+                fill_paper_result(
+                    spreadsheet=spreadsheet, 
+                    worksheet=worksheet, 
+                    task=task_name, 
+                    model_name=model_name, 
+                    row=current_row,
+                    table_name=table_name
                 )
         current_results["endpoint"] = model_name
         results_dataframe = pd.DataFrame(current_results, index=[0])
