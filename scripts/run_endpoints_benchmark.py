@@ -19,14 +19,14 @@ FEWSHOTS_PER_TASK = {
 
 def parse_endpoints(
     path_to_endpoints_file: str,
-) -> Dict[str, List[Dict[str, str]]]:
+) -> Dict[str, List[str]]:
     with open(path_to_endpoints_file, "r+", encoding="utf-8") as file:
         endpoints = json.load(file)
     return endpoints
 
 
 def run_benchmark(
-    endpoints: Dict[str, List[Dict[str, str]]],
+    endpoints: Dict[str, List[str]],
     endpoint_type: str,
     path_to_benchmark_repo: str,
     num_fewshot: int = 0,
@@ -40,8 +40,7 @@ def run_benchmark(
     os.environ["OCTOAI_API_KEY"] = os.environ.get(f"OCTOAI_TOKEN_{endpoint_type.upper()}", "")
     assert os.environ["OCTOAI_API_KEY"] != "", "OctoAI token is not specified"
     for num_endpoint, endpoint in enumerate(endpoints[endpoint_type]):
-        model_name: str = endpoint["model"]
-        res_path = os.path.join(write_out_base_path, task, model_name)
+        res_path = os.path.join(write_out_base_path, task, endpoint)
         if not os.path.exists(res_path):
             os.makedirs(res_path)
         work_dir = os.getcwd()
@@ -52,7 +51,7 @@ def run_benchmark(
 
         print()
         print("  -------------------------------------------------------------------------------")
-        print(f"| Running benchmark for {endpoint_type}_{model_name}, num_fewshot={num_fewshot}")
+        print(f"| Running benchmark for {endpoint_type}_{endpoint}, num_fewshot={num_fewshot}")
         print(f"| Results from this run will be saved in the following path: {res_path}")
         print("  -------------------------------------------------------------------------------")
         print()
@@ -69,7 +68,7 @@ def run_benchmark(
 
         res_output = os.path.join(
             f"nf{num_fewshot}",
-            f"{endpoint_type}_{model_name}_{str(datetime.datetime.now()).replace(' ', '_')}.json",
+            f"{endpoint_type}_{endpoint}_{str(datetime.datetime.now()).replace(' ', '_')}.json",
         )
 
         process_logs_script = os.path.join(str(Path(__file__).parent), 'process_logs.py')
@@ -77,7 +76,7 @@ def run_benchmark(
         if write_table:
             write_table_command = f"""  python {process_logs_script} \
                                         --path_to_results={res_output} \
-                                        --model_name={endpoint_type}_{model_name} \
+                                        --model_name={endpoint_type}_{endpoint} \
                                         {'--write_table' if write_table else ''} \
                                         {'--debug_table' if debug else ''} \
                                         --write_out_base={write_out_abs}"""
@@ -87,7 +86,7 @@ def run_benchmark(
         tmux_server.sessions[num_endpoint % limit].panes[0].send_keys(
             f"python3 {path_to_benchmark_repo}/main.py "
             f"--model=octoai "
-            f"--model_args='model_name={model_name},prod={str(endpoint_type == 'prod')}' "
+            f"--model_args='model_name={endpoint},prod={str(endpoint_type == 'prod')}' "
             f"--task={task} "
             f"--output_path={res_output} "
             f"--no_cache "
