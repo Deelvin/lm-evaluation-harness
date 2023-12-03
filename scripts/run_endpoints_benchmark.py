@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict, List, Optional
 from pathlib import Path
 import json
 import os
@@ -14,7 +14,13 @@ FEWSHOTS_PER_TASK = {
     "gsm8k": [0, 5, 8],
     "truthfulqa_gen": [0],
     "triviaqa": [0, 5],
+    "human_eval": [0]
 }
+
+GSM8K_SIZE = 1319
+TRUTHFULQA_GEN_SIZE = 817
+TRIVIAQA_SIZE = 17944
+HUMANEVAL_SIZE = 163
 
 
 def parse_endpoints(
@@ -34,7 +40,8 @@ def run_benchmark(
     task: str = "gsm8k",
     write_table: bool = True,
     debug: bool = False,
-    limit: int = 3,
+    limit_sessions: int = 3,
+    limit_samples: Optional[int] = None,
 ) -> None:
     tmux_server = libtmux.Server()
     os.environ["OCTOAI_API_KEY"] = os.environ.get(f"OCTOAI_TOKEN_{endpoint_type.upper()}", "")
@@ -56,7 +63,7 @@ def run_benchmark(
         print("  -------------------------------------------------------------------------------")
         print()
 
-        if num_endpoint < limit:
+        if num_endpoint < limit_sessions:
             subprocess.run(
                 f"tmux new-session -d -s {num_endpoint} ",
                 shell=True,
@@ -71,19 +78,25 @@ def run_benchmark(
             f"{endpoint_type}_{endpoint}_{str(datetime.datetime.now()).replace(' ', '_')}.json",
         )
 
-        process_logs_script = os.path.join(str(Path(__file__).parent), 'process_logs.py')
+        fill_table_script = os.path.join(str(Path(__file__).parent), 'fill_table.py')
         write_out_abs = os.path.join(work_dir, write_out_base_path)
         if write_table:
-            write_table_command = f"""  python {process_logs_script} \
+            write_table_command = f"""  python {fill_table_script} \
                                         --path_to_results={res_output} \
                                         --model_name={endpoint_type}_{endpoint} \
                                         {'--write_table' if write_table else ''} \
                                         {'--debug_table' if debug else ''} \
                                         --write_out_base={write_out_abs}"""
+        extra_args = ""
+        # Force truncating triviaqa if limit_samples is bigger than 10%
+        if limit_samples:
+            if task != "triviaqa" or limit_samples < 0.1 * TRIVIAQA_SIZE:
+                extra_args = f"--limit={limit_samples}"
+            else:
+                extra_args = "--limit=0.1"
+        extra_args = "--limit=0.1" if task == "triviaqa" else extra_args
 
-        extra_args = "--limit=0.1" if task == "triviaqa" else ""
-
-        tmux_server.sessions[num_endpoint % limit].panes[0].send_keys(
+        tmux_server.sessions[num_endpoint % limit_sessions].panes[0].send_keys(
             f"python3 {path_to_benchmark_repo}/main.py "
             f"--model=octoai "
             f"--model_args='model_name={endpoint},prod={str(endpoint_type == 'prod')}' "
@@ -98,7 +111,7 @@ def run_benchmark(
             enter=True,
         )
 
-        tmux_server.sessions[num_endpoint % limit].panes[0].send_keys(
+        tmux_server.sessions[num_endpoint % limit_sessions].panes[0].send_keys(
             write_table_command, enter=True
         )
 
@@ -117,10 +130,11 @@ def main() -> None: # pylint: disable=missing-function-docstring
     parser.add_argument("--endpoints_file", type=str, default=os.path.join(str(Path(__file__).parent), "endpoints.json"))
     parser.add_argument("--benchmark_repo", type=str, default=str(Path(__file__).parent.parent))
     parser.add_argument("--write_out_base", type=str, default="./logs")
-    parser.add_argument("--task", type=str, default="all")  # [gsm8k, truthfulqa, triviaqa, all]
+    parser.add_argument("--task", type=str, default="all")  # [gsm8k, truthfulqa_gen, triviaqa, human_eval, all]
     parser.add_argument("--endpoint_type", type=str, default="dev")
     parser.add_argument("--write_table", action="store_true")
     parser.add_argument("--limit_sessions", type=int, default=4)
+    parser.add_argument("--limit_samples", type=int, default=None)
     parser.add_argument("--debug", action="store_true")
     args = parser.parse_args()
 
@@ -162,9 +176,10 @@ def main() -> None: # pylint: disable=missing-function-docstring
                         num_fewshot=num_fewshot,
                         write_out_base_path=args.write_out_base,
                         task=task,
-                        limit=args.limit_sessions,
+                        limit_sessions=args.limit_sessions,
                         write_table=args.write_table,
                         debug=args.debug,
+                        limit_samples=args.limit_samples
                     )
 
 

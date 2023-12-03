@@ -10,12 +10,13 @@ from utils import init_gspread_client
 
 TASKS = ["gsm8k", "truthfulqa_gen", "triviaqa"]
 TASK_CONFIG = {
-    "gsm8k": {"column_by_fewshot": {0: "B", 5: "C", 8: "D"}, "metrics": ["acc"]},
+    "gsm8k": {"start_column": {0: "B", 5: "C", 8: "D"}, "metrics": ["acc"]},
     "truthfulqa_gen": {
-        "column_by_fewshot": {0: "G"},
+        "start_column": {0: "I"},
         "metrics": ["bleurt_acc", "bleu_acc", "rouge1_acc", "rouge2_acc", "rougeL_acc"],
     },
-    "triviaqa": {"column_by_fewshot": {0: "N", 5: "O"}, "metrics": ["em"]},
+    "triviaqa": {"start_column": {0: "P", 5: "Q"}, "metrics": ["em"]},
+    "human_eval": {"start_column": {0: "T"}, "metrics": ["acc"]}
 }
 
 
@@ -46,7 +47,7 @@ def process_benchmark_results(
             if task in res_file["results"]:
                 task_name = task
                 num_fewshot = res_file["config"]["num_fewshot"]
-        start_column = TASK_CONFIG[task_name]["column_by_fewshot"][num_fewshot]
+        start_column = TASK_CONFIG[task_name]["start_column"][num_fewshot]
         current_results = {}
         for idx, metric in enumerate(TASK_CONFIG[task_name]["metrics"]):
             current_results[metric] = res_file["results"][task_name][metric]
