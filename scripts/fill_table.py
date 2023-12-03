@@ -11,42 +11,52 @@ from utils import init_gspread_client
 
 TASKS = ["gsm8k", "truthfulqa_gen", "triviaqa"]
 TASK_CONFIG = {
-    "gsm8k": {"start_column": {0: "B", 5: "C", 8: "D"}, "paper_results_column": "E", "prev_results_column": "G", "metrics": ["acc"]},
+    "gsm8k": {
+        "start_column": {0: "B", 5: "C", 8: "D"},
+        "paper_results_column": "E",
+        "prev_results_column": "G",
+        "metrics": ["acc"],
+    },
     "truthfulqa_gen": {
-        "start_column": {0: "I"}, "prev_results_column": "N",
+        "start_column": {0: "I"},
+        "prev_results_column": "N",
         "metrics": ["bleurt_acc", "bleu_acc", "rouge1_acc", "rouge2_acc", "rougeL_acc"],
     },
     "triviaqa": {"start_column": {0: "P", 5: "Q"}, "prev_results_column": "R", "metrics": ["em"]},
-    "human_eval": {"start_column": {0: "T"}, "paper_results_column": "U", "prev_results_column": "W", "metrics": ["acc"]}
+    "human_eval": {
+        "start_column": {0: "T"},
+        "paper_results_column": "U",
+        "prev_results_column": "W",
+        "metrics": ["acc"],
+    },
 }
 
 
-def get_row_by_model_name(
-    worksheet: gspread.spreadsheet.Worksheet, model_name: str
-) -> int:
+def get_row_by_model_name(worksheet: gspread.spreadsheet.Worksheet, model_name: str) -> int:
     models = worksheet.col_values(1)
     return models.index(model_name) + 1
 
-def get_paper_results(
-    spreadsheet: gspread.spreadsheet.Spreadsheet
-) -> Dict[str, Dict[str, float]]:
+
+def get_paper_results(spreadsheet: gspread.spreadsheet.Spreadsheet) -> Dict[str, Dict[str, float]]:
     worksheet = spreadsheet.worksheet("Paper Results")
     models = worksheet.col_values(1)
     gsm8k_results = worksheet.col_values(2)
     human_eval_results = worksheet.col_values(4)
     result_by_model = {}
-    for i in range(len(models)):
-        if models[i] and gsm8k_results[i]:
-            result_by_model[models[i]]["gsm8k"] = gsm8k_results[i]
-        if models[i] and human_eval_results[i]:
-            result_by_model[models[i]]["human_eval"] = human_eval_results[i]
+    for idx, model in enumerate(models):
+        if model and gsm8k_results[idx]:
+            result_by_model[model]["gsm8k"] = gsm8k_results[idx]
+        if model and human_eval_results[idx]:
+            result_by_model[model]["human_eval"] = human_eval_results[idx]
+    return result_by_model
+
 
 def fill_diff_from_paper(
     spreadsheet: gspread.spreadsheet.Spreadsheet,
     worksheet: gspread.spreadsheet.Worksheet,
     task: str,
     model_name: str,
-    row: int
+    row: int,
 ) -> None:
     if task not in ["gsm8k", "human_eval"]:
         return
@@ -55,47 +65,35 @@ def fill_diff_from_paper(
         if model in model_name:
             result = result_by_model[model][task]
             break
-    paper_res_col = TASK_CONFIG[task]['paper_results_column']
-    worksheet.update(
-        paper_res_col + str(row), 
-        result
-    )
+    paper_res_col = TASK_CONFIG[task]["paper_results_column"]
+    worksheet.update(paper_res_col + str(row), result)
     diff_cell = chr(ord(paper_res_col) + 1) + str(row)
-    worksheet.update(
-        diff_cell, 
-        f"={TASK_CONFIG[task]['start_column']}{row}-{paper_res_col}{row}"
-    )
+    worksheet.update(diff_cell, f"={TASK_CONFIG[task]['start_column']}{row}-{paper_res_col}{row}")
     diff_value = worksheet.acell(diff_cell)
     statistics_worksheet = spreadsheet.worksheet(f"Statistics {task}")
-    col_names = statistics_worksheet.row_values(24) # row with column names for diffs by endpoint
+    col_names = statistics_worksheet.row_values(24)  # row with column names for diffs by endpoint
     dates = statistics_worksheet.col_values(1)
-    stat_diff_cell = chr(ord('A') + col_names.index(model_name)) + str(dates.index(worksheet.title) + 1)
-    statistics_worksheet.update(
-        stat_diff_cell,
-        diff_value
+    stat_diff_cell = chr(ord("A") + col_names.index(model_name)) + str(
+        dates.index(worksheet.title) + 1
     )
+    statistics_worksheet.update(stat_diff_cell, diff_value)
+
 
 def fill_diff_from_prev(
     spreadsheet: gspread.spreadsheet.Spreadsheet,
     worksheet: gspread.spreadsheet.Worksheet,
     task: str,
     model_name: str,
-    row: int
+    row: int,
 ) -> None:
     prev_res_col = TASK_CONFIG[task]["prev_result_column"]
-    prev_worksheet = spreadsheet.worksheets()[1] # 0 is current, 1 is previous
+    prev_worksheet = spreadsheet.worksheets()[1]  # 0 is current, 1 is previous
     prev_result = prev_worksheet.acell(
         TASK_CONFIG[task]["start_column"][0] + get_row_by_model_name(prev_worksheet, model_name)
     )
-    worksheet.update(
-        prev_res_col + str(row),
-        prev_result
-    )
+    worksheet.update(prev_res_col + str(row), prev_result)
     diff_cell = chr(ord(prev_res_col) + 1) + str(row)
-    worksheet.update(
-        diff_cell,
-        f"={TASK_CONFIG[task]['start_column']}{row}-{prev_res_col}{row}"
-    )
+    worksheet.update(diff_cell, f"={TASK_CONFIG[task]['start_column']}{row}-{prev_res_col}{row}")
 
 
 def process_benchmark_results(
@@ -112,7 +110,7 @@ def process_benchmark_results(
         worksheet = spreadsheet.worksheet(table_name)
     path_to_results_root = write_out_base
     artifacts_dir = os.path.join(path_to_results_root, "results_per_task")
-    with open(path_to_results, 'r', encoding="utf-8") as file:
+    with open(path_to_results, "r", encoding="utf-8") as file:
         res_file = json.load(file)
         for task in TASKS:
             if task in res_file["results"]:
@@ -129,12 +127,11 @@ def process_benchmark_results(
                     res_file["results"][task_name][metric],
                 )
                 fill_diff_from_paper(
-                    spreadsheet=spreadsheet, 
-                    worksheet=worksheet, 
-                    task=task_name, 
-                    model_name=model_name, 
+                    spreadsheet=spreadsheet,
+                    worksheet=worksheet,
+                    task=task_name,
+                    model_name=model_name,
                     row=current_row,
-                    table_name=table_name
                 )
         current_results["endpoint"] = model_name
         results_dataframe = pd.DataFrame(current_results, index=[0])
