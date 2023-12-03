@@ -15,8 +15,8 @@ class OctoAIEndpointLM(BaseLM):
       batch_size=1,
       max_batch_size=None,
       device=None,
-      top_p=0.001,
-      temperature=0.001,):
+      top_p=0.0,
+      temperature=0.0,):
     """
     :param model_name: str
         Model name from the list of models supported by OctoAI
@@ -35,7 +35,7 @@ class OctoAIEndpointLM(BaseLM):
 
   def init_remote(self, top_p, temperature):
     # Get the API key from the environment variables
-    api_key=os.environ["OCTOAI_API_KEY"]
+    api_key=os.environ["OCTOAI_TOKEN"]
 
     if api_key is None:
       raise ValueError("API_KEY not found in the .env file")
