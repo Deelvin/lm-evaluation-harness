@@ -15,8 +15,8 @@ class OctoAIEndpointLM(BaseLM):
       batch_size=1,
       max_batch_size=None,
       device=None,
-      top_p=0.0,
-      temperature=0.0,):
+      top_p=0.001,
+      temperature=0.001,):
     """
     :param model_name: str
         Model name from the list of models supported by OctoAI
