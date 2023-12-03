@@ -11,13 +11,13 @@ from utils import init_gspread_client
 
 TASKS = ["gsm8k", "truthfulqa_gen", "triviaqa"]
 TASK_CONFIG = {
-    "gsm8k": {"start_column": {0: "B", 5: "C", 8: "D"}, "paper_results_column": "E", "metrics": ["acc"]},
+    "gsm8k": {"start_column": {0: "B", 5: "C", 8: "D"}, "paper_results_column": "E", "prev_results_column": "G", "metrics": ["acc"]},
     "truthfulqa_gen": {
-        "start_column": {0: "I"},
+        "start_column": {0: "I"}, "prev_results_column": "N",
         "metrics": ["bleurt_acc", "bleu_acc", "rouge1_acc", "rouge2_acc", "rougeL_acc"],
     },
-    "triviaqa": {"start_column": {0: "P", 5: "Q"}, "metrics": ["em"]},
-    "human_eval": {"start_column": {0: "T"}, "paper_results_column": "U", "metrics": ["acc"]}
+    "triviaqa": {"start_column": {0: "P", 5: "Q"}, "prev_results_column": "R", "metrics": ["em"]},
+    "human_eval": {"start_column": {0: "T"}, "paper_results_column": "U", "prev_results_column": "W", "metrics": ["acc"]}
 }
 
 
@@ -41,10 +41,9 @@ def get_paper_results(
         if models[i] and human_eval_results[i]:
             result_by_model[models[i]]["human_eval"] = human_eval_results[i]
 
-def fill_paper_result(
+def fill_diff_from_paper(
     spreadsheet: gspread.spreadsheet.Spreadsheet,
     worksheet: gspread.spreadsheet.Worksheet,
-    table_name: str,
     task: str,
     model_name: str,
     row: int
@@ -70,10 +69,32 @@ def fill_paper_result(
     statistics_worksheet = spreadsheet.worksheet(f"Statistics {task}")
     col_names = statistics_worksheet.row_values(24) # row with column names for diffs by endpoint
     dates = statistics_worksheet.col_values(1)
-    stat_diff_cell = chr(ord('A') + col_names.index(model_name)) + str(dates.index(table_name) + 1)
+    stat_diff_cell = chr(ord('A') + col_names.index(model_name)) + str(dates.index(worksheet.title) + 1)
     statistics_worksheet.update(
         stat_diff_cell,
         diff_value
+    )
+
+def fill_diff_from_prev(
+    spreadsheet: gspread.spreadsheet.Spreadsheet,
+    worksheet: gspread.spreadsheet.Worksheet,
+    task: str,
+    model_name: str,
+    row: int
+) -> None:
+    prev_res_col = TASK_CONFIG[task]["prev_result_column"]
+    prev_worksheet = spreadsheet.worksheets()[1] # 0 is current, 1 is previous
+    prev_result = prev_worksheet.acell(
+        TASK_CONFIG[task]["start_column"][0] + get_row_by_model_name(prev_worksheet, model_name)
+    )
+    worksheet.update(
+        prev_res_col + str(row),
+        prev_result
+    )
+    diff_cell = chr(ord(prev_res_col) + 1) + str(row)
+    worksheet.update(
+        diff_cell,
+        f"={TASK_CONFIG[task]['start_column']}{row}-{prev_res_col}{row}"
     )
 
 
@@ -107,7 +128,7 @@ def process_benchmark_results(
                     f"{chr(ord(start_column) + idx)}{current_row}",
                     res_file["results"][task_name][metric],
                 )
-                fill_paper_result(
+                fill_diff_from_paper(
                     spreadsheet=spreadsheet, 
                     worksheet=worksheet, 
                     task=task_name, 
