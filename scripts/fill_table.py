@@ -44,9 +44,15 @@ def get_paper_results(spreadsheet: gspread.spreadsheet.Spreadsheet) -> Dict[str,
     human_eval_results = worksheet.col_values(4)
     result_by_model = {}
     for idx, model in enumerate(models):
-        if model and gsm8k_results[idx]:
+        if model != "" and model not in result_by_model:
+            result_by_model[model] = {}
+        else:
+            continue
+        result_by_model[model]["gsm8k"] = None
+        result_by_model[model]["human_eval"] = None
+        if idx < len(gsm8k_results):
             result_by_model[model]["gsm8k"] = gsm8k_results[idx]
-        if model and human_eval_results[idx]:
+        if idx < len(human_eval_results):
             result_by_model[model]["human_eval"] = human_eval_results[idx]
     return result_by_model
 
@@ -62,21 +68,28 @@ def fill_diff_from_paper(
         return
     result_by_model = get_paper_results(spreadsheet)
     for model in result_by_model:
-        if model in model_name:
+        if model in model_name and result_by_model[model][task]:
             result = result_by_model[model][task]
             break
+    if result is None:
+        return
     paper_res_col = TASK_CONFIG[task]["paper_results_column"]
     worksheet.update(paper_res_col + str(row), result)
     diff_cell = chr(ord(paper_res_col) + 1) + str(row)
-    worksheet.update(diff_cell, f"={TASK_CONFIG[task]['start_column']}{row}-{paper_res_col}{row}")
-    diff_value = worksheet.acell(diff_cell)
+    worksheet.update(
+        diff_cell, f"={TASK_CONFIG[task]['start_column'][0]}{row}-{paper_res_col}{row}", raw=False
+    )
+    diff_value = worksheet.acell(diff_cell).value
     statistics_worksheet = spreadsheet.worksheet(f"Statistics {task}")
     col_names = statistics_worksheet.row_values(24)  # row with column names for diffs by endpoint
+    dates = statistics_worksheet.col_values(1)
+    if worksheet.title not in dates:
+        statistics_worksheet.update(f"A{len(dates) + 1}", worksheet.title, raw=False)
     dates = statistics_worksheet.col_values(1)
     stat_diff_cell = chr(ord("A") + col_names.index(model_name)) + str(
         dates.index(worksheet.title) + 1
     )
-    statistics_worksheet.update(stat_diff_cell, diff_value)
+    statistics_worksheet.update(stat_diff_cell, diff_value, raw=False)
 
 
 def fill_diff_from_prev(
@@ -86,14 +99,17 @@ def fill_diff_from_prev(
     model_name: str,
     row: int,
 ) -> None:
-    prev_res_col = TASK_CONFIG[task]["prev_result_column"]
+    prev_res_col = TASK_CONFIG[task]["prev_results_column"]
     prev_worksheet = spreadsheet.worksheets()[1]  # 0 is current, 1 is previous
     prev_result = prev_worksheet.acell(
-        TASK_CONFIG[task]["start_column"][0] + get_row_by_model_name(prev_worksheet, model_name)
-    )
+        TASK_CONFIG[task]["start_column"][0]
+        + str(get_row_by_model_name(prev_worksheet, model_name))
+    ).value
     worksheet.update(prev_res_col + str(row), prev_result)
     diff_cell = chr(ord(prev_res_col) + 1) + str(row)
-    worksheet.update(diff_cell, f"={TASK_CONFIG[task]['start_column']}{row}-{prev_res_col}{row}")
+    worksheet.update(
+        diff_cell, f"={TASK_CONFIG[task]['start_column'][0]}{row}-{prev_res_col}{row}", raw=False
+    )
 
 
 def process_benchmark_results(
@@ -127,6 +143,13 @@ def process_benchmark_results(
                     res_file["results"][task_name][metric],
                 )
                 fill_diff_from_paper(
+                    spreadsheet=spreadsheet,
+                    worksheet=worksheet,
+                    task=task_name,
+                    model_name=model_name,
+                    row=current_row,
+                )
+                fill_diff_from_prev(
                     spreadsheet=spreadsheet,
                     worksheet=worksheet,
                     task=task_name,

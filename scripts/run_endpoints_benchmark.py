@@ -14,7 +14,7 @@ FEWSHOTS_PER_TASK = {
     "gsm8k": [0, 5, 8],
     "truthfulqa_gen": [0],
     "triviaqa": [0, 5],
-    "human_eval": [0]
+    # "human_eval": [0]
 }
 
 GSM8K_SIZE = 1319
@@ -68,7 +68,7 @@ def run_benchmark(
                 f"tmux new-session -d -s {num_endpoint} ",
                 shell=True,
                 universal_newlines=True,
-                check=False
+                check=False,
             )
 
         write_table_command = ""
@@ -78,7 +78,7 @@ def run_benchmark(
             f"{endpoint_type}_{endpoint}_{str(datetime.datetime.now()).replace(' ', '_')}.json",
         )
 
-        fill_table_script = os.path.join(str(Path(__file__).parent), 'fill_table.py')
+        fill_table_script = os.path.join(str(Path(__file__).parent), "fill_table.py")
         write_out_abs = os.path.join(work_dir, write_out_base_path)
         if write_table:
             write_table_command = f"""  python {fill_table_script} \
@@ -125,12 +125,18 @@ def run_benchmark(
     print("Done")
 
 
-def main() -> None: # pylint: disable=missing-function-docstring
+def main() -> None:  # pylint: disable=missing-function-docstring
     parser = argparse.ArgumentParser()
-    parser.add_argument("--endpoints_file", type=str, default=os.path.join(str(Path(__file__).parent), "endpoints.json"))
+    parser.add_argument(
+        "--endpoints_file",
+        type=str,
+        default=os.path.join(str(Path(__file__).parent), "endpoints.json"),
+    )
     parser.add_argument("--benchmark_repo", type=str, default=str(Path(__file__).parent.parent))
     parser.add_argument("--write_out_base", type=str, default="./logs")
-    parser.add_argument("--task", type=str, default="all")  # [gsm8k, truthfulqa_gen, triviaqa, human_eval, all]
+    parser.add_argument(
+        "--task", type=str, default="all"
+    )  # [gsm8k, truthfulqa_gen, triviaqa, human_eval, all]
     parser.add_argument("--endpoint_type", type=str, default="dev")
     parser.add_argument("--write_table", action="store_true")
     parser.add_argument("--limit_sessions", type=int, default=4)
@@ -157,12 +163,12 @@ def main() -> None: # pylint: disable=missing-function-docstring
         table_name = "debug_table" if args.debug else today
         try:
             worksheet = spreadsheet.worksheet(table_name)
-        except: # pylint: disable=bare-except
+        except:  # pylint: disable=bare-except
             worksheet = spreadsheet.worksheet("Template").duplicate(new_sheet_name=table_name)
         idx = 0
         for endpoint_type in chosen_types:
             for endpoint in endpoints[endpoint_type]:
-                worksheet.update(f"A{3 + idx}", f"{endpoint_type}_{endpoint['model']}")
+                worksheet.update(f"A{3 + idx}", f"{endpoint_type}_{endpoint}")
                 idx += 1
 
     for num_fewshot in [0, 5, 8]:
@@ -179,7 +185,7 @@ def main() -> None: # pylint: disable=missing-function-docstring
                         limit_sessions=args.limit_sessions,
                         write_table=args.write_table,
                         debug=args.debug,
-                        limit_samples=args.limit_samples
+                        limit_samples=args.limit_samples,
                     )
 
 
