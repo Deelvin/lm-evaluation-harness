@@ -14,12 +14,12 @@ ENDPOINTS_DATA = [
             {
               "url": "https://text.customer-endpoints.nimbus.octoml.ai",
               "model": "llama-2-70b-chat-int4",
-              "limit": 4
+              "limit": 3
             },
             {
               "url": "https://text.customer-endpoints.nimbus.octoml.ai",
               "model": "llama-2-70b-chat-fp16",
-              "limit": 4
+              "limit": 3
             },
           ],
       "codellama":
@@ -37,12 +37,12 @@ ENDPOINTS_DATA = [
             {
               "url": "https://text.customer-endpoints.nimbus.octoml.ai",
               "model": "codellama-34b-instruct-int4",
-              "limit": 3
+              "limit": 4
             },
             {
               "url": "https://text.customer-endpoints.nimbus.octoml.ai",
               "model": "codellama-34b-instruct-fp16",
-              "limit": 3
+              "limit": 5
             },
 
           ],
