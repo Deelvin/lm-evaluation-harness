@@ -20,7 +20,6 @@ __Notes:__
 - If your file with endpoints not in this directory then you can specify it with `--endpoints_file=<path to your endpoints.json>`
 - Script uses tmux sessions to run different endpoints in parallel. By default it uses 4 sessions but you can specify this number manually: `--limit_sessions=<number of sessions>`
 - Also you can specify the number of samples to use in benchmark with `--limit_samples=<number of samples>`
-- TriviaQA benchmark always uses not more than 10% of all samples due to its big original size
 - Path to logs and artifacts can be specified with `--write_out_base_path=<your path>`
 - If you don't want to fill spreadsheet then just remove `--write_table`. Summary artifacts will be generated anyway.
 

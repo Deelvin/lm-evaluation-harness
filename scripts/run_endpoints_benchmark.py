@@ -88,14 +88,8 @@ def run_benchmark(
                                         {'--write_table' if write_table else ''} \
                                         {'--debug_table' if debug else ''} \
                                         --write_out_base={write_out_abs}"""
-        extra_args = ""
-        # Force truncating triviaqa if limit_samples is bigger than 10%
-        if limit_samples:
-            if task != "triviaqa" or limit_samples < 0.1 * TRIVIAQA_SIZE:
-                extra_args = f"--limit={limit_samples}"
-            else:
-                extra_args = "--limit=0.1"
-        extra_args = "--limit=0.1" if task == "triviaqa" else extra_args
+            
+        extra_args = f"--limit={limit_samples}" if limit_samples else ""
 
         tmux_server.sessions[num_endpoint % limit_sessions].panes[0].send_keys(
             f"python3 {path_to_benchmark_repo}/main.py "
