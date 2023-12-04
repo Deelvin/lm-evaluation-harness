@@ -36,7 +36,7 @@ def run_benchmark(
     endpoint_type: str,
     path_to_benchmark_repo: str,
     num_fewshot: int = 0,
-    write_out_base_path: str = "./logs",
+    write_out_base_path: str = os.path.join(Path(__file__).parent.parent, "logs"),
     task: str = "gsm8k",
     write_table: bool = True,
     debug: bool = False,
@@ -47,7 +47,7 @@ def run_benchmark(
     os.environ["OCTOAI_API_KEY"] = os.environ.get(f"OCTOAI_TOKEN_{endpoint_type.upper()}", "")
     assert os.environ["OCTOAI_API_KEY"] != "", "OctoAI token is not specified"
     for num_endpoint, endpoint in enumerate(endpoints[endpoint_type]):
-        res_path = os.path.join(write_out_base_path, task, endpoint)
+        res_path = os.path.join(write_out_base_path, task, f"{endpoint_type}_{endpoint}")
         if not os.path.exists(res_path):
             os.makedirs(res_path)
         work_dir = os.getcwd()
@@ -114,8 +114,9 @@ def run_benchmark(
         tmux_server.sessions[num_endpoint % limit_sessions].panes[0].send_keys(
             write_table_command, enter=True
         )
-
-        os.chdir(work_dir)
+        tmux_server.sessions[num_endpoint % limit_sessions].panes[0].send_keys(
+            f"cd {work_dir}", enter=True
+        )
 
     while len(tmux_server.sessions) > 0:  # wait until all tmux sessions running tests are killed
         for session in tmux_server.sessions:
@@ -133,7 +134,7 @@ def main() -> None:  # pylint: disable=missing-function-docstring
         default=os.path.join(str(Path(__file__).parent), "endpoints.json"),
     )
     parser.add_argument("--benchmark_repo", type=str, default=str(Path(__file__).parent.parent))
-    parser.add_argument("--write_out_base", type=str, default="./logs")
+    parser.add_argument("--write_out_base", type=str, default=os.path.join(Path(__file__).parent.parent, "logs"))
     parser.add_argument(
         "--task", type=str, default="all"
     )  # [gsm8k, truthfulqa_gen, triviaqa, human_eval, all]
