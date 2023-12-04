@@ -36,7 +36,7 @@ def run_benchmark(
     endpoint_type: str,
     path_to_benchmark_repo: str,
     num_fewshot: int = 0,
-    write_out_base_path: str = os.path.join(Path(__file__).parent.parent, "logs"),
+    write_out_base_path: str = str(Path(__file__).resolve().parents[1].joinpath("logs")),
     task: str = "gsm8k",
     write_table: bool = True,
     debug: bool = False,
@@ -47,14 +47,15 @@ def run_benchmark(
     os.environ["OCTOAI_API_KEY"] = os.environ.get(f"OCTOAI_TOKEN_{endpoint_type.upper()}", "")
     assert os.environ["OCTOAI_API_KEY"] != "", "OctoAI token is not specified"
     for num_endpoint, endpoint in enumerate(endpoints[endpoint_type]):
-        res_path = os.path.join(write_out_base_path, task, f"{endpoint_type}_{endpoint}")
-        if not os.path.exists(res_path):
-            os.makedirs(res_path)
-        work_dir = os.getcwd()
+        res_path = Path(write_out_base_path) / task / f"{endpoint_type}_{endpoint}"
+        if not res_path.exists():
+            res_path.mkdir(parents=True)
+        work_dir = Path.cwd()
         os.chdir(res_path)
 
-        if not os.path.exists(f"./nf{num_fewshot}"):
-            os.makedirs(f"./nf{num_fewshot}")
+        nf_path = Path(f"./nf{num_fewshot}")
+        if not nf_path.exists():
+            nf_path.mkdir(parents=True)
 
         print()
         print("  -------------------------------------------------------------------------------")
@@ -73,13 +74,13 @@ def run_benchmark(
 
         write_table_command = ""
 
-        res_output = os.path.join(
-            f"nf{num_fewshot}",
-            f"{endpoint_type}_{endpoint}_{str(datetime.datetime.now()).replace(' ', '_')}.json",
+        res_output = str(
+            Path(f"nf{num_fewshot}")
+            / f"{endpoint_type}_{endpoint}_{str(datetime.datetime.now()).replace(' ', '_')}.json"
         )
 
-        fill_table_script = os.path.join(str(Path(__file__).parent), "fill_table.py")
-        write_out_abs = os.path.join(work_dir, write_out_base_path)
+        fill_table_script = str(Path(__file__).parent.joinpath("fill_table.py"))
+        write_out_abs = str(Path(work_dir) / write_out_base_path)
         if write_table:
             write_table_command = f"""  python {fill_table_script} \
                                         --path_to_results={res_output} \
@@ -131,11 +132,15 @@ def main() -> None:  # pylint: disable=missing-function-docstring
     parser.add_argument(
         "--endpoints_file",
         type=str,
-        default=os.path.join(str(Path(__file__).parent), "endpoints.json"),
+        default=str(Path(__file__).parent.joinpath("endpoints.json")),
     )
-    parser.add_argument("--benchmark_repo", type=str, default=str(Path(__file__).parent.parent))
     parser.add_argument(
-        "--write_out_base", type=str, default=os.path.join(Path(__file__).parent.parent, "logs")
+        "--benchmark_repo", type=str, default=str(Path(__file__).resolve().parents[1])
+    )
+    parser.add_argument(
+        "--write_out_base",
+        type=str,
+        default=str(Path(__file__).resolve().parents[1].joinpath("logs")),
     )
     parser.add_argument(
         "--task", type=str, default="all"
