@@ -134,7 +134,9 @@ def main() -> None:  # pylint: disable=missing-function-docstring
         default=os.path.join(str(Path(__file__).parent), "endpoints.json"),
     )
     parser.add_argument("--benchmark_repo", type=str, default=str(Path(__file__).parent.parent))
-    parser.add_argument("--write_out_base", type=str, default=os.path.join(Path(__file__).parent.parent, "logs"))
+    parser.add_argument(
+        "--write_out_base", type=str, default=os.path.join(Path(__file__).parent.parent, "logs")
+    )
     parser.add_argument(
         "--task", type=str, default="all"
     )  # [gsm8k, truthfulqa_gen, triviaqa, human_eval, all]
