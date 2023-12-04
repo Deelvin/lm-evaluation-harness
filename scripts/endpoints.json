@@ -1,0 +1,24 @@
+{
+    "dev": [
+      "codellama-7b-instruct-fp16",
+      "codellama-13b-instruct-fp16",
+      "codellama-34b-instruct-int4",
+      "codellama-34b-instruct-fp16",
+      "llama-2-13b-chat-fp16",
+      "llama-2-70b-chat-int4",
+      "llama-2-70b-chat-fp16",  
+      "mistral-7b-instruct-fp16"
+    ],
+  
+    "prod": [
+      "codellama-7b-instruct-fp16",
+      "codellama-13b-instruct-fp16",
+      "codellama-34b-instruct-int4",
+      "codellama-34b-instruct-fp16",
+      "llama-2-13b-chat-fp16",
+      "llama-2-70b-chat-int4",
+      "llama-2-70b-chat-fp16",  
+      "mistral-7b-instruct-fp16"
+    ]
+  }
+  

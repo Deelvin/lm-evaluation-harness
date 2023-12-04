@@ -4,5 +4,9 @@ data/
 lm_cache
 .idea
 
-# ignore test results
-*.json
+# ignore test results in the root
+/*.json
+
+# ignore shell scripts for tests in the root
+/*.sh
+/logs/

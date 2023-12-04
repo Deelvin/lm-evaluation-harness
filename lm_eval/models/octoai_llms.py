@@ -27,9 +27,14 @@ class OctoAIEndpointLM(BaseLM):
   def __init__(
       self,
       model_name="llama-2-70b-chat-int4",
+      model_name="llama-2-70b-chat-int4",
       batch_size=1,
       max_batch_size=None,
       device=None,
+      top_p=1,
+      temperature=0.0,
+      prod=True,
+  ):
       top_p=1,
       temperature=0.0,
       prod=True,
@@ -49,7 +54,9 @@ class OctoAIEndpointLM(BaseLM):
     # TODO(vvchernov): check that model name is supported
 
     self.init_remote(top_p, temperature, prod)
+    self.init_remote(top_p, temperature, prod)
 
+  def init_remote(self, top_p, temperature, prod):
   def init_remote(self, top_p, temperature, prod):
     # Get the API key from the environment variables
     api_key=os.environ["OCTOAI_TOKEN"]
@@ -58,8 +65,10 @@ class OctoAIEndpointLM(BaseLM):
       raise ValueError("API_KEY not found in the .env file")
 
     self.url = self.construct_request_url(prod)
+    self.url = self.construct_request_url(prod)
 
     self.headers = {
+      # "accept": "text/event-stream",
       # "accept": "text/event-stream",
       "authorization": f"Bearer {api_key}",
       "content-type": "application/json",
@@ -74,10 +83,19 @@ class OctoAIEndpointLM(BaseLM):
             }
         ],
         # "stream": False,
+        # "stream": False,
         "max_tokens": 256,
         "top_p": top_p,
         "temperature": temperature,
     }
+
+  def construct_request_url(self, prod):
+    if prod:
+        url = "https://text.octoai.run"
+    else:
+        url = "https://text.customer-endpoints.nimbus.octoml.ai"
+
+    return url
 
   def construct_request_url(self, prod):
     if prod:
