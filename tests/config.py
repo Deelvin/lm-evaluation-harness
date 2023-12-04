@@ -1,61 +1,17 @@
 import os
 
-API_KEY = os.environ["OCTOAI_API_KEY"]
+API_KEY = os.environ["OCTOAI_TOKEN"]
 
-ENDPOINTS_DATA = [
-    {
-      "llama":
-          [
-            {
-              "url": "https://text.customer-endpoints.nimbus.octoml.ai",
-              "model": "llama-2-13b-chat-fp16",
-              "limit": 2
-            },
-            {
-              "url": "https://text.customer-endpoints.nimbus.octoml.ai",
-              "model": "llama-2-70b-chat-int4",
-              "limit": 3
-            },
-            {
-              "url": "https://text.customer-endpoints.nimbus.octoml.ai",
-              "model": "llama-2-70b-chat-fp16",
-              "limit": 3
-            },
-          ],
-      "codellama":
-          [
-            {
-              "url": "https://text.customer-endpoints.nimbus.octoml.ai",
-              "model": "codellama-7b-instruct-fp16",
-              "limit": 2
-            },
-            {
-              "url": "https://text.customer-endpoints.nimbus.octoml.ai",
-              "model": "codellama-13b-instruct-fp16",
-              "limit": 3
-            },
-            {
-              "url": "https://text.customer-endpoints.nimbus.octoml.ai",
-              "model": "codellama-34b-instruct-int4",
-              "limit": 4
-            },
-            {
-              "url": "https://text.customer-endpoints.nimbus.octoml.ai",
-              "model": "codellama-34b-instruct-fp16",
-              "limit": 5
-            },
-
-          ],
-      "mistral":
-          [
-            {
-              "url": "https://text.customer-endpoints.nimbus.octoml.ai",
-              "model": "mistral-7b-instruct-fp16",
-              "limit": 3
-            }
-          ],
+ENDPOINTS_DATA = {
+      "llama-2-13b-chat-fp16": 2,
+      "llama-2-70b-chat-int4": 3,
+      "llama-2-70b-chat-fp16": 3,
+      "codellama-7b-instruct-fp16": 2,
+      "codellama-13b-instruct-fp16": 3,
+      "codellama-34b-instruct-int4": 4,
+      "codellama-34b-instruct-fp16": 5,
+      "mistral-7b-instruct-fp16": 3
     }
-]
 
 HEADERS = [
     {
