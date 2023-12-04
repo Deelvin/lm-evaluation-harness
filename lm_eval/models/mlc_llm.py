@@ -31,6 +31,7 @@ class MLCLM(BaseLM):
         top_p: float = 0.0,
     ):
         import tvm  # pylint: disable=import-outside-toplevel
+        from tvm import relax # pylint: disable=import-outside-toplevel
         super().__init__()
 
         self.model_name = model_name
@@ -70,7 +71,7 @@ class MLCLM(BaseLM):
             )
         )
 
-        self.vm = tvm.relax.VirtualMachine(ex, self._tvm_device)
+        self.vm = relax.VirtualMachine(ex, self._tvm_device)
 
         self.tot_seq_len = 0
         self.kv_cache = self.vm["create_kv_cache"]()
