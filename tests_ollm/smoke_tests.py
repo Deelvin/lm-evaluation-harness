@@ -838,7 +838,9 @@ def test_large_input_content(input_tokens, model_name, context_size, token, endp
         {"role": "user", "content": prompt}
     ]
     max_tokens = 200
-
+    if model_name == "codellama-34b-instruct-fp16":
+        context_size = 16384
+        
     if (input_tokens + max_tokens) < context_size: 
         assert run_chat_completion(model_name, messages, token, endpoint, max_tokens=max_tokens) == 200
     else:
