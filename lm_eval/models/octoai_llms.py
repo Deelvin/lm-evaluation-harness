@@ -7,16 +7,33 @@ from lm_eval.base import BaseLM
 
 REPEAT_REQUEST_TO_OCTOAI_SERVER = 10
 
+# model_urls = {
+#   # TODO(vvchernov): it is demo, may be need to remove
+#   "llama-2-7b-chat-hf-s2q0f16":	"https://text-demo-mlc-serve-llama-2-7b-chc591cb-l6z2ijkgynn7.octoai.run/llama-2-7b-chat-hf-s2q0f16",
+#   "codellama-13b-instruct-fp16": "https://text-mlc-serve-codellama-13b-inst57fdc4-l6z2ijkgynn7.octoai.run/codellama-13b-instruct-fp16",
+#   "codellama-34b-instruct-int4": "https://text-mlc-serve-codellama-34b-inst087581-l6z2ijkgynn7.octoai.run/codellama-34b-instruct-int4",
+#   "codellama-34b-instruct-int4-1": "https://text-test-codellama-34b-instruct-int4-1-ht5iv0iul7xi.octoai.run/codellama-34b-instruct-int4",
+#   "codellama-34b-instruct-fp16": "https://text-mlc-serve-codellama-34b-inst73411d-l6z2ijkgynn7.octoai.run/codellama-34b-instruct-fp16",
+#   "codellama-7b-instruct-fp16":	"https://text-mlc-serve-codellama-7b-instr48ac9b-l6z2ijkgynn7.octoai.run/codellama-7b-instruct-fp16",
+#   "llama-2-13b-chat-fp16": "https://text-mlc-serve-llama-2-13b-chat-fp16-l6z2ijkgynn7.octoai.run/llama-2-13b-chat-fp16",
+#   "llama-2-70b-chat-fp16": "https://text-mlc-serve-llama-2-70b-chat-fp16-l6z2ijkgynn7.octoai.run/llama-2-70b-chat-fp16",
+#   "llama-2-70b-chat-int4": "https://text-mlc-serve-llama-2-70b-chat-int4-l6z2ijkgynn7.octoai.run/llama-2-70b-chat-int4",
+#   "llama-2-70b-chat-int4-1": "https://text-test-llama-2-70b-chat-int4-1-ht5iv0iul7xi.octoai.run/llama-2-70b-chat-int4",
+#   "mistral-7b-instruct-v0.1-fp16": "https://text-mlc-serve-mistral-7b-instruct-fp16-l6z2ijkgynn7.octoai.run/mistral-7b-instruct-v0.1-fp16",
+# }
+
 
 class OctoAIEndpointLM(BaseLM):
   def __init__(
       self,
-      model_name="llama2-7b-chat-mlc-q0f16",
+      model_name="llama-2-70b-chat-int4",
       batch_size=1,
       max_batch_size=None,
       device=None,
-      top_p=0.001,
-      temperature=0.001,):
+      top_p=1,
+      temperature=0.0,
+      prod=True,
+  ):
     """
     :param model_name: str
         Model name from the list of models supported by OctoAI
@@ -31,19 +48,19 @@ class OctoAIEndpointLM(BaseLM):
     self._device=device
     # TODO(vvchernov): check that model name is supported
 
-    self.init_remote(top_p, temperature)
+    self.init_remote(top_p, temperature, prod)
 
-  def init_remote(self, top_p, temperature):
+  def init_remote(self, top_p, temperature, prod):
     # Get the API key from the environment variables
     api_key=os.environ["OCTOAI_TOKEN"]
 
     if api_key is None:
       raise ValueError("API_KEY not found in the .env file")
 
-    self.url = "https://text.customer-endpoints.nimbus.octoml.ai"
+    self.url = self.construct_request_url(prod)
 
     self.headers = {
-      "accept": "text/event-stream",
+      # "accept": "text/event-stream",
       "authorization": f"Bearer {api_key}",
       "content-type": "application/json",
     }
@@ -56,11 +73,19 @@ class OctoAIEndpointLM(BaseLM):
                 "content": "" # need to fill before use inference
             }
         ],
-        "stream": False,
+        # "stream": False,
         "max_tokens": 256,
         "top_p": top_p,
         "temperature": temperature,
     }
+
+  def construct_request_url(self, prod):
+    if prod:
+        url = "https://text.octoai.run"
+    else:
+        url = "https://text.customer-endpoints.nimbus.octoml.ai"
+
+    return url
 
   @property
   def eot_token_id(self):

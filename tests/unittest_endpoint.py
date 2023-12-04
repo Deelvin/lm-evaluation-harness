@@ -123,7 +123,7 @@ def test_llama_output(endpoints_data, task_name):
     print(task_names)
     evaluator.simple_evaluate(
         model="octoai",
-        model_args="model_name="+f"'{endpoints_data['model']}'",
+        model_args=f"model_name='{endpoints_data['model']}',prod=False",
         tasks=task_names,
         num_fewshot=num_fewshot,
         batch_size=1,
