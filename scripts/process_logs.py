@@ -17,6 +17,10 @@ def get_test_names(path_to_log_dir: str) -> List[str]:
         test_names = pickle.load(file)
     return test_names
 
+def remove_token(message: str) -> str:
+    token = os.environ.get("OCTOAI_TOKEN")
+    return message.replace(token, "<token was removed from this message durng log processing>")
+
 def extract_error_messages(path_to_log: str) -> Dict[str, str]:
     error_messages = {}
     with open(path_to_log, 'r') as file:
@@ -31,7 +35,7 @@ def extract_error_messages(path_to_log: str) -> Dict[str, str]:
                 continue
             if inside_error and (line.startswith("___") and line.endswith("___\n") or \
                line.startswith("===") and line.endswith("===\n")):
-                error_messages[current_test_name] = current_message
+                error_messages[current_test_name] = remove_token(current_message)
                 inside_error = False
                 current_test_name, current_message = "", ""
             if inside_error:
