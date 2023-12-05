@@ -22,14 +22,20 @@ def extract_error_messages(path_to_log: str) -> Dict[str, str]:
     with open(path_to_log, 'r') as file:
         current_message = ""
         current_test_name = ""
+        inside_error = False
         for line in file:
-            if line.startswith("___") and line.endswith("___"):
-                current_test_name = line.replace("_", "").replace(" ", "")
+            if line.startswith("___") and line.endswith("___\n") and not inside_error:
+                current_test_name = line.strip("_ \n")
+                inside_error = True
                 current_message += line
-            if line.startswith("___") and line.endswith("___") or \
-               line.startswith("===") and line.endswith("==="):
+                continue
+            if inside_error and (line.startswith("___") and line.endswith("___\n") or \
+               line.startswith("===") and line.endswith("===\n")):
                 error_messages[current_test_name] = current_message
+                inside_error = False
                 current_test_name, current_message = "", ""
+            if inside_error:
+                current_message += line
     return error_messages
 
 def process_test_logs(
@@ -40,6 +46,7 @@ def process_test_logs(
     test_names = get_test_names(path_to_log_dir=path_to_log_root)
     results = ["Passed"] * len(test_names)
     error_messages = extract_error_messages(path_to_log=path_to_log)
+    print(error_messages)
     for num_test, test_name in enumerate(test_names):
         if test_name in error_messages.keys():
             results[num_test] = "Failed"
@@ -47,6 +54,9 @@ def process_test_logs(
     errors_dir = os.path.join(artifacts_dir, f"{model_name}_error_messages")
     if not os.path.exists(errors_dir):
         os.makedirs(errors_dir)
+    for test_case in error_messages:
+        with open(os.path.join(errors_dir, f"{test_case}_error"), "w+", encoding="utf-8") as file:
+            file.write(error_messages[test_case])
     pd.DataFrame(
         {
             "test_case": test_names,
@@ -125,6 +135,7 @@ def main() -> None:
     parser.add_argument("--remove_artifacts", action="store_true")
     parser.add_argument("--summary_path", type=str)
     parser.add_argument("--write_table", action="store_true")
+    parser.add_argument("--debug_table", action="store_true")
     args = parser.parse_args()
 
     if args.create_summary:
@@ -135,7 +146,10 @@ def main() -> None:
         )
 
     if args.write_table:
-        write_table(args.summary_path)
+        write_table(
+            path_to_summary=args.summary_path,
+            debug_table=args.debug_table
+        )
 
     if not args.write_table and not args.create_summary:
         process_test_logs(
