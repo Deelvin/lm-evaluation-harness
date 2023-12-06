@@ -1,12 +1,12 @@
 import os
 import json
 from typing import List, Tuple, Union, Iterable, Optional
-from lm_eval.base import BaseLM
 
 import torch
 import numpy as np
 from transformers import AutoTokenizer
 
+from lm_eval.base import BaseLM
 
 def load_params(params_path: str, device):
     from tvm.contrib import tvmjs  # pylint: disable=import-outside-toplevel
@@ -169,6 +169,7 @@ class MLCLM(BaseLM):
         tokens = torch.from_dlpack(tvm_tokens)
         tokens[0, : prompt_len] = context
         start_pos = prompt_len
+        eos_token_id = torch.tensor(self.tokenizer.eos_token_id).to(self._device)
         for cur_pos in range(start_pos, total_len):
             if cur_pos == start_pos:
                 logits = self._model_call(tokens[:, :cur_pos], cur_pos, reset=True)
@@ -192,13 +193,13 @@ class MLCLM(BaseLM):
             next_token = next_token.reshape(-1)
             tokens[:, cur_pos] = next_token
 
-            if next_token[0] in [self.tokenizer.eos_token_id]:
+            if next_token[0] == eos_token_id:
                 break
 
         return tokens[:, start_pos : cur_pos + 1]
 
     def greedy_until(
-        self, 
+        self,
         requests: List[Tuple[str, Union[List[str], str]]]
     ) -> List[str]:
         if not requests:
@@ -206,18 +207,19 @@ class MLCLM(BaseLM):
 
         results = []
 
-        for request in requests:
+        for num, request in enumerate(requests):
             inp = request[0]
             request_args = request[1]
             until = request_args["until"]
             results.append(
                 self.tok_decode(
                     self._model_generate(
-                        torch.Tensor(self.tok_encode(inp)), 
-                        self.max_length, 
+                        torch.Tensor(self.tok_encode(inp)),
+                        self.max_length,
                         eos_token_id=until
                     )
                 )
             )
+            print(f"\r{num}/{len(requests)} requests processed", end="")
 
         return results

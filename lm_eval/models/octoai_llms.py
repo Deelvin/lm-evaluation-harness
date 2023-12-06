@@ -136,7 +136,7 @@ class OctoAIEndpointLM(BaseLM):
           print(f"ConnectionError: {e}. Skipping this batch and continuing...")
 
     else:
-      for request in requests:
+      for num, request in enumerate(requests):
         inp = request[0]
         request_args = request[1]
         until = request_args["until"]
@@ -144,6 +144,7 @@ class OctoAIEndpointLM(BaseLM):
           self._model_generate(inp, results, stop=until)
         except ConnectionError as e:
           print(f"ConnectionError: {e}. Skipping this request and continuing...")
+        print(f"\r{num}/{len(requests)} requests processed", end="")
 
     if self.time_meas:
       stop_timer = time.time()
