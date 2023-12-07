@@ -12,20 +12,32 @@ import libtmux
 
 from scripts.utils import init_gspread_client
 
-def parse_endpoints(path_to_endpoints_file: str, ) -> Dict[str, str]:
+
+def parse_endpoints(
+    path_to_endpoints_file: str,
+) -> Dict[str, str]:
     with open(path_to_endpoints_file, "r+") as file:
         endpoints = json.load(file)
     return endpoints
 
+def _tmux_active(server: libtmux.Server) -> bool:
+    for session in server.sessions:
+        if session.panes[0].capture_pane()[-1].endswith("$"):
+            continue
+        else:
+            return True
+    return False
+
 def run_smoke_tests(
-        endpoints: Dict[str, str],
-        endpoint_type: str,
-        path_to_tests_file: str,
-        write_out_base_path: str = "./",
-        write_table: bool = True,
-        limit: int = 3,
-        debug: bool = False
-    ) -> None:
+    endpoints: Dict[str, str],
+    endpoint_type: str,
+    path_to_tests_file: str,
+    write_out_base_path: str = "./",
+    write_table: bool = True,
+    limit: int = 3,
+    debug: bool = False,
+    error_notes: bool = False,
+) -> None:
     tmux_server = libtmux.Server()
     os.environ["OCTOAI_TOKEN"] = os.environ.get(f"OCTOAI_TOKEN_{endpoint_type.upper()}")
     for current_session, endpoint in enumerate(endpoints[endpoint_type]):
@@ -36,9 +48,7 @@ def run_smoke_tests(
         print(f"  ------------------------------------------------------------------------")
         if current_session < limit:
             tmux_server.new_session(
-                session_name=str(current_session),
-                kill_session=False,
-                attach=False
+                session_name=str(current_session), kill_session=False, attach=False
             )
 
         model_log_dir = os.path.join(write_out_base_path, f"{endpoint_type}_{model_name}")
@@ -46,9 +56,10 @@ def run_smoke_tests(
             os.makedirs(model_log_dir)
         log_file = os.path.join(
             model_log_dir,
-            f'test_{endpoint_type}_{model_name}_{str(datetime.datetime.now()).replace(" ", "_")}.log'
+            f'test_{endpoint_type}_{model_name}_{str(datetime.datetime.now()).replace(" ", "_")}.log',
         )
-        print(f"Logs from this run will be saved in the following path: {log_file}")
+        print("Logs from this run will be saved in the following path:")
+        print(log_file)
         print()
 
         process_logs_command = f"""python {os.path.join(str(Path(__file__).parent.parent), 'scripts', 'process_logs.py')} \
@@ -56,47 +67,62 @@ def run_smoke_tests(
                                    --model_name={endpoint_type}_{model_name}"""
 
         tmux_server.sessions[current_session % limit].panes[0].send_keys(
-            f"python3 -m pytest {path_to_tests_file} " 
+            f"python3 -m pytest {path_to_tests_file} "
             f"--model_name={model_name} --endpoint={endpoint['url']} > {log_file} ",
-            enter=True
+            enter=True,
         )
         tmux_server.sessions[current_session % limit].panes[0].send_keys(
-            process_logs_command,
-            enter=True
+            process_logs_command, enter=True
         )
-    while len(tmux_server.sessions) > 0: # wait until all tmux sessions running tests are killed
-        for session in tmux_server.sessions:
-            if session.panes[0].capture_pane()[-1].endswith("$"):
-                session.panes[0].send_keys("exit", enter=True)
+    while _tmux_active(tmux_server):  # wait until all tmux sessions running tests are killed
+        continue
 
+    while len(tmux_server.sessions) > 0:
+        for session in tmux_server.sessions:
+            try:
+                session.panes[0].send_keys("exit", enter=True)
+            except:
+                continue
+    
     subprocess.run(
-        f"""python {os.path.join(str(Path(__file__).parent.parent), 'scripts', 'process_logs.py')} \
+        f"""python {os.path.join(os.path.dirname(os.path.dirname(__file__)), 'scripts', 'process_logs.py')} \
         --create_summary \
         --path_to_artifacts={os.path.join(write_out_base_path, 'test_results')} \
         --summary_path={os.path.join(write_out_base_path, "summary.csv")} \
         {'--write_table' if write_table else ''} \
-        {'--debug_table' if debug else ''}""",
-        shell=True
+        {'--debug_table' if debug else ''} \
+        {'--error_notes' if error_notes else ''}""",
+        shell=True,
     )
     print("Done")
 
+
 def main() -> NoReturn:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--endpoints_file", required=True, type=str)
+    parser.add_argument(
+        "--endpoints_file",
+        type=str,
+        default=os.path.join(
+            os.path.dirname(os.path.dirname(__file__)), "tests_ollm", "endpoints.json"
+        ),
+    )
     parser.add_argument(
         "--tests_file",
         type=str,
-        default=os.path.join(str(Path(__file__).parent.parent), 'tests_ollm/smoke_tests.py')
+        default=os.path.join(str(Path(__file__).parent.parent), "tests_ollm/smoke_tests.py"),
     )
     parser.add_argument("--endpoint_type", type=str, default="dev")
     parser.add_argument("--write_out_base", type=str, default="./logs")
     parser.add_argument("--write_table", action="store_true")
     parser.add_argument("--limit_sessions", type=int, default=3)
     parser.add_argument("--debug", action="store_true")
+    parser.add_argument("--error_notes", action="store_true")
     args = parser.parse_args()
 
     if not os.environ.get("OCTOAI_TOKEN_DEV") and not os.environ.get("OCTOAI_TOKEN_PROD"):
-        raise RuntimeError("Please export your OctoAI token to environment variable OCTOAI_TOKEN_DEV or OCTOAI_TOKEN_PROD depending on type of endpoints you are going to test")
+        raise RuntimeError(
+            "Please export your OctoAI token to environment variable OCTOAI_TOKEN_DEV or OCTOAI_TOKEN_PROD depending on type of endpoints you are going to test"
+        )
 
     if not os.path.exists(args.tests_file):
         raise FileNotFoundError("Specified test file not found")
@@ -109,12 +135,12 @@ def main() -> NoReturn:
     endpoints = parse_endpoints(args.endpoints_file)
 
     pytest_nodes = subprocess.check_output(
-        f"pytest {args.tests_file} --model_name="" --endpoint=test --collect-only",
+        f"pytest {args.tests_file} --model_name=" " --endpoint=test --collect-only",
         shell=True,
-        text=True
+        text=True,
     )
     test_names = []
-    for line in pytest_nodes.split('\n'):
+    for line in pytest_nodes.split("\n"):
         match = re.search(r"test_[a-zA-Z_\-\[\]0-9\.!?,]+", line)
         if match:
             test_names.append(match[0])
@@ -140,8 +166,10 @@ def main() -> NoReturn:
             write_out_base_path=args.write_out_base,
             write_table=args.write_table,
             limit=args.limit_sessions,
-            debug=args.debug
+            debug=args.debug,
+            error_notes=True if args.error_notes else False,
         )
+
 
 if __name__ == "__main__":
     main()
