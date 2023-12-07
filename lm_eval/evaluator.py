@@ -99,9 +99,6 @@ def simple_evaluate(
 
     task_dict = lm_eval.tasks.get_task_dict(tasks)
 
-    print(model_args)
-    print(lm)
-
     if check_integrity:
         run_task_tests(task_list=tasks)
     results = evaluate(
@@ -114,7 +111,7 @@ def simple_evaluate(
         decontamination_ngrams_path=decontamination_ngrams_path,
         write_out=write_out,
         output_base_path=output_base_path,
-        model_name=model_args[12:-1],
+        model_name=lm.model_name,
         samples_choice=samples_choice,
         no_shuffle=no_shuffle,
     )

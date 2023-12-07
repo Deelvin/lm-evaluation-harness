@@ -1,5 +1,3 @@
-import os
-
 ENDPOINTS_DATA = {
     "gsm8k": {
         "llama-2-13b-chat-fp16": 2,
@@ -22,12 +20,3 @@ ENDPOINTS_DATA = {
         "mistral-7b-instruct-fp16": 3,
     },
 }
-
-TASKS = [
-    "gsm8k_truncated_llama",
-    "triviaqa_truncated_llama",
-    "gsm8k_truncated_codellama",
-    "triviaqa_truncated_codellama",
-    "gsm8k_truncated_mistral",
-    "triviaqa_truncated_mistral",
-]
