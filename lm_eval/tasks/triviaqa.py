@@ -62,7 +62,6 @@ class TriviaQA(Task):
         return doc["question"]
 
     def doc_to_target(self, doc):
-        print(doc)
         return " " + doc["answer"]["value"]
 
     def _remove_prefixes(self, aliases):
@@ -100,8 +99,16 @@ class TriviaQA(Task):
         return float(continuation in list_of_candidates)
 
     def process_results(self, doc, results):
-        continuation = results[0].strip().lower().translate(str.maketrans('', '', string.punctuation))
-        list_of_candidates = [alias.lower().translate(str.maketrans('', '', string.punctuation)) for alias in self._remove_prefixes(doc["answer"]["aliases"])]
+        continuation = (
+            results[0]
+            .strip()
+            .lower()
+            .translate(str.maketrans("", "", string.punctuation))
+        )
+        list_of_candidates = [
+            alias.lower().translate(str.maketrans("", "", string.punctuation))
+            for alias in self._remove_prefixes(doc["answer"]["aliases"])
+        ]
         return {"em": self.simple_check(continuation, list_of_candidates)}
 
     def aggregation(self):

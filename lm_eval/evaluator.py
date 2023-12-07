@@ -76,7 +76,12 @@ def simple_evaluate(
         if model_args is None:
             model_args = ""
         lm = lm_eval.models.get_model(model).create_from_arg_string(
-            model_args, {"batch_size": batch_size, "max_batch_size": max_batch_size, "device": device}
+            model_args,
+            {
+                "batch_size": batch_size,
+                "max_batch_size": max_batch_size,
+                "device": device,
+            },
         )
     else:
         assert isinstance(model, lm_eval.base.LM)
@@ -93,6 +98,9 @@ def simple_evaluate(
         )
 
     task_dict = lm_eval.tasks.get_task_dict(tasks)
+
+    print(model_args)
+    print(lm)
 
     if check_integrity:
         run_task_tests(task_list=tasks)
@@ -113,11 +121,15 @@ def simple_evaluate(
 
     # add info about the model and few shot config
     results["config"] = {
-        "model": (model if isinstance(model, str) else model.model.config._name_or_path),
+        "model": (
+            model if isinstance(model, str) else model.model.config._name_or_path
+        ),
         "model_args": model_args,
         "num_fewshot": num_fewshot,
         "batch_size": batch_size,
-        "batch_sizes": list(lm.batch_sizes.values()) if hasattr(lm, "batch_sizes") else [],
+        "batch_sizes": list(lm.batch_sizes.values())
+        if hasattr(lm, "batch_sizes")
+        else [],
         "device": device,
         "no_cache": no_cache,
         "limit": limit,
@@ -143,7 +155,7 @@ def evaluate(
     decontamination_ngrams_path=None,
     write_out=False,
     output_base_path=None,
-    model_name='',
+    model_name="",
     samples_choice=None,
     no_shuffle=False,
 ):
@@ -245,14 +257,14 @@ def evaluate(
         )
 
         if samples_choice is not None:
-            if len(samples_choice[0])==1:
-                task_docs = [task_docs[x] for x in list(map(int, samples_choice[0].split(',')))]
+            if len(samples_choice[0]) == 1:
+                task_docs = [
+                    task_docs[x] for x in list(map(int, samples_choice[0].split(",")))
+                ]
             else:
-                task_docs = [task_docs[x] for x in list(map(int,samples_choice))]
+                task_docs = [task_docs[x] for x in list(map(int, samples_choice))]
         elif limit is not None:
             limit = int(len(task_docs) * limit) if limit < 1.0 else int(limit)
-
-
 
         for doc_id, doc in enumerate(itertools.islice(task_docs, 0, limit)):
             if decontaminate and task.should_decontaminate():
@@ -390,11 +402,16 @@ def evaluate(
             output_base_path.mkdir(parents=True, exist_ok=False)
         except FileExistsError:
             pass
-        
+
         for task_name, _ in task_dict_items:
-            print("OUTPUT PATH", f"{model_name}_{task_name}_{num_fewshot}fs_write_out_info.json")
+            print(
+                "OUTPUT PATH",
+                f"{model_name}_{task_name}_{num_fewshot}fs_write_out_info.json",
+            )
             with open(
-                output_base_path.joinpath(f"{model_name}_{task_name}_{num_fewshot}fs_write_out_info.json"),
+                output_base_path.joinpath(
+                    f"{model_name}_{task_name}_{num_fewshot}fs_write_out_info.json"
+                ),
                 "w",
                 encoding="utf8",
             ) as fp:

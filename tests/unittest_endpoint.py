@@ -22,23 +22,30 @@ def check_output(model_name, task_name, num_fewshot):
                     i["em"] == "1.0"
                 ), f"Found the wrong answer or the incorrect scoring case:\nPredicted:\n{i['logit_0']}\nTruth:\n{i['truth']}"
 
+
 @pytest.fixture
 def model_name(request):
     return request.config.getoption("--model_name")
 
-@pytest.mark.parametrize("headers", cfg.HEADERS)
-def test_endpoint_availability(model_name, endpoint, headers):
+
+@pytest.fixture
+def endpoint(request):
+    return request.config.getoption("--endpoint")
+
+
+@pytest.fixture
+def token(request):
+    return request.config.getoption("--token")
+
+
+def test_endpoint_availability(model_name, endpoint, token):
+    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {token}"}
+
     data = {
         "model": model_name,
         "messages": [
-            {
-                "role": "system",
-                "content": ""
-            },
-            {
-                "role": "user",
-                "content": "Who is Python author?"
-            }
+            {"role": "system", "content": ""},
+            {"role": "user", "content": "Who is Python author?"},
         ],
         "max_tokens": 10,
         "stream": False,
@@ -55,13 +62,13 @@ def test_endpoint_availability(model_name, endpoint, headers):
     assert response.content.strip() != "", f"Response for {model_name} is empty"
 
 
-def test_endpoint_gsm8k(model_name):
+def test_endpoint_gsm8k(model_name, endpoint, token):
     num_fewshot = 0
-    task_name = "gsm8k_truncated_" + model_name.split("-")[0]
+    task_name = ["gsm8k_truncated_" + model_name.split("-")[0]]
 
     evaluator.simple_evaluate(
         model="octoai",
-        model_args=f"model_name='{model_name}',prod=False",
+        model_args=f"model_name='{model_name}',prod=True,token='{token}'",
         tasks=task_name,
         num_fewshot=num_fewshot,
         batch_size=1,
@@ -72,20 +79,21 @@ def test_endpoint_gsm8k(model_name):
         decontamination_ngrams_path=None,
         check_integrity=False,
         write_out=True,
-        limit=cfg.ENDPOINTS_DATA[model_name],
+        limit=cfg.ENDPOINTS_DATA["gsm8k"][model_name],
         output_base_path=None,
         no_shuffle=True,
     )
 
-    check_output(model_name, task_name, num_fewshot)
+    check_output(model_name, task_name[0], num_fewshot)
 
-def test_endpoint_triviaqa(model_name):
+
+def test_endpoint_triviaqa(model_name, endpoint, token):
     num_fewshot = 0
-    task_name = "triviaqa_truncated_" + model_name.split("-")[0]
+    task_name = ["triviaqa_truncated_" + model_name.split("-")[0]]
 
     evaluator.simple_evaluate(
         model="octoai",
-        model_args=f"model_name='{model_name}',prod=False",
+        model_args=f"model_name='{model_name}',prod=True,token='{token}'",
         tasks=task_name,
         num_fewshot=num_fewshot,
         batch_size=1,
@@ -96,9 +104,9 @@ def test_endpoint_triviaqa(model_name):
         decontamination_ngrams_path=None,
         check_integrity=False,
         write_out=True,
-        limit=cfg.ENDPOINTS_DATA[model_name],
+        limit=cfg.ENDPOINTS_DATA["triviaqa"][model_name],
         output_base_path=None,
         no_shuffle=True,
     )
 
-    check_output(model_name, task_name, num_fewshot)
+    check_output(model_name, task_name[0], num_fewshot)
