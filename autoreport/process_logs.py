@@ -11,7 +11,7 @@ import gspread_dataframe as gd
 import gspread_formatting as gf
 import pandas as pd
 
-from utils import init_gspread_client
+from autoreport.utils import init_gspread_client
 
 
 def get_test_names(path_to_log_dir: str) -> List[str]:

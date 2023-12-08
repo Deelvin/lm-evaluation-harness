@@ -10,7 +10,7 @@ import argparse
 
 import libtmux
 
-from scripts.utils import init_gspread_client
+from autoreport.utils import init_gspread_client
 
 
 def parse_endpoints(
@@ -62,13 +62,13 @@ def run_smoke_tests(
         print(log_file)
         print()
 
-        process_logs_command = f"""python {os.path.join(str(Path(__file__).parent.parent), 'scripts', 'process_logs.py')} \
+        process_logs_command = f"""python {os.path.join(str(Path(__file__).parent.parent), 'autoreport', 'process_logs.py')} \
                                    --path_to_log={log_file} \
                                    --model_name={endpoint_type}_{model_name}"""
 
         tmux_server.sessions[current_session % limit].panes[0].send_keys(
             f"python3 -m pytest {path_to_tests_file} "
-            f"--model_name={model_name} --endpoint={endpoint['url']} > {log_file} ",
+            f"--model_name={model_name} --endpoint={endpoint['url']} --context_size={endpoint['context_size']}> {log_file} ",
             enter=True,
         )
         tmux_server.sessions[current_session % limit].panes[0].send_keys(
@@ -85,7 +85,7 @@ def run_smoke_tests(
                 continue
     
     subprocess.run(
-        f"""python {os.path.join(os.path.dirname(os.path.dirname(__file__)), 'scripts', 'process_logs.py')} \
+        f"""python {os.path.join(os.path.dirname(os.path.dirname(__file__)), 'autoreport', 'process_logs.py')} \
         --create_summary \
         --path_to_artifacts={os.path.join(write_out_base_path, 'test_results')} \
         --summary_path={os.path.join(write_out_base_path, "summary.csv")} \
@@ -114,7 +114,7 @@ def main() -> NoReturn:
     parser.add_argument("--endpoint_type", type=str, default="dev")
     parser.add_argument("--write_out_base", type=str, default="./logs")
     parser.add_argument("--write_table", action="store_true")
-    parser.add_argument("--limit_sessions", type=int, default=3)
+    parser.add_argument("--limit_sessions", type=int, default=4)
     parser.add_argument("--debug", action="store_true")
     parser.add_argument("--error_notes", action="store_true")
     args = parser.parse_args()
