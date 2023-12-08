@@ -1,5 +1,4 @@
 from typing import NoReturn, Dict
-from pathlib import Path
 import json
 import datetime
 import os
@@ -20,6 +19,7 @@ def parse_endpoints(
         endpoints = json.load(file)
     return endpoints
 
+
 def _tmux_active(server: libtmux.Server) -> bool:
     for session in server.sessions:
         if session.panes[0].capture_pane()[-1].endswith("$"):
@@ -27,6 +27,7 @@ def _tmux_active(server: libtmux.Server) -> bool:
         else:
             return True
     return False
+
 
 def run_smoke_tests(
     endpoints: Dict[str, str],
@@ -62,7 +63,7 @@ def run_smoke_tests(
         print(log_file)
         print()
 
-        process_logs_command = f"""python {os.path.join(str(Path(__file__).parent.parent), 'autoreport', 'process_logs.py')} \
+        process_logs_command = f"""python {os.path.join(os.path.dirname(os.path.dirname(__file__)), 'autoreport', 'process_logs.py')} \
                                    --path_to_log={log_file} \
                                    --model_name={endpoint_type}_{model_name}"""
 
@@ -83,7 +84,7 @@ def run_smoke_tests(
                 session.panes[0].send_keys("exit", enter=True)
             except:
                 continue
-    
+
     subprocess.run(
         f"""python {os.path.join(os.path.dirname(os.path.dirname(__file__)), 'autoreport', 'process_logs.py')} \
         --create_summary \
@@ -109,7 +110,9 @@ def main() -> NoReturn:
     parser.add_argument(
         "--tests_file",
         type=str,
-        default=os.path.join(str(Path(__file__).parent.parent), "tests_ollm/smoke_tests.py"),
+        default=os.path.join(
+            os.path.dirname(os.path.dirname(__file__)), "tests_ollm/smoke_tests.py"
+        ),
     )
     parser.add_argument("--endpoint_type", type=str, default="dev")
     parser.add_argument("--write_out_base", type=str, default="./logs")

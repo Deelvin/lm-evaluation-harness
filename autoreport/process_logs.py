@@ -1,6 +1,5 @@
 from typing import List, Dict, Tuple
 from datetime import date
-from pathlib import Path
 import argparse
 import re
 import os
@@ -61,18 +60,16 @@ def prepare_error_notes(
     error_notes = {}
     for filename in os.listdir(path_to_errors):
         test_case = filename[: -len("_error")]
-        with open(os.path.join(path_to_errors, filename), 'r', encoding="utf-8") as file:
+        with open(os.path.join(path_to_errors, filename), "r", encoding="utf-8") as file:
             row, col = get_test_case_cell(worksheet, model_name, test_case)
             s = file.read()
-            error_notes[
-                gspread.utils.rowcol_to_a1(row=row, col=col)
-            ] = s
+            error_notes[gspread.utils.rowcol_to_a1(row=row, col=col)] = s
     return error_notes
 
 
 def extract_error_messages(path_to_log: str) -> Dict[str, str]:
     error_messages = {}
-    with open(path_to_log, 'r', encoding="utf-8") as file:
+    with open(path_to_log, "r", encoding="utf-8") as file:
         current_message = ""
         current_test_name = ""
         inside_error = False
@@ -100,7 +97,7 @@ def process_test_logs(
     path_to_log: str,
     model_name: str,
 ) -> None:
-    path_to_log_root = str(Path(path_to_log).parent.parent)
+    path_to_log_root = os.path.dirname(os.path.dirname(path_to_log))
     test_names = get_test_names(path_to_log_dir=path_to_log_root)
     results = ["Passed"] * len(test_names)
     error_messages = extract_error_messages(path_to_log=path_to_log)
@@ -112,7 +109,7 @@ def process_test_logs(
     if not os.path.exists(errors_dir):
         os.makedirs(errors_dir)
     for test_case in error_messages:
-        with open(os.path.join(errors_dir, f"{test_case}_error"), 'w', encoding="utf-8") as file:
+        with open(os.path.join(errors_dir, f"{test_case}_error"), "w", encoding="utf-8") as file:
             file.write(error_messages[test_case])
     pd.DataFrame({"test_case": test_names, model_name: results}).set_index("test_case").to_csv(
         os.path.join(artifacts_dir, f"results_{model_name}.csv")
