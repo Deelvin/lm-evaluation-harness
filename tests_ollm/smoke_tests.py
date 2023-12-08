@@ -335,7 +335,8 @@ def test_stream(model_name, token, endpoint):
             chunk["choices"][0]["delta"]["role"] == "assistant"
             and chunk_data is not None
         ):
-            stream_str += chunk["choices"][0]["delta"]["content"]
+            assert chunk_data != '', "Chunk consists of empty string"
+            stream_str += chunk_data
     completion = run_chat_completion(
         model_name,
         messages,
