@@ -318,6 +318,8 @@ def test_stream(model_name, token, endpoint):
         {"role": "system", "content": "You are a helpful assistant."},
         {"role": "user", "content": "Write a blog about Seattle"},
     ]
+
+    start_time = time.time()
     completion_stream = run_chat_completion(
         model_name,
         messages,
@@ -327,6 +329,7 @@ def test_stream(model_name, token, endpoint):
         temperature=0.0,
         return_completion=True,
     )
+    time_to_first_token = time.time() - start_time
     assert isinstance(completion_stream, types.GeneratorType)
     stream_str = ""
     for chunk in completion_stream:
@@ -335,8 +338,10 @@ def test_stream(model_name, token, endpoint):
             chunk["choices"][0]["delta"]["role"] == "assistant"
             and chunk_data is not None
         ):
-            assert chunk_data != '', "Chunk consists of empty string"
+            if chunk["choices"][0]["finish_reason"] != "stop":
+                assert chunk_data != '', "Recieved chunk consists of empty string"
             stream_str += chunk_data
+    start_time = time.time()
     completion = run_chat_completion(
         model_name,
         messages,
@@ -346,7 +351,10 @@ def test_stream(model_name, token, endpoint):
         temperature=0.0,
         return_completion=True,
     )
+    full_response_time = time.time() - start_time
+
     assert stream_str == completion["choices"][0]["message"]["content"]
+    assert full_response_time > time_to_first_token
 
 
 @pytest.mark.skip(
