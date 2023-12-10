@@ -1,16 +1,6 @@
 import os
-import types
-import time
-from pathlib import Path
 
 import requests
-
-
-import numpy as np
-from scipy.spatial import distance
-from concurrent.futures import ThreadPoolExecutor
-import concurrent.futures
-
 import openai
 
 # For compatibility with OpenAI versions before v1.0
@@ -19,14 +9,13 @@ OPENAI_VER_MAJ = int(openai.__version__.split(".")[0])
 
 if OPENAI_VER_MAJ >= 1:
     from openai import APIError, AuthenticationError, APIConnectionError
-    from pydantic import BaseModel as CompletionObject
 else:
     from openai.error import APIError, AuthenticationError, APIConnectionError
-    from openai.openai_object import OpenAIObject as CompletionObject
 
 
 def path_to_file(file_name):
     return os.path.join(os.path.dirname(__file__), file_name)
+
 
 def run_chat_completion(
     model_name,
@@ -95,6 +84,7 @@ def run_chat_completion(
 
     return http_response
 
+
 def send_request_with_timeout(url, data, headers):
     try:
         requests.post(url, json=data, headers=headers, timeout=1)
@@ -103,5 +93,5 @@ def send_request_with_timeout(url, data, headers):
 
 
 def send_request_get_response(url, data, headers):
-    response = requests.post(url, json=data, headers=headers)
+    response = requests.post(url, json=data, headers=headers, timeout=None)
     return response
