@@ -386,59 +386,24 @@ def test_valid_frequency_penalty(model_name, token, endpoint):
         },
         {
             "role": "user",
-            "content": "Write a 1000-word article about the development of computer science",
+            "content": "Write a 800-word article about large language models using the word 'transformer' as often as possible",
         },
     ]
-    max_tokens = 1500
-    model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
-    initial_completion = run_chat_completion(
-        model_name, messages, token, endpoint, return_completion=True
+    responses = []
+    for frequency_penalty in [-2, -1, 0, 1, 2]:
+        responses.append(
+            run_chat_completion(
+                model_name, 
+                messages, 
+                token, 
+                endpoint, 
+                frequency_penalty=frequency_penalty,
+                max_tokens=800,
+                return_completion=True
+        )["choices"][0]["message"]["content"]
     )
-    initial_embeddings = model.encode(
-        initial_completion["choices"][0]["message"]["content"]
-    )
-    messages.append(
-        {
-            "role": "assistant",
-            "content": initial_completion["choices"][0]["message"]["content"],
-        }
-    )
-    messages.append(
-        {
-            "role": "user",
-            "content": "Write a 1000-word article about the development of computer science",
-        }
-    )
-    first_completion = run_chat_completion(
-        model_name,
-        messages,
-        token,
-        endpoint,
-        max_tokens=max_tokens,
-        frequency_penalty=0.0,
-        presence_penalty=0.0,
-        temperature=0.0,
-        return_completion=True,
-    )
-    second_completion = run_chat_completion(
-        model_name,
-        messages,
-        token,
-        endpoint,
-        max_tokens=max_tokens,
-        frequency_penalty=2.0,
-        presence_penalty=0.0,
-        temperature=0.0,
-        return_completion=True,
-    )
-    assert distance.cosine(
-        initial_embeddings,
-        model.encode(first_completion["choices"][0]["message"]["content"]),
-    ) < distance.cosine(
-        initial_embeddings,
-        model.encode(second_completion["choices"][0]["message"]["content"]),
-    )
-
+    for i in range(1, 4):
+        assert responses[i].lower().count("transformer") < responses[i - 1].lower().count("transformer")
 
 @pytest.mark.parametrize("fr_pen", [-2.1, 2.1])
 def test_invalid_frequency_penalty(model_name, fr_pen, token, endpoint):
@@ -449,7 +414,7 @@ def test_invalid_frequency_penalty(model_name, fr_pen, token, endpoint):
         },
         {
             "role": "user",
-            "content": "Write a 1000-word article about the development of computer science",
+            "content": "Write a 800-word article about large language models using the word 'transformer' as often as possible",
         },
     ]
     initial_completion = run_chat_completion(
@@ -464,16 +429,13 @@ def test_invalid_frequency_penalty(model_name, fr_pen, token, endpoint):
     messages.append(
         {
             "role": "user",
-            "content": "Write a 1000-word article about the development of computer science",
+            "content": "Write a 800-word article about large language models using the word 'transformer' as often as possible",
         }
     )
 
-    assert (
-        run_chat_completion(
-            model_name, messages, token, endpoint, frequency_penalty=fr_pen
-        )
-        == 400
-    )
+    assert run_chat_completion(
+        model_name, messages, token, endpoint, frequency_penalty=fr_pen
+    ) == 400
 
 
 @pytest.mark.skip(reason="Presence penalty has not been implemented yet")
@@ -485,62 +447,28 @@ def test_valid_presence_penalty(model_name, token, endpoint):
         },
         {
             "role": "user",
-            "content": "Write a 1000-word article about the development of computer science",
+            "content": "Write a 800-word article about large language models using the word 'transformer' as often as possible",
         },
     ]
-    max_tokens = 1500
-    model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
-    initial_completion = run_chat_completion(
-        model_name, messages, token, endpoint, return_completion=True
+    responses = []
+    for presence_penalty in [-2, -1, 0, 1, 2]:
+        responses.append(
+            run_chat_completion(
+                model_name, 
+                messages, 
+                token, 
+                endpoint, 
+                presence_penalty=presence_penalty,
+                max_tokens=800,
+                return_completion=True
+        )["choices"][0]["message"]["content"]
     )
-    initial_embeddings = model.encode(
-        initial_completion["choices"][0]["message"]["content"]
-    )
-    messages.append(
-        {
-            "role": "assistant",
-            "content": initial_completion["choices"][0]["message"]["content"],
-        }
-    )
-    messages.append(
-        {
-            "role": "user",
-            "content": "Write a 1000-word article about the development of computer science",
-        }
-    )
-    first_completion = run_chat_completion(
-        model_name,
-        messages,
-        token,
-        endpoint,
-        max_tokens=max_tokens,
-        frequency_penalty=0.0,
-        presence_penalty=-0.0,
-        temperature=0.0,
-        return_completion=True,
-    )
-    second_completion = run_chat_completion(
-        model_name,
-        messages,
-        token,
-        endpoint,
-        max_tokens=max_tokens,
-        frequency_penalty=0.0,
-        presence_penalty=2.0,
-        temperature=0.0,
-        return_completion=True,
-    )
-    assert distance.cosine(
-        initial_embeddings,
-        model.encode(first_completion["choices"][0]["message"]["content"]),
-    ) < distance.cosine(
-        initial_embeddings,
-        model.encode(second_completion["choices"][0]["message"]["content"]),
-    )
+    for i in range(1, 4):
+        assert responses[i].lower().count("transformer") < responses[i - 1].lower().count("transformer")
 
 
 @pytest.mark.parametrize("pr_pen", [-2.1, 2.1])
-def test_invalid_presence_penalty(model_name, pr_pen, token, endpoint):
+def test_invalid_frequency_penalty(model_name, pr_pen, token, endpoint):
     messages = [
         {
             "role": "system",
@@ -548,7 +476,7 @@ def test_invalid_presence_penalty(model_name, pr_pen, token, endpoint):
         },
         {
             "role": "user",
-            "content": "Write a 1000-word article about the development of computer science",
+            "content": "Write a 800-word article about large language models using the word 'transformer' as often as possible",
         },
     ]
     initial_completion = run_chat_completion(
@@ -563,16 +491,13 @@ def test_invalid_presence_penalty(model_name, pr_pen, token, endpoint):
     messages.append(
         {
             "role": "user",
-            "content": "Write a 1000-word article about the development of computer science",
+            "content": "Write a 800-word article about large language models using the word 'transformer' as often as possible",
         }
     )
 
-    assert (
-        run_chat_completion(
-            model_name, messages, token, endpoint, presence_penalty=pr_pen
-        )
-        == 400
-    )
+    assert run_chat_completion(
+        model_name, messages, token, endpoint, presence_penalty=pr_pen
+    ) == 400
 
 # Tests for correctness of response
 def test_response_model_name(model_name, token, endpoint):
