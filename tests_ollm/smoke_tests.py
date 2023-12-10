@@ -32,7 +32,6 @@ from sentence_transformers import SentenceTransformer
 def model_name(request):
     return request.config.getoption("--model_name")
 
-
 @pytest.fixture
 def token():
     return os.environ["OCTOAI_TOKEN"]
@@ -48,9 +47,8 @@ def context_size(request):
     return request.config.getoption("--context_size", default=4096)
 
 # Tests for processing input parameters
-# TODO: change skipping tests for not implemented parameters on "xfail" (expected to fail)
-# Also add markers for valid input, invalid input
 # TODO: Add assertion desctiptions
+@pytest.mark.input_parameter
 def test_valid_model_name(model_name, token, endpoint):
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
@@ -58,6 +56,7 @@ def test_valid_model_name(model_name, token, endpoint):
     ]
     assert run_chat_completion(model_name, messages, token, endpoint) == 200
 
+@pytest.mark.input_parameter
 def test_invalid_model_name(model_name, token, endpoint):
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
@@ -66,7 +65,7 @@ def test_invalid_model_name(model_name, token, endpoint):
     model_name += "_dummy_check"
     assert run_chat_completion(model_name, messages, token, endpoint) != 200
 
-
+@pytest.mark.input_parameter
 def test_valid_role(model_name, token, endpoint):
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
@@ -76,6 +75,7 @@ def test_valid_role(model_name, token, endpoint):
 
     assert run_chat_completion(model_name, messages, token, endpoint) == 200
 
+@pytest.mark.input_parameter
 def test_invalid_role(model_name, token, endpoint):
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
@@ -89,7 +89,7 @@ def test_invalid_role(model_name, token, endpoint):
     messages.pop()
     assert run_chat_completion(model_name, messages, token, endpoint) == 200
 
-
+@pytest.mark.input_parameter
 @pytest.mark.parametrize("max_tokens", [10, 100, 300, 500, 1024])
 def test_valid_max_tokens(model_name, max_tokens, token, endpoint):
     messages = [
@@ -110,8 +110,8 @@ def test_valid_max_tokens(model_name, max_tokens, token, endpoint):
     assert 0 < completion["usage"]["completion_tokens"] <= max_tokens
     assert len(completion["choices"][0]["message"]["content"]) > 0
 
-
-@pytest.mark.skip(
+@pytest.mark.input_parameter
+@pytest.mark.xfail(
     reason="Due to Internal Server Error (500) hides expected invalid_request_error (400)"
 )
 def test_invalid_max_tokens(model_name, context_size, token, endpoint):
@@ -142,8 +142,8 @@ def test_invalid_max_tokens(model_name, context_size, token, endpoint):
     assert 0 < completion["usage"]["completion_tokens"] <= context_size
     assert len(completion["choices"][0]["message"]["content"]) > 0
 
-
-@pytest.mark.skip(reason="Need to validate distance measurement approach")
+@pytest.mark.input_parameter
+@pytest.mark.xfail(reason="Need to validate distance measurement approach")
 def test_valid_temperature(model_name, token, endpoint):
     """The higher the temperature, the further the distance from the expected."""
     messages = [
@@ -170,7 +170,7 @@ def test_valid_temperature(model_name, token, endpoint):
 
     assert distances == sorted(distances)
 
-
+@pytest.mark.input_parameter
 @pytest.mark.parametrize("temperature", [-0.1, 2.1])
 def test_invalid_temperature(model_name, temperature, token, endpoint):
     """Invalid temperatures should produce an error.
@@ -193,8 +193,8 @@ def test_invalid_temperature(model_name, temperature, token, endpoint):
             return_completion=True,
         )
 
-
-@pytest.mark.skip(reason="Need to validate distance measurement approach")
+@pytest.mark.input_parameter
+@pytest.mark.xfail(reason="Need to validate distance measurement approach")
 def test_valid_top_p(model_name, token, endpoint):
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
@@ -230,7 +230,7 @@ def test_valid_top_p(model_name, token, endpoint):
         assert prev_dist <= cur_distance
         prev_dist = cur_distance
 
-
+@pytest.mark.input_parameter
 @pytest.mark.parametrize("top_p", [-0.1, 1.1])
 def test_invalid_top_p(model_name, top_p, token, endpoint):
     messages = [
@@ -242,11 +242,11 @@ def test_invalid_top_p(model_name, top_p, token, endpoint):
         run_chat_completion(model_name, messages, token, endpoint, top_p=top_p) == 400
     )
 
-
+@pytest.mark.input_parameter
 @pytest.mark.parametrize("n", [1, 5, 10])
 def test_valid_number_chat_completions(model_name, n, token, endpoint):
     if n > 1:
-        pytest.skip("Multiple outputs is not supported yet")
+        pytest.xfail("Multiple outputs is not supported yet")
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
         {"role": "user", "content": "Hello!"},
@@ -265,7 +265,8 @@ def test_invalid_number_chat_completions(model_name, token, endpoint):
         model_name, messages, token, endpoint, n=0
     ) == 400
 
-
+@pytest.mark.input_parameter
+@pytest.mark.xfail(reason="When stream = True last chunks consist of empty strings")
 def test_stream(model_name, token, endpoint):
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
@@ -309,8 +310,8 @@ def test_stream(model_name, token, endpoint):
     assert stream_str == completion["choices"][0]["message"]["content"]
     assert full_response_time > time_to_first_token
 
-
-@pytest.mark.skip(
+@pytest.mark.input_parameter
+@pytest.mark.xfail(
     reason="Need upstream with OpenAI approach (return completion without stop token)"
 )
 @pytest.mark.parametrize("stop", [["tomato", "tomatoes"], [".", "!"]])
@@ -343,6 +344,7 @@ def test_valid_stop(model_name, stop, token, endpoint):
     #     for seq in stop:
     #         assert seq not in words[:-1]
 
+@pytest.mark.input_parameter
 @pytest.mark.parametrize("stop", [42, {"stop": "word"}, [1, 2, 3]])
 def test_invalid_stop(model_name, stop, token, endpoint):
     messages = [{"role": "user", "content": "How to cook tomato paste?"}]
@@ -354,12 +356,14 @@ def test_invalid_stop(model_name, stop, token, endpoint):
         stop=stop,
     ) == 400
 
+@pytest.mark.input_parameter
 @pytest.mark.parametrize("prompt", ["Hi!", None])
 def test_valid_content(model_name, prompt, token, endpoint):
     message = {"role": "system", "content": prompt}
 
     assert run_chat_completion(model_name, [message], token, endpoint) == 200
 
+@pytest.mark.input_parameter
 @pytest.mark.parametrize(
     "prompt",
     [
@@ -376,8 +380,8 @@ def test_invalid_content(model_name, prompt, token, endpoint):
 
     assert run_chat_completion(model_name, [message], token, endpoint) in [422, 400]
 
-
-@pytest.mark.skip(reason="Frequency penalty has not been implemented yet")
+@pytest.mark.input_parameter
+@pytest.mark.xfail(reason="Frequency penalty has not been implemented yet")
 def test_valid_frequency_penalty(model_name, token, endpoint):
     messages = [
         {
@@ -405,6 +409,7 @@ def test_valid_frequency_penalty(model_name, token, endpoint):
     for i in range(1, 4):
         assert responses[i].lower().count("transformer") < responses[i - 1].lower().count("transformer")
 
+@pytest.mark.input_parameter
 @pytest.mark.parametrize("fr_pen", [-2.1, 2.1])
 def test_invalid_frequency_penalty(model_name, fr_pen, token, endpoint):
     messages = [
@@ -437,8 +442,8 @@ def test_invalid_frequency_penalty(model_name, fr_pen, token, endpoint):
         model_name, messages, token, endpoint, frequency_penalty=fr_pen
     ) == 400
 
-
-@pytest.mark.skip(reason="Presence penalty has not been implemented yet")
+@pytest.mark.input_parameter
+@pytest.mark.xfail(reason="Presence penalty has not been implemented yet")
 def test_valid_presence_penalty(model_name, token, endpoint):
     messages = [
         {
@@ -466,7 +471,7 @@ def test_valid_presence_penalty(model_name, token, endpoint):
     for i in range(1, 4):
         assert responses[i].lower().count("transformer") < responses[i - 1].lower().count("transformer")
 
-
+@pytest.mark.input_parameter
 @pytest.mark.parametrize("pr_pen", [-2.1, 2.1])
 def test_invalid_frequency_penalty(model_name, pr_pen, token, endpoint):
     messages = [
@@ -500,6 +505,7 @@ def test_invalid_frequency_penalty(model_name, pr_pen, token, endpoint):
     ) == 400
 
 # Tests for correctness of response
+@pytest.mark.response_correctness
 def test_response_model_name(model_name, token, endpoint):
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
@@ -510,7 +516,7 @@ def test_response_model_name(model_name, token, endpoint):
     )
     assert completion["model"] == model_name
 
-
+@pytest.mark.response_correctness
 def test_response_choices(model_name, token, endpoint):
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
@@ -524,7 +530,7 @@ def test_response_choices(model_name, token, endpoint):
     assert "finish_reason" in completion["choices"][0].keys()
     assert "message" in completion["choices"][0].keys()
 
-
+@pytest.mark.response_correctness
 def test_response_usage(model_name, token, endpoint):
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
@@ -538,7 +544,7 @@ def test_response_usage(model_name, token, endpoint):
     assert "total_tokens" in completion["usage"].keys()
     assert "completion_tokens" in completion["usage"].keys()
 
-
+@pytest.mark.response_correctness
 def test_response_id(model_name, token, endpoint):
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
@@ -552,7 +558,7 @@ def test_response_id(model_name, token, endpoint):
     )
     assert first_completion["id"] != second_completion["id"]
 
-
+@pytest.mark.response_correctness
 def test_response_object_type(model_name, token, endpoint):
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
@@ -563,7 +569,7 @@ def test_response_object_type(model_name, token, endpoint):
     )
     assert isinstance(completion, CompletionObject)
 
-
+@pytest.mark.response_correctness
 def test_response_created_time(model_name, token, endpoint):
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
@@ -578,7 +584,8 @@ def test_response_created_time(model_name, token, endpoint):
     end_time = int(time.time())
     assert st_time <= completion["created"] <= end_time
 
-# Tests for authentification
+# Test for authentification
+@pytest.mark.auth
 def test_invalid_token_authentification(model_name, endpoint):
     messages = [{"role": "user", "content": "Tell a story about a cat"}]
     assert run_chat_completion(model_name, messages, "invalid", endpoint) == 401
