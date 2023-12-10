@@ -4,11 +4,16 @@ https://arxiv.org/abs/2107.03374
 TODO: add abstract/description
 Homepage: https://github.com/openai/human-eval
 """
+import inspect
+import re
 import os
 import json
 from lm_eval.base import Task, rf
 from lm_eval.metrics import mean
+import lm_eval.datasets.humaneval
+from lm_eval.datasets.humaneval.data import read_problems, stream_jsonl
 
+import numpy as np
 
 _CITATION = """
 @article{chen2021codex,
@@ -24,9 +29,18 @@ _CITATION = """
 
 class HumanEval(Task):
     VERSION = 0
-    DATASET_PATH = "openai_humaneval"
-    DATASET_NAME = None
-
+    
+    def __init__(self):
+        self.problems = read_problems().values()
+        self.PATH_TO_HUMANEVAL = os.path.dirname(inspect.getfile(lm_eval.datasets.humaneval))
+        if os.path.isfile(f"{self.PATH_TO_HUMANEVAL}/samples.jsonl"):
+            os.remove(f"{self.PATH_TO_HUMANEVAL}/samples.jsonl")
+        if os.path.isfile(f"{self.PATH_TO_HUMANEVAL}/samples.jsonl_results.jsonl"):
+            os.remove(f"{self.PATH_TO_HUMANEVAL}/samples.jsonl_results.jsonl")
+    
+    def set_num_answers_per_example(self, num_answers_per_example):
+        self.num_answers_per_example = num_answers_per_example
+        
     def has_training_docs(self):
         return False
 
@@ -43,13 +57,13 @@ class HumanEval(Task):
         raise NotImplementedError
 
     def test_docs(self):
-        return self.dataset["test"]
+        return self.problems
 
     def doc_to_text(self, doc):
         return doc["prompt"]
 
     def doc_to_target(self, doc):
-        return doc["canonical_solution"]
+        return None
 
     def construct_requests(self, doc, ctx):
         """Uses RequestFactory to construct Requests and returns an iterable of
@@ -61,11 +75,22 @@ class HumanEval(Task):
             language description, as well as the few shot examples, and the question
             part of the document for `doc`.
         """
-        completion = [rf.greedy_until(ctx, ["\n\n"]) for i in range(1)]
+        completion = [rf.greedy_until(ctx, {"until": ["\n\n"]}) for _ in range(self.num_answers_per_example)]
         return completion
 
     def _is_correct(self, completion, doc):
-        return True
+        results = []
+        for sample in stream_jsonl(f"{self.PATH_TO_HUMANEVAL}/samples.jsonl_results.jsonl"):
+            task_id = sample["task_id"]
+            if task_id == doc["task_id"]:
+                results.append(sample["passed"])
+
+        total = len(results)
+        correct = sum(results)
+
+        pass_at_k = {f"pass@{k}": self.estimate_pass_at_k(total, correct, k)
+                 for k in [1, 10, 100] if total >= k}
+        return pass_at_k
 
     def process_results(self, doc, results):
         """Take a single document and the LM results and evaluates, returning a
@@ -76,14 +101,13 @@ class HumanEval(Task):
         :param results:
             The results of the requests created in construct_requests.
         """
-
         # log outputs to a jsonl file, for use with the official evaluation + execution script.
-        if os.environ.get('CODE_DUMP_PATH', None) is not None:
-            with open(f"{os.environ['CODE_DUMP_PATH']}", "a") as f:
-                for completion in results:
-                    f.write(json.dumps({"task_id": doc["task_id"], "completion": completion}) + "\n")
-
-        return {"pass@1": self._is_correct(results, doc), "pass@10": self._is_correct(results, doc)}
+        with open(f"{self.PATH_TO_HUMANEVAL}/samples.jsonl", "a") as file:
+            for completion in results:
+                completion = self.extract_code_and_imports_as_string(completion)
+                file.write(json.dumps({"task_id": doc["task_id"], "completion": completion}) + "\n")
+        tmp = os.popen(f"python {self.PATH_TO_HUMANEVAL}/evaluate_functional_correctness.py {self.PATH_TO_HUMANEVAL}/samples.jsonl").read()
+        return self._is_correct(completion, doc)
 
     def aggregation(self):
         """
@@ -91,7 +115,7 @@ class HumanEval(Task):
             A dictionary where keys are the names of submetrics and values are
             functions that aggregate a list of metrics
         """
-        return {"pass@1": mean, "pass@10": mean}
+        return {"pass@1": mean, "pass@10": mean, "pass@100": mean}
 
     def higher_is_better(self):
         """
@@ -100,3 +124,68 @@ class HumanEval(Task):
             whether a higher value of the submetric is better
         """
         return {f"pass@{k}": True for k in [1, 10, 100]}
+
+    def remove_empty_lines(self, code):
+        lines = code.split('\n')
+        non_empty_lines = [line for line in lines if line.strip() != '']
+        return '\n'.join(non_empty_lines)
+
+    def extract_code_and_imports_as_string(self, llama_output):
+        llama_output = llama_output.replace('```', '')
+        llama_output = self.remove_empty_lines(llama_output)
+        blocks = re.split(r'\n\n|\n(?=def |class )', llama_output)
+        code_blocks = []
+        imports = []
+
+        for block in blocks:
+            lines = block.split('\n')
+            current_code_block = []
+            in_code_block = False
+
+            for line in lines:
+                line_stripped = line.strip()
+
+                if line_stripped.startswith('import ') or line_stripped.startswith('from '):
+                    imports.append(line_stripped)
+
+                if line_stripped.startswith('def ') or line_stripped.startswith('class '):
+                    # Start of a new code block
+                    in_code_block = True
+                    current_code_block.append(line)
+
+                elif in_code_block:
+                    # Collect lines belonging to the current code block
+                    current_code_block.append(line)
+
+            # Add the current code block if present
+            if current_code_block:
+                code_blocks.append('\n'.join(current_code_block))
+
+        code_blocks_str = "\n\n".join(code_blocks) if code_blocks else ""
+        imports_str = "\n".join(imports) if imports else ""
+        try:
+            code_idx_end = [i for i in range(len(code_blocks_str)) if code_blocks_str.startswith('    return', i)][-1]
+            while (code_blocks_str[code_idx_end] != '\n') and (code_idx_end < len(code_blocks_str) - 1):
+                code_idx_end += 1
+            code_blocks_str = code_blocks_str[:code_idx_end + 1]
+        except IndexError:
+            pass
+
+        if imports_str and code_blocks_str:
+            return f"\n{imports_str}\n\n\n{code_blocks_str}"
+        elif imports_str:
+            return f"Imports:\n{imports_str}"
+        elif code_blocks_str:
+            return f"\n{code_blocks_str}"
+        else:
+            return "No code blocks found in the response."
+    
+    def estimate_pass_at_k(self, n, c, k):
+        """
+        Calculates 1 - comb(n - c, k) / comb(n, k).
+        """
+        if n - c < k:
+            return 1.0
+        return 1.0 - np.prod(1.0 - k / np.arange(n - c + 1, n + 1))
+
+    

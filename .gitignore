@@ -10,3 +10,6 @@ lm_cache
 # ignore shell scripts for tests in the root
 /*.sh
 /logs/
+
+#ignore test files for humaneval
+lm_eval/datasets/humaneval/samples*
