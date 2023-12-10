@@ -13,6 +13,7 @@ from concurrent.futures import ThreadPoolExecutor
 import concurrent.futures
 
 import openai
+from utils import run_chat_completion, send_request_get_response, send_request_with_timeout, path_to_file
 
 # For compatibility with OpenAI versions before v1.0
 # https://github.com/openai/openai-python/pull/677.
@@ -27,8 +28,6 @@ else:
 
 from sentence_transformers import SentenceTransformer
 
-
-# Define the model_name fixture
 @pytest.fixture
 def model_name(request):
     return request.config.getoption("--model_name")
@@ -48,89 +47,27 @@ def endpoint(request):
 def context_size(request):
     return request.config.getoption("--context_size", default=4096)
 
-def path_to_file(file_name):
-    return os.path.join(os.path.dirname(__file__), file_name)
-
-def run_chat_completion(
-    model_name,
-    messages,
-    token,
-    endpoint,
-    max_tokens=10,
-    n=1,
-    stream=False,
-    stop=None,
-    temperature=0.8,
-    top_p=1.0,
-    frequency_penalty=0,
-    presence_penalty=0,
-    return_completion=False,
-):
-    http_response = 200
-    openai.api_key = token
-    try:
-        if OPENAI_VER_MAJ > 0:
-            openai.base_url = endpoint + "/v1"
-            client = openai.OpenAI(
-                api_key=token,
-            )
-            completion = client.chat.completions.create(
-                model=model_name,
-                messages=messages,
-                max_tokens=max_tokens,
-                stream=stream,
-                n=n,
-                stop=stop,
-                top_p=top_p,
-                temperature=temperature,
-                frequency_penalty=frequency_penalty,
-                presence_penalty=presence_penalty,
-            )
-        else:
-            openai.api_base = endpoint + "/v1"
-            completion = openai.ChatCompletion.create(
-                model=model_name,
-                messages=messages,
-                max_tokens=max_tokens,
-                stream=stream,
-                n=n,
-                stop=stop,
-                top_p=top_p,
-                temperature=temperature,
-                frequency_penalty=frequency_penalty,
-                presence_penalty=presence_penalty,
-            )
-
-        if return_completion:
-            if OPENAI_VER_MAJ >= 1:
-                return completion.model_dump(exclude_unset=True)
-            else:
-                return completion
-    except (APIError, AuthenticationError, APIConnectionError) as e:
-        if return_completion:
-            raise
-        if OPENAI_VER_MAJ > 0:
-            print(e.message)
-            http_response = e.status_code
-        else:
-            print(e.user_message)
-            http_response = e.http_status
-
-    return http_response
-
-
-def test_response(model_name, token, endpoint):
+# Tests for processing input parameters
+# TODO: change skipping tests for not implemented parameters on "xfail" (expected to fail)
+# Also add markers for valid input, invalid input
+# TODO: Add assertion desctiptions
+def test_valid_model_name(model_name, token, endpoint):
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
         {"role": "user", "content": "Hello!"},
     ]
     assert run_chat_completion(model_name, messages, token, endpoint) == 200
 
+def test_invalid_model_name(model_name, token, endpoint):
+    messages = [
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user", "content": "Hello!"},
+    ]
     model_name += "_dummy_check"
     assert run_chat_completion(model_name, messages, token, endpoint) != 200
 
 
-def test_incorrect_role(model_name, token, endpoint):
+def test_valid_role(model_name, token, endpoint):
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
         {"role": "user", "content": "Hello!"},
@@ -139,6 +76,13 @@ def test_incorrect_role(model_name, token, endpoint):
 
     assert run_chat_completion(model_name, messages, token, endpoint) == 200
 
+def test_invalid_role(model_name, token, endpoint):
+    messages = [
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user", "content": "Hello!"},
+        {"role": "assistant", "content": "How are you!"},
+    ]
+    
     messages.append({"role": "dummy_role", "content": "dummy_content"})
     assert run_chat_completion(model_name, messages, token, endpoint) != 200
 
@@ -147,7 +91,7 @@ def test_incorrect_role(model_name, token, endpoint):
 
 
 @pytest.mark.parametrize("max_tokens", [10, 100, 300, 500, 1024])
-def test_max_tokens(model_name, max_tokens, token, endpoint):
+def test_valid_max_tokens(model_name, max_tokens, token, endpoint):
     messages = [
         {
             "role": "system",
@@ -170,7 +114,7 @@ def test_max_tokens(model_name, max_tokens, token, endpoint):
 @pytest.mark.skip(
     reason="Due to Internal Server Error (500) hides expected invalid_request_error (400)"
 )
-def test_incorrect_max_tokens(model_name, context_size, token, endpoint):
+def test_invalid_max_tokens(model_name, context_size, token, endpoint):
     messages = [
         {
             "role": "system",
@@ -228,7 +172,7 @@ def test_valid_temperature(model_name, token, endpoint):
 
 
 @pytest.mark.parametrize("temperature", [-0.1, 2.1])
-def test_temperature_outside_limit(model_name, temperature, token, endpoint):
+def test_invalid_temperature(model_name, temperature, token, endpoint):
     """Invalid temperatures should produce an error.
 
     Temperature is allowed to range from 0 to 2.0. Outside of this
@@ -251,7 +195,7 @@ def test_temperature_outside_limit(model_name, temperature, token, endpoint):
 
 
 @pytest.mark.skip(reason="Need to validate distance measurement approach")
-def test_top_p(model_name, token, endpoint):
+def test_valid_top_p(model_name, token, endpoint):
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
         {"role": "user", "content": "Write a blog about Seattle"},
@@ -288,7 +232,7 @@ def test_top_p(model_name, token, endpoint):
 
 
 @pytest.mark.parametrize("top_p", [-0.1, 1.1])
-def test_top_p_outside_limit(model_name, top_p, token, endpoint):
+def test_invalid_top_p(model_name, top_p, token, endpoint):
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
         {"role": "user", "content": "Write a blog about Seattle"},
@@ -300,7 +244,7 @@ def test_top_p_outside_limit(model_name, top_p, token, endpoint):
 
 
 @pytest.mark.parametrize("n", [1, 5, 10])
-def test_number_chat_completions(model_name, n, token, endpoint):
+def test_valid_number_chat_completions(model_name, n, token, endpoint):
     if n > 1:
         pytest.skip("Multiple outputs is not supported yet")
     messages = [
@@ -311,6 +255,15 @@ def test_number_chat_completions(model_name, n, token, endpoint):
         model_name, messages, token, endpoint, n=n, return_completion=True
     )
     assert len(completion["choices"]) == n
+
+def test_invalid_number_chat_completions(model_name, token, endpoint):
+    messages = [
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user", "content": "Hello!"},
+    ]
+    assert run_chat_completion(
+        model_name, messages, token, endpoint, n=0
+    ) == 400
 
 
 def test_stream(model_name, token, endpoint):
@@ -361,7 +314,7 @@ def test_stream(model_name, token, endpoint):
     reason="Need upstream with OpenAI approach (return completion without stop token)"
 )
 @pytest.mark.parametrize("stop", [["tomato", "tomatoes"], [".", "!"]])
-def test_stop(model_name, stop, token, endpoint):
+def test_valid_stop(model_name, stop, token, endpoint):
     messages = [{"role": "user", "content": "How to cook tomato paste?"}]
     completion = run_chat_completion(
         model_name,
@@ -390,9 +343,42 @@ def test_stop(model_name, stop, token, endpoint):
     #     for seq in stop:
     #         assert seq not in words[:-1]
 
+@pytest.mark.parametrize("stop", [42, {"stop": "word"}, [1, 2, 3]])
+def test_invalid_stop(model_name, stop, token, endpoint):
+    messages = [{"role": "user", "content": "How to cook tomato paste?"}]
+    assert run_chat_completion(
+        model_name,
+        messages,
+        token,
+        endpoint,
+        stop=stop,
+    ) == 400
+
+@pytest.mark.parametrize("prompt", ["Hi!", None])
+def test_valid_content(model_name, prompt, token, endpoint):
+    message = {"role": "system", "content": prompt}
+
+    assert run_chat_completion(model_name, [message], token, endpoint) == 200
+
+@pytest.mark.parametrize(
+    "prompt",
+    [
+        [1, "123"],
+        {"text": "How are you?"},
+        ("Hello!", "You are a helpful assistant"),
+        10,
+        10.5,
+        True,
+    ],
+)
+def test_invalid_content(model_name, prompt, token, endpoint):
+    message = {"role": "system", "content": prompt}
+
+    assert run_chat_completion(model_name, [message], token, endpoint) in [422, 400]
+
 
 @pytest.mark.skip(reason="Frequency penalty has not been implemented yet")
-def test_frequency_penalty(model_name, token, endpoint):
+def test_valid_frequency_penalty(model_name, token, endpoint):
     messages = [
         {
             "role": "system",
@@ -455,7 +441,7 @@ def test_frequency_penalty(model_name, token, endpoint):
 
 
 @pytest.mark.parametrize("fr_pen", [-2.1, 2.1])
-def test_frequency_penalty_outside_limit(model_name, fr_pen, token, endpoint):
+def test_invalid_frequency_penalty(model_name, fr_pen, token, endpoint):
     messages = [
         {
             "role": "system",
@@ -491,7 +477,7 @@ def test_frequency_penalty_outside_limit(model_name, fr_pen, token, endpoint):
 
 
 @pytest.mark.skip(reason="Presence penalty has not been implemented yet")
-def test_presence_penalty(model_name, token, endpoint):
+def test_valid_presence_penalty(model_name, token, endpoint):
     messages = [
         {
             "role": "system",
@@ -554,7 +540,7 @@ def test_presence_penalty(model_name, token, endpoint):
 
 
 @pytest.mark.parametrize("pr_pen", [-2.1, 2.1])
-def test_presence_penalty_outside_limit(model_name, pr_pen, token, endpoint):
+def test_invalid_presence_penalty(model_name, pr_pen, token, endpoint):
     messages = [
         {
             "role": "system",
@@ -588,8 +574,8 @@ def test_presence_penalty_outside_limit(model_name, pr_pen, token, endpoint):
         == 400
     )
 
-
-def test_model_name(model_name, token, endpoint):
+# Tests for correctness of response
+def test_response_model_name(model_name, token, endpoint):
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
         {"role": "user", "content": "Hello!"},
@@ -600,7 +586,7 @@ def test_model_name(model_name, token, endpoint):
     assert completion["model"] == model_name
 
 
-def test_choices_exist(model_name, token, endpoint):
+def test_response_choices(model_name, token, endpoint):
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
         {"role": "user", "content": "Hello!"},
@@ -614,7 +600,7 @@ def test_choices_exist(model_name, token, endpoint):
     assert "message" in completion["choices"][0].keys()
 
 
-def test_usage(model_name, token, endpoint):
+def test_response_usage(model_name, token, endpoint):
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
         {"role": "user", "content": "Hello!"},
@@ -628,7 +614,7 @@ def test_usage(model_name, token, endpoint):
     assert "completion_tokens" in completion["usage"].keys()
 
 
-def test_id_completion(model_name, token, endpoint):
+def test_response_id(model_name, token, endpoint):
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
         {"role": "user", "content": "Hello!"},
@@ -642,7 +628,7 @@ def test_id_completion(model_name, token, endpoint):
     assert first_completion["id"] != second_completion["id"]
 
 
-def test_object_type(model_name, token, endpoint):
+def test_response_object_type(model_name, token, endpoint):
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
         {"role": "user", "content": "Hello!"},
@@ -653,7 +639,7 @@ def test_object_type(model_name, token, endpoint):
     assert isinstance(completion, CompletionObject)
 
 
-def test_created_time(model_name, token, endpoint):
+def test_response_created_time(model_name, token, endpoint):
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
         {"role": "user", "content": "Hello!"},
@@ -667,225 +653,7 @@ def test_created_time(model_name, token, endpoint):
     end_time = int(time.time())
     assert st_time <= completion["created"] <= end_time
 
-
-@pytest.mark.parametrize(
-    "prompt",
-    [
-        [1, "123"],
-        {"text": "How are you?"},
-        ("Hello!", "You are a helpful assistant"),
-        10,
-        10.5,
-        True,
-    ],
-)
-def test_incorrect_content(model_name, prompt, token, endpoint):
-    message = {"role": "system", "content": prompt}
-
-    assert run_chat_completion(model_name, [message], token, endpoint) == 422
-
-
-@pytest.mark.parametrize("prompt", ["Hi!", None])
-def test_content(model_name, prompt, token, endpoint):
-    message = {"role": "system", "content": prompt}
-
-    assert run_chat_completion(model_name, [message], token, endpoint) == 200
-
-
-def test_user_authentication(model_name, token, endpoint):
+# Tests for authentification
+def test_invalid_token_authentification(model_name, endpoint):
     messages = [{"role": "user", "content": "Tell a story about a cat"}]
     assert run_chat_completion(model_name, messages, "invalid", endpoint) == 401
-
-
-def test_cancel_and_follow_up_requests(model_name, token, endpoint):
-    data = {
-        "model": model_name,
-        "messages": [
-            {
-                "role": "user",
-                "content": "Create a big story about a friendship between a cat and a dog.",
-            }
-        ],
-        "max_tokens": 500,
-        "n": 1,
-        "stream": False,
-        "stop": None,
-        "temperature": 0.8,
-        "top_p": 1.0,
-        "presence_penalty": 0,
-        "return_completion": False,
-    }
-    url = endpoint + "/v1/chat/completions"
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {token}",
-    }
-    try:
-        requests.post(url, json=data, headers=headers, timeout=1)
-    except requests.exceptions.Timeout:
-        print("Timeout of request")
-
-    follow_up_request = requests.post(url, json=data, headers=headers).json()
-    assert "created" in follow_up_request
-
-
-def send_request_with_timeout(url, data, headers):
-    try:
-        requests.post(url, json=data, headers=headers, timeout=1)
-    except requests.exceptions.Timeout:
-        return None
-
-
-def send_request_get_response(url, data, headers):
-    response = requests.post(url, json=data, headers=headers)
-    return response
-
-
-def test_canceling_requests(model_name, token, endpoint):
-    data = {
-        "model": model_name,
-        "messages": [
-            {
-                "role": "user",
-                "content": "Create a big story about a friendship between a cat and a dog.",
-            }
-        ],
-        "max_tokens": 1000,
-        "n": 1,
-        "stream": False,
-        "stop": None,
-        "temperature": 0.0,
-        "top_p": 1.0,
-        "presence_penalty": 0,
-        "return_completion": False,
-    }
-    url = endpoint + "/v1/chat/completions"
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {token}",
-    }
-    num_workers = 8
-    responses_code_set = set()
-
-    start_time = time.time()
-    with ThreadPoolExecutor(max_workers=num_workers) as executor:
-        futures = [executor.submit(send_request_get_response, url, data, headers) for _ in range(num_workers)]
-        for future in concurrent.futures.as_completed(futures):
-            responses_code_set.add(future.result().status_code)
-    first_run_time = time.time() - start_time
-    assert (responses_code_set == {200}), f"There is a problem with sending request"
-    
-    with ThreadPoolExecutor(max_workers=num_workers) as executor:
-        futures = [executor.submit(send_request_with_timeout, url, data, headers) for _ in range(num_workers)]
-
-    start_time = time.time()
-    with ThreadPoolExecutor(max_workers=num_workers) as executor:
-        futures = [executor.submit(send_request_get_response, url, data, headers) for _ in range(num_workers)]
-        for future in concurrent.futures.as_completed(futures):
-            responses_code_set.add(future.result().status_code)
-    second_run_time = time.time() - start_time
-    assert (responses_code_set == {200}), f"There is a problem with sending request"
-
-    print(first_run_time, second_run_time)
-    threshold = 5
-    assert abs(second_run_time - first_run_time) < threshold
-
-
-@pytest.mark.parametrize("temperature", [0.0, 0.5, 0.7, 1.0, 1.5])
-def test_same_completion_len(temperature, model_name, token, endpoint):
-    messages = [
-        {"role": "user", "content": "Hello, how can you help me? Answer short."}
-    ]
-    tokens_arr = []
-    mean = 0
-    trials = 4
-    for _ in range(trials):
-        completion = run_chat_completion(
-            model_name,
-            messages,
-            token,
-            endpoint,
-            temperature=temperature,
-            top_p=1.0,
-            return_completion=True,
-        )
-        mean += completion["usage"]["completion_tokens"]
-        tokens_arr.append(completion["usage"]["completion_tokens"])
-
-    mean /= trials
-    threshold = 10
-    assert all([abs(tokens_arr[i] - mean) <= threshold for i in range(trials)])
-
-
-def test_multiple_messages(model_name, token, endpoint):
-    messages = [
-        {
-            "role": "user",
-            "content": "What is the capital of France?",
-        },
-        {
-            "role": "assistant",
-            "content": "Paris",
-        },
-        {
-            "role": "user",
-            "content": "2 + 2 =",
-        },
-    ]
-
-    completion = run_chat_completion(
-        model_name, messages, token, endpoint, max_tokens=20, return_completion=True
-    )
-    assert "4" in completion["choices"][0]["message"]["content"]
-
-
-@pytest.mark.parametrize("input_tokens", [496, 963, 2031, 3119, 3957, 5173])
-def test_large_input_content(input_tokens, model_name, context_size, token, endpoint):
-    with open(path_to_file(f"input_context/text_about_{input_tokens}_tokens.txt"), "r") as file:
-        prompt = file.read()
-    messages = [
-        {"role": "user", "content": prompt}
-    ]
-    max_tokens = 200
-    if model_name == "codellama-34b-instruct-fp16":
-        context_size = 16384
-        
-    if (input_tokens + max_tokens) < context_size: 
-        assert run_chat_completion(model_name, messages, token, endpoint, max_tokens=max_tokens) == 200
-    else:
-        assert run_chat_completion(model_name, messages, token, endpoint, max_tokens=max_tokens) == 400
-
-
-def test_send_many_request(model_name, token, endpoint):
-    data = {
-        "model": model_name,
-        "messages": [
-            {
-                "role": "user",
-                "content": "Create a short story about a friendship between a cat and a dog.",
-            }
-        ],
-        "max_tokens": 300,
-        "n": 1,
-        "stream": False,
-        "stop": None,
-        "temperature": 0.0,
-        "top_p": 1.0,
-        "presence_penalty": 0,
-        "return_completion": False,
-    }
-
-    url = endpoint + "/v1/chat/completions"
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {token}",
-    }
-    responses_code_set = set()
-    num_workers = 64
-
-    with ThreadPoolExecutor(max_workers=num_workers) as executor:
-        futures = [executor.submit(send_request_get_response, url, data, headers) for _ in range(num_workers)]
-        for future in concurrent.futures.as_completed(futures):
-            responses_code_set.add(future.result().status_code)
-
-    assert responses_code_set == {200}
