@@ -21,7 +21,6 @@ for model_name in model_names:
             "pytest",
             "unittest_endpoint.py",
             f"--model_name={model_name}",
-            f"--token={token}",
             f"--endpoint={endpoint}",
         ]
     )

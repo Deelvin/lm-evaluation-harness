@@ -3,8 +3,8 @@ from . import gsm8k
 
 import os
 
-class TruncatedGradeSchoolMath8K(gsm8k.GradeSchoolMath8K):
 
+class TruncatedGradeSchoolMath8K(gsm8k.GradeSchoolMath8K):
     # Get the directory where the script is located
     script_directory = os.path.dirname(os.path.abspath(__file__))
 
@@ -15,12 +15,11 @@ class TruncatedGradeSchoolMath8K(gsm8k.GradeSchoolMath8K):
     relative_path = "tests/testdata/gsm8k_truncated.json"
     DATASET_PATH = os.path.join(parent_dir, relative_path)
 
-
     def has_training_docs(self):
         return False
 
     def has_test_docs(self):
-        return True    
+        return True
 
     def training_docs(self):
         return NotImplementedError
@@ -29,12 +28,12 @@ class TruncatedGradeSchoolMath8K(gsm8k.GradeSchoolMath8K):
         return self.dataset
 
     def download(self, data_dir=None, cache_dir=None, download_mode=None):
-
         self.dataset = datasets.load_dataset(
-            "json",data_files=self.DATASET_PATH,
+            "json",
+            data_files=self.DATASET_PATH,
             data_dir=data_dir,
             cache_dir=cache_dir,
-            split="train"
+            split="train",
         )
 
         print(self.dataset)
