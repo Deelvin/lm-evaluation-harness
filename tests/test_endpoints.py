@@ -1,4 +1,4 @@
-from typing import NoReturn, Dict
+from typing import NoReturn, Dict, List
 import json
 import datetime
 import os
@@ -113,9 +113,11 @@ def main() -> NoReturn:
         "--test_files",
         type=str,
         nargs='*',
-        default=os.path.join(
+        default=[os.path.join(
             os.path.dirname(os.path.dirname(__file__)), "tests_ollm/smoke_tests.py"
-        ),
+        ),os.path.join(
+            os.path.dirname(os.path.dirname(__file__)), "tests_ollm/extended_tests.py"
+        )],
     )
     parser.add_argument("--endpoint_type", type=str, default="dev")
     parser.add_argument("--write_out_base", type=str, default="./logs")
