@@ -7,21 +7,6 @@ from lm_eval.base import BaseLM
 
 REPEAT_REQUEST_TO_OCTOAI_SERVER = 10
 
-# model_urls = {
-#   # TODO(vvchernov): it is demo, may be need to remove
-#   "llama-2-7b-chat-hf-s2q0f16":	"https://text-demo-mlc-serve-llama-2-7b-chc591cb-l6z2ijkgynn7.octoai.run/llama-2-7b-chat-hf-s2q0f16",
-#   "codellama-13b-instruct-fp16": "https://text-mlc-serve-codellama-13b-inst57fdc4-l6z2ijkgynn7.octoai.run/codellama-13b-instruct-fp16",
-#   "codellama-34b-instruct-int4": "https://text-mlc-serve-codellama-34b-inst087581-l6z2ijkgynn7.octoai.run/codellama-34b-instruct-int4",
-#   "codellama-34b-instruct-int4-1": "https://text-test-codellama-34b-instruct-int4-1-ht5iv0iul7xi.octoai.run/codellama-34b-instruct-int4",
-#   "codellama-34b-instruct-fp16": "https://text-mlc-serve-codellama-34b-inst73411d-l6z2ijkgynn7.octoai.run/codellama-34b-instruct-fp16",
-#   "codellama-7b-instruct-fp16":	"https://text-mlc-serve-codellama-7b-instr48ac9b-l6z2ijkgynn7.octoai.run/codellama-7b-instruct-fp16",
-#   "llama-2-13b-chat-fp16": "https://text-mlc-serve-llama-2-13b-chat-fp16-l6z2ijkgynn7.octoai.run/llama-2-13b-chat-fp16",
-#   "llama-2-70b-chat-fp16": "https://text-mlc-serve-llama-2-70b-chat-fp16-l6z2ijkgynn7.octoai.run/llama-2-70b-chat-fp16",
-#   "llama-2-70b-chat-int4": "https://text-mlc-serve-llama-2-70b-chat-int4-l6z2ijkgynn7.octoai.run/llama-2-70b-chat-int4",
-#   "llama-2-70b-chat-int4-1": "https://text-test-llama-2-70b-chat-int4-1-ht5iv0iul7xi.octoai.run/llama-2-70b-chat-int4",
-#   "mistral-7b-instruct-v0.1-fp16": "https://text-mlc-serve-mistral-7b-instruct-fp16-l6z2ijkgynn7.octoai.run/mistral-7b-instruct-v0.1-fp16",
-# }
-
 
 class OctoAIEndpointLM(BaseLM):
   def __init__(
@@ -241,4 +226,3 @@ class OctoAIEndpointLM(BaseLM):
         # Collect results together
         for id in range(len(request_batch)):
           results.extend(parallel_results[id])
-    
