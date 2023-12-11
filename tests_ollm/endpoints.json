@@ -18,7 +18,7 @@
     {
       "url": "https://text.customer-endpoints.nimbus.octoml.ai",
       "model": "codellama-34b-instruct-fp16",
-      "context_size": 16384
+      "context_size": 4096
     },
     {
       "url": "https://text.customer-endpoints.nimbus.octoml.ai",
