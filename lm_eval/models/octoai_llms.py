@@ -113,14 +113,14 @@ class OctoAIEndpointLM(BaseLM):
         for i in range(0, len(in_requests), self.batch_size):
           yield in_requests[i : i + self.batch_size]
 
-        for request_batch in _batcher(requests):
-          try:
-              # TODO(vvchernov): Use _model_generate_parallel(...) when it becomes possible
-              self._model_generate_batch(request_batch, results)
-          except ConnectionError as e:
-            print(
-              f"ConnectionError: {e}. Skipping this batch and continuing..."
-            )
+      for request_batch in _batcher(requests):
+        try:
+          # TODO(vvchernov): Use _model_generate_parallel(...) when it becomes possible
+          self._model_generate_batch(request_batch, results)
+        except ConnectionError as e:
+          print(
+            f"ConnectionError: {e}. Skipping this batch and continuing..."
+          )
 
     else:
       for request in requests:
@@ -217,12 +217,12 @@ class OctoAIEndpointLM(BaseLM):
           )
         )
 
-        for future in concurrent.futures.as_completed(futures):
-          try:
-            future.result()
-          except Exception as exc:
-            print(f"Error parallel generating predictions: {exc}")
+      for future in concurrent.futures.as_completed(futures):
+        try:
+          future.result()
+        except Exception as exc:
+          print(f"Error parallel generating predictions: {exc}")
 
         # Collect results together
-        for id in range(len(request_batch)):
-          results.extend(parallel_results[id])
+      for id in range(len(request_batch)):
+        results.extend(parallel_results[id])
