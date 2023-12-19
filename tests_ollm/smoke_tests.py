@@ -1,28 +1,33 @@
 import os
 import types
 import time
-from pathlib import Path
 
-import requests
 import pytest
 
 
 import numpy as np
 from scipy.spatial import distance
-from concurrent.futures import ThreadPoolExecutor
 import concurrent.futures
+from concurrent.futures import ThreadPoolExecutor
 
 import openai
+
+from .utils import (
+    path_to_file,
+    run_chat_completion,
+    send_request_with_timeout,
+    send_request_get_response,
+)
 
 # For compatibility with OpenAI versions before v1.0
 # https://github.com/openai/openai-python/pull/677.
 OPENAI_VER_MAJ = int(openai.__version__.split(".")[0])
 
 if OPENAI_VER_MAJ >= 1:
-    from openai import APIError, AuthenticationError, APIConnectionError
+    from openai import APIError
     from pydantic import BaseModel as CompletionObject
 else:
-    from openai.error import APIError, AuthenticationError, APIConnectionError
+    from openai.error import APIError
     from openai.openai_object import OpenAIObject as CompletionObject
 
 from sentence_transformers import SentenceTransformer
@@ -47,76 +52,6 @@ def endpoint(request):
 @pytest.fixture
 def context_size(request):
     return request.config.getoption("--context_size", default=4096)
-
-def path_to_file(file_name):
-    return os.path.join(os.path.dirname(__file__), file_name)
-
-def run_chat_completion(
-    model_name,
-    messages,
-    token,
-    endpoint,
-    max_tokens=10,
-    n=1,
-    stream=False,
-    stop=None,
-    temperature=0.8,
-    top_p=1.0,
-    frequency_penalty=0,
-    presence_penalty=0,
-    return_completion=False,
-):
-    http_response = 200
-    openai.api_key = token
-    try:
-        if OPENAI_VER_MAJ > 0:
-            openai.base_url = endpoint + "/v1"
-            client = openai.OpenAI(
-                api_key=token,
-            )
-            completion = client.chat.completions.create(
-                model=model_name,
-                messages=messages,
-                max_tokens=max_tokens,
-                stream=stream,
-                n=n,
-                stop=stop,
-                top_p=top_p,
-                temperature=temperature,
-                frequency_penalty=frequency_penalty,
-                presence_penalty=presence_penalty,
-            )
-        else:
-            openai.api_base = endpoint + "/v1"
-            completion = openai.ChatCompletion.create(
-                model=model_name,
-                messages=messages,
-                max_tokens=max_tokens,
-                stream=stream,
-                n=n,
-                stop=stop,
-                top_p=top_p,
-                temperature=temperature,
-                frequency_penalty=frequency_penalty,
-                presence_penalty=presence_penalty,
-            )
-
-        if return_completion:
-            if OPENAI_VER_MAJ >= 1:
-                return completion.model_dump(exclude_unset=True)
-            else:
-                return completion
-    except (APIError, AuthenticationError, APIConnectionError) as e:
-        if return_completion:
-            raise
-        if OPENAI_VER_MAJ > 0:
-            print(e.message)
-            http_response = e.status_code
-        else:
-            print(e.user_message)
-            http_response = e.http_status
-
-    return http_response
 
 
 def test_response(model_name, token, endpoint):
@@ -301,8 +236,6 @@ def test_top_p_outside_limit(model_name, top_p, token, endpoint):
 
 @pytest.mark.parametrize("n", [1, 5, 10])
 def test_number_chat_completions(model_name, n, token, endpoint):
-    if n > 1:
-        pytest.skip("Multiple outputs is not supported yet")
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
         {"role": "user", "content": "Hello!"},
@@ -673,7 +606,7 @@ def test_created_time(model_name, token, endpoint):
 def test_incorrect_content(model_name, prompt, token, endpoint):
     message = {"role": "system", "content": prompt}
 
-    assert run_chat_completion(model_name, [message], token, endpoint) == 422
+    assert run_chat_completion(model_name, [message], token, endpoint) == 400
 
 
 @pytest.mark.parametrize("prompt", ["Hi!", None])
@@ -711,25 +644,11 @@ def test_cancel_and_follow_up_requests(model_name, token, endpoint):
         "Content-Type": "application/json",
         "Authorization": f"Bearer {token}",
     }
-    try:
-        requests.post(url, json=data, headers=headers, timeout=1)
-    except requests.exceptions.Timeout:
-        print("Timeout of request")
 
-    follow_up_request = requests.post(url, json=data, headers=headers).json()
+    send_request_with_timeout(url, data, headers)
+
+    follow_up_request = send_request_get_response(url, data, headers).json()
     assert "created" in follow_up_request
-
-
-def send_request_with_timeout(url, data, headers):
-    try:
-        requests.post(url, json=data, headers=headers, timeout=1)
-    except requests.exceptions.Timeout:
-        return None
-
-
-def send_request_get_response(url, data, headers):
-    response = requests.post(url, json=data, headers=headers)
-    return response
 
 
 def test_canceling_requests(model_name, token, endpoint):
@@ -760,24 +679,32 @@ def test_canceling_requests(model_name, token, endpoint):
 
     start_time = time.time()
     with ThreadPoolExecutor(max_workers=num_workers) as executor:
-        futures = [executor.submit(send_request_get_response, url, data, headers) for _ in range(num_workers)]
+        futures = [
+            executor.submit(send_request_get_response, url, data, headers)
+            for _ in range(num_workers)
+        ]
         for future in concurrent.futures.as_completed(futures):
             responses_code_set.add(future.result().status_code)
     first_run_time = time.time() - start_time
-    assert (responses_code_set == {200}), f"There is a problem with sending request"
-    
+    assert responses_code_set == {200}, f"There is a problem with sending request"
+
     with ThreadPoolExecutor(max_workers=num_workers) as executor:
-        futures = [executor.submit(send_request_with_timeout, url, data, headers) for _ in range(num_workers)]
+        futures = [
+            executor.submit(send_request_with_timeout, url, data, headers)
+            for _ in range(num_workers)
+        ]
 
     start_time = time.time()
     with ThreadPoolExecutor(max_workers=num_workers) as executor:
-        futures = [executor.submit(send_request_get_response, url, data, headers) for _ in range(num_workers)]
+        futures = [
+            executor.submit(send_request_get_response, url, data, headers)
+            for _ in range(num_workers)
+        ]
         for future in concurrent.futures.as_completed(futures):
             responses_code_set.add(future.result().status_code)
     second_run_time = time.time() - start_time
-    assert (responses_code_set == {200}), f"There is a problem with sending request"
+    assert responses_code_set == {200}, f"There is a problem with sending request"
 
-    print(first_run_time, second_run_time)
     threshold = 5
     assert abs(second_run_time - first_run_time) < threshold
 
@@ -832,19 +759,29 @@ def test_multiple_messages(model_name, token, endpoint):
 
 @pytest.mark.parametrize("input_tokens", [496, 963, 2031, 3119, 3957, 5173])
 def test_large_input_content(input_tokens, model_name, context_size, token, endpoint):
-    with open(path_to_file(f"input_context/text_about_{input_tokens}_tokens.txt"), "r") as file:
+    with open(
+        path_to_file(f"input_context/text_about_{input_tokens}_tokens.txt"), "r"
+    ) as file:
         prompt = file.read()
-    messages = [
-        {"role": "user", "content": prompt}
-    ]
+    messages = [{"role": "user", "content": prompt}]
     max_tokens = 200
     if model_name == "codellama-34b-instruct-fp16":
         context_size = 16384
-        
-    if (input_tokens + max_tokens) < context_size: 
-        assert run_chat_completion(model_name, messages, token, endpoint, max_tokens=max_tokens) == 200
+
+    if (input_tokens + max_tokens) < context_size:
+        assert (
+            run_chat_completion(
+                model_name, messages, token, endpoint, max_tokens=max_tokens
+            )
+            == 200
+        )
     else:
-        assert run_chat_completion(model_name, messages, token, endpoint, max_tokens=max_tokens) == 400
+        assert (
+            run_chat_completion(
+                model_name, messages, token, endpoint, max_tokens=max_tokens
+            )
+            == 400
+        )
 
 
 def test_send_many_request(model_name, token, endpoint):
@@ -875,7 +812,10 @@ def test_send_many_request(model_name, token, endpoint):
     num_workers = 64
 
     with ThreadPoolExecutor(max_workers=num_workers) as executor:
-        futures = [executor.submit(send_request_get_response, url, data, headers) for _ in range(num_workers)]
+        futures = [
+            executor.submit(send_request_get_response, url, data, headers)
+            for _ in range(num_workers)
+        ]
         for future in concurrent.futures.as_completed(futures):
             responses_code_set.add(future.result().status_code)
 
