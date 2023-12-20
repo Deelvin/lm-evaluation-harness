@@ -34,7 +34,7 @@ _CITATION = """
 
 
 # ANS_RE = re.compile(r"#### (\-?[0-9\.\,]+)")
-ANS_RE = re.compile(r'\b\d+(\.\d+)?\b(?![\s\S]*\b\d+(\.\d+)?\b)')
+ANS_RE = re.compile(r"\b\d+(\.\d+)?\b(?![\s\S]*\b\d+(\.\d+)?\b)")
 INVALID_ANS = "[invalid]"
 
 

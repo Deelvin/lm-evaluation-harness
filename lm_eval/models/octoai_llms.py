@@ -18,6 +18,7 @@ class OctoAIEndpointLM(BaseLM):
     top_p=1,
     temperature=0.0,
     prod=True,
+    token=None,
   ):
     """
     :param model_name: str
@@ -32,14 +33,15 @@ class OctoAIEndpointLM(BaseLM):
     self.max_batch_size = max_batch_size
     self._device = device
 
-    self.init_remote(top_p, temperature, prod)
+    self.init_remote(top_p, temperature, prod, token)
 
-  def init_remote(self, top_p, temperature, prod):
+  def init_remote(self, top_p, temperature, prod, token):
     # Get the API key from the environment variables
-    api_key = os.environ["OCTOAI_API_KEY"]
 
-    if api_key is None:
-      raise ValueError("API_KEY not found in the .env file")
+    if token is None: # there is no customized token, try to find in env
+      token = os.environ["OCTOAI_TOKEN"]
+      if token is None:
+        raise ValueError("TOKEN not found.")
 
     if prod:
       self.url = "https://text.octoai.run"
@@ -47,19 +49,26 @@ class OctoAIEndpointLM(BaseLM):
       self.url = "https://text.customer-endpoints.nimbus.octoml.ai"
 
     self.headers = {
-        # "accept": "text/event-stream",
-        "authorization": f"Bearer {api_key}",
-        "content-type": "application/json",
+      "authorization": f"Bearer {token}",
+      "content-type": "application/json",
     }
 
     self.data = {
-        "model": self.model_name,
-        "messages": [{"role": "user", "content": ""}],  # need to fill before use inference
-        # "stream": False,
-        "max_tokens": 256,
-        "top_p": top_p,
-        "temperature": temperature,
+      "model": self.model_name,
+      "messages": [{"role": "user", "content": ""}],  # need to fill before use inference
+      # "stream": False,
+      "max_tokens": 256,
+      "top_p": top_p,
+      "temperature": temperature,
     }
+
+  def construct_request_url(self, prod):
+    if prod:
+      url = "https://text.octoai.run"
+    else:
+      url = "https://text.customer-endpoints.nimbus.octoml.ai"
+
+    return url
 
   @property
   def eot_token_id(self):
@@ -98,6 +107,7 @@ class OctoAIEndpointLM(BaseLM):
     if self.time_meas:
       start_timer = time.time()
     if self.batch_size > 1:
+
       def _batcher(in_requests):
         for i in range(0, len(in_requests), self.batch_size):
           yield in_requests[i : i + self.batch_size]
@@ -126,7 +136,7 @@ class OctoAIEndpointLM(BaseLM):
       stop_timer = time.time()
       secs = stop_timer - start_timer
       print(
-          f"Full time of predictions measurement: {secs:.2f} sec, {(secs / 60):.2f} min, {(secs / 3600):.2f} hour(s)"
+        f"Full time of predictions measurement: {secs:.2f} sec, {(secs / 60):.2f} min, {(secs / 3600):.2f} hour(s)"
       )
 
     return results

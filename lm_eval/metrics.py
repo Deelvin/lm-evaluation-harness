@@ -22,6 +22,8 @@ def sample_stddev(arr):
 
 
 def mean_stderr(arr):
+    if len(arr) == 1:
+        return pop_stddev(arr)
     return sample_stddev(arr) / math.sqrt(len(arr))
 
 

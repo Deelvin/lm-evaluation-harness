@@ -26,6 +26,8 @@ def simple_evaluate(
     decontamination_ngrams_path=None,
     write_out=False,
     output_base_path=None,
+    samples_choice=None,
+    no_shuffle=False,
 ):
     """Instantiate and evaluate a model on a list of tasks.
 
@@ -58,6 +60,10 @@ def simple_evaluate(
         If True, write details about prompts and logits to json for all tasks
     :param output_base_path: str, optional
         Directory to which detailed eval info will be written. Defaults to present working dir.
+    :param samples_choice: list, optional
+        Create subset of the dataset with specified indexes of samples.
+    :param no_shuffle: bool
+        If True, no shuffling would be performed and downloaded dataset would be determined in terms of indexing.
     :return
         Dictionary of results
     """
@@ -70,7 +76,12 @@ def simple_evaluate(
         if model_args is None:
             model_args = ""
         lm = lm_eval.models.get_model(model).create_from_arg_string(
-            model_args, {"batch_size": batch_size, "max_batch_size": max_batch_size, "device": device}
+            model_args,
+            {
+                "batch_size": batch_size,
+                "max_batch_size": max_batch_size,
+                "device": device,
+            },
         )
     else:
         assert isinstance(model, lm_eval.base.LM)
@@ -90,7 +101,6 @@ def simple_evaluate(
 
     if check_integrity:
         run_task_tests(task_list=tasks)
-
     results = evaluate(
         lm=lm,
         task_dict=task_dict,
@@ -101,15 +111,22 @@ def simple_evaluate(
         decontamination_ngrams_path=decontamination_ngrams_path,
         write_out=write_out,
         output_base_path=output_base_path,
+        model_name=lm.model_name,
+        samples_choice=samples_choice,
+        no_shuffle=no_shuffle,
     )
 
     # add info about the model and few shot config
     results["config"] = {
-        "model": (model if isinstance(model, str) else model.model.config._name_or_path),
+        "model": (
+            model if isinstance(model, str) else model.model.config._name_or_path
+        ),
         "model_args": model_args,
         "num_fewshot": num_fewshot,
         "batch_size": batch_size,
-        "batch_sizes": list(lm.batch_sizes.values()) if hasattr(lm, "batch_sizes") else [],
+        "batch_sizes": list(lm.batch_sizes.values())
+        if hasattr(lm, "batch_sizes")
+        else [],
         "device": device,
         "no_cache": no_cache,
         "limit": limit,
@@ -135,6 +152,9 @@ def evaluate(
     decontamination_ngrams_path=None,
     write_out=False,
     output_base_path=None,
+    model_name="",
+    samples_choice=None,
+    no_shuffle=False,
 ):
     """Instantiate and evaluate a model on a list of tasks.
 
@@ -156,6 +176,12 @@ def evaluate(
         If True, write all prompts, logits and metrics to json for offline analysis
     :param output_base_path: str, optional
         Directory to which detailed eval info will be written. Defaults to present working dir
+    :param model_name: str, optional
+        Name of the model for output json file.
+    :param samples_choice: list, optional
+        Create subset of the dataset with specified indexes of samples.
+    :param no_shuffle: bool
+        If True, no shuffling would be performed and downloaded dataset would be determined in terms of indexing.
     :return
         Dictionary of results
     """
@@ -214,7 +240,8 @@ def evaluate(
         task_docs = list(task_doc_func())
         rnd = random.Random()
         rnd.seed(42)
-        rnd.shuffle(task_docs)
+        if not no_shuffle:
+            rnd.shuffle(task_docs)
         print(f"Task: {task_name}; number of docs: {len(task_docs)}")
 
         if write_out:
@@ -225,7 +252,15 @@ def evaluate(
             if description_dict and task_name in description_dict
             else ""
         )
-        if limit is not None:
+
+        if samples_choice is not None:
+            if len(samples_choice[0]) == 1:
+                task_docs = [
+                    task_docs[x] for x in list(map(int, samples_choice[0].split(",")))
+                ]
+            else:
+                task_docs = [task_docs[x] for x in list(map(int, samples_choice))]
+        elif limit is not None:
             limit = int(len(task_docs) * limit) if limit < 1.0 else int(limit)
 
         for doc_id, doc in enumerate(itertools.islice(task_docs, 0, limit)):
@@ -366,8 +401,14 @@ def evaluate(
             pass
 
         for task_name, _ in task_dict_items:
+            print(
+                "OUTPUT PATH",
+                f"{model_name}_{task_name}_{num_fewshot}fs_write_out_info.json",
+            )
             with open(
-                output_base_path.joinpath(f"{task_name}_write_out_info.json"),
+                output_base_path.joinpath(
+                    f"{model_name}_{task_name}_{num_fewshot}fs_write_out_info.json"
+                ),
                 "w",
                 encoding="utf8",
             ) as fp:
