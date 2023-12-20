@@ -49,16 +49,13 @@ class OctoAIEndpointLM(BaseLM):
       self.url = "https://text.customer-endpoints.nimbus.octoml.ai"
 
     self.headers = {
-      # "accept": "text/event-stream",
       "authorization": f"Bearer {token}",
       "content-type": "application/json",
     }
 
     self.data = {
       "model": self.model_name,
-      "messages": [
-        {"role": "user", "content": ""}  # need to fill before use inference
-      ],
+      "messages": [{"role": "user", "content": ""}],  # need to fill before use inference
       # "stream": False,
       "max_tokens": 256,
       "top_p": top_p,
@@ -94,10 +91,10 @@ class OctoAIEndpointLM(BaseLM):
     return self._device
 
   def tok_encode(self, string: str):
-    return string
+    raise NotImplementedError("Cannot call tokenizer by API")
 
   def tok_decode(self, tokens):
-    return tokens
+    raise NotImplementedError("Cannot call tokenizer by API")
 
   def _loglikelihood_tokens(self, requests, disable_tqdm=False):
     raise NotImplementedError("No support for logits.")
@@ -139,9 +136,7 @@ class OctoAIEndpointLM(BaseLM):
       stop_timer = time.time()
       secs = stop_timer - start_timer
       print(
-        "Full time of predictions measurement: {:.2f} sec, {:.2f} min, {:.2f} hour(s)".format(
-          secs, secs / 60, secs / 3600
-          )
+        f"Full time of predictions measurement: {secs:.2f} sec, {(secs / 60):.2f} min, {(secs / 3600):.2f} hour(s)"
       )
 
     return results
