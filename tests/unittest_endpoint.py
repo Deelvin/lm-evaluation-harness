@@ -35,7 +35,7 @@ def endpoint(request):
 
 @pytest.fixture
 def token(request):
-    return request.config.getoption("--token")
+    return os.getenv("OCTOAI_TOKEN")
 
 
 def test_endpoint_availability(model_name, endpoint, token):

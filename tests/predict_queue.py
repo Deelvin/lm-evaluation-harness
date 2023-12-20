@@ -12,7 +12,7 @@ model_names = [
     "codellama-34b-instruct-fp16",
     "mistral-7b-instruct-fp16",
 ]
-token = os.getenv("OCTOAI_TOKEN")
+
 endpoint = "https://text.octoai.run"  # prod
 
 for model_name in model_names:
@@ -29,7 +29,6 @@ for model_name in model_names:
             "pytest",
             "unittest_endpoint.py",
             f"--model_name={model_name}",
-            f"--token={token}",
             f"--endpoint={endpoint}",
             "-vv",
         ]

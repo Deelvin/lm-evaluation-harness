@@ -223,6 +223,6 @@ class OctoAIEndpointLM(BaseLM):
         except Exception as exc:
           print(f"Error parallel generating predictions: {exc}")
 
-        # Collect results together
+      # Collect results together
       for id in range(len(request_batch)):
         results.extend(parallel_results[id])
