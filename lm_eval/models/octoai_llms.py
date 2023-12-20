@@ -1,12 +1,12 @@
-import requests
 import os
 import json
 import time
 
+import requests
+
 from lm_eval.base import BaseLM
 
 REPEAT_REQUEST_TO_OCTOAI_SERVER = 10
-
 
 class OctoAIEndpointLM(BaseLM):
   def __init__(
@@ -32,7 +32,6 @@ class OctoAIEndpointLM(BaseLM):
     self._batch_size = int(batch_size)
     self.max_batch_size = max_batch_size
     self._device = device
-    # TODO(vvchernov): check that model name is supported
 
     self.init_remote(top_p, temperature, prod, token)
 
@@ -44,7 +43,10 @@ class OctoAIEndpointLM(BaseLM):
       if token is None:
         raise ValueError("TOKEN not found.")
 
-    self.url = self.construct_request_url(prod)
+    if prod:
+      self.url = "https://text.octoai.run"
+    else:
+      self.url = "https://text.customer-endpoints.nimbus.octoml.ai"
 
     self.headers = {
       # "accept": "text/event-stream",
@@ -73,7 +75,7 @@ class OctoAIEndpointLM(BaseLM):
 
   @property
   def eot_token_id(self):
-    raise NotImplementedError("No idea about anthropic tokenization.")
+    raise NotImplementedError
 
   @property
   def max_length(self):
@@ -113,26 +115,25 @@ class OctoAIEndpointLM(BaseLM):
         for i in range(0, len(in_requests), self.batch_size):
           yield in_requests[i : i + self.batch_size]
 
-      for request_batch in _batcher(requests):
+      for batch_idx, request_batch in enumerate(_batcher(requests)):
         try:
-          # TODO(vvchernov): Use _model_generate_parallel(...) when it becomes possible
-          self._model_generate_batch(request_batch, results)
+          self._model_generate_parallel(request_batch, results)
         except ConnectionError as e:
-          print(
-            f"ConnectionError: {e}. Skipping this batch and continuing..."
-          )
-
+          print(f"ConnectionError: {e}. Skipping this batch and continuing...")
+        print(
+          f"\r{(batch_idx + 1) * self.batch_size}/{len(requests)} requests processed",
+          end="",
+        )
     else:
-      for request in requests:
+      for num, request in enumerate(requests):
         inp = request[0]
         request_args = request[1]
         until = request_args["until"]
         try:
           self._model_generate(inp, results, stop=until)
         except ConnectionError as e:
-          print(
-            f"ConnectionError: {e}. Skipping this request and continuing..."
-          )
+          print(f"ConnectionError: {e}. Skipping this request and continuing...")
+        print(f"\r{num}/{len(requests)} requests processed", end="")
 
     if self.time_meas:
       stop_timer = time.time()
@@ -187,23 +188,21 @@ class OctoAIEndpointLM(BaseLM):
 
   def _model_generate_batch(self, request_batch, results):
     parallel_results = {}
-    for id in range(len(request_batch)):
-      parallel_results[id] = []
-      inp = request_batch[id][0]
-      request_args = request_batch[id][1]
+    for requiest_id in range(len(request_batch)):
+      parallel_results[requiest_id] = []
+      inp = request_batch[requiest_id][0]
+      request_args = request_batch[requiest_id][1]
       until = request_args["until"]
-      self._model_generate(inp, parallel_results[id], stop=until)
+      self._model_generate(inp, parallel_results[requiest_id], stop=until)
 
     # Collect results together
-    for id in range(len(request_batch)):
-      results.extend(parallel_results[id])
+    for requiest_id in range(len(request_batch)):
+      results.extend(parallel_results[requiest_id])
 
   def _model_generate_parallel(self, request_batch, results):
     import concurrent.futures
 
-    with concurrent.futures.ThreadPoolExecutor(
-      max_workers=self.batch_size
-    ) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=self.batch_size) as executor:
       futures = []
       parallel_results = {}
       for id in range(len(request_batch)):
@@ -212,9 +211,7 @@ class OctoAIEndpointLM(BaseLM):
         request_args = request_batch[id][1]
         until = request_args["until"]
         futures.append(
-          executor.submit(
-            self._model_generate, inp, parallel_results[id], stop=until
-          )
+            executor.submit(self._model_generate, inp, parallel_results[id], stop=until)
         )
 
       for future in concurrent.futures.as_completed(futures):

@@ -9,7 +9,7 @@ You can simply run *gsm8k*, *truthfulqa_gen* or *triviaqa* and get results as ar
     0.2) Place `credentials.json` in `~/.config/gspread` so `gspread` will be able to automatically detect it  
     0.3) `pip install libtmux pandas gspread gspread_dataframe gspread_formatting`  
 1) `export OCTOAI_TOKEN_PROD=...`  and (or) `export OCTOAI_TOKEN_DEV=...`  
-2) `python scripts/run_endpoints.py --endpoint_type=all --write_table`  (better run from root of repo)  
+2) `python scripts/run_endpoints_benchmark.py --endpoint_type=all --write_table`  (better run from root of repo)  
 
 __Notes:__  
 
