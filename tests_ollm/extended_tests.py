@@ -58,14 +58,11 @@ def test_cancel_and_follow_up_requests(model_name, token, endpoint):
         "Content-Type": "application/json",
         "Authorization": f"Bearer {token}",
     }
-    try:
-        requests.post(url, json=data, headers=headers, timeout=1)
-    except requests.exceptions.Timeout:
-        print("Timeout of request")
 
-    follow_up_request = requests.post(url, json=data, headers=headers, timeout=None).json()
+    send_request_with_timeout(url, data, headers)
+
+    follow_up_request = send_request_get_response(url, data, headers).json()
     assert "created" in follow_up_request
-
 
 @pytest.mark.scalability
 def test_canceling_requests(model_name, token, endpoint):

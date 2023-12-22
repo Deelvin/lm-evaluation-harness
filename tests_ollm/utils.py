@@ -16,12 +16,12 @@ else:
 def path_to_file(file_name):
     return os.path.join(os.path.dirname(__file__), file_name)
 
-
-def run_chat_completion(
+def run_completion(
     model_name,
-    messages,
+    text,
     token,
     endpoint,
+    chat=False,
     max_tokens=10,
     n=1,
     stream=False,
@@ -36,27 +36,15 @@ def run_chat_completion(
     openai.api_key = token
     try:
         if OPENAI_VER_MAJ > 0:
-            openai.base_url = endpoint + "/v1"
-            client = openai.OpenAI(
-                api_key=token,
-            )
-            completion = client.chat.completions.create(
-                model=model_name,
-                messages=messages,
-                max_tokens=max_tokens,
-                stream=stream,
-                n=n,
-                stop=stop,
-                top_p=top_p,
-                temperature=temperature,
-                frequency_penalty=frequency_penalty,
-                presence_penalty=presence_penalty,
+            raise NotImplementedError(
+                "Completion is not supported on new OpenAI API yet"
             )
         else:
             openai.api_base = endpoint + "/v1"
-            completion = openai.ChatCompletion.create(
+            if chat == True:
+                completion = openai.ChatCompletion.create(
                 model=model_name,
-                messages=messages,
+                messages=text,
                 max_tokens=max_tokens,
                 stream=stream,
                 n=n,
@@ -66,6 +54,19 @@ def run_chat_completion(
                 frequency_penalty=frequency_penalty,
                 presence_penalty=presence_penalty,
             )
+            else:
+                completion = openai.Completion.create(
+                    model=model_name,
+                    prompt=text,
+                    max_tokens=max_tokens,
+                    stream=stream,
+                    n=n,
+                    stop=stop,
+                    top_p=top_p,
+                    temperature=temperature,
+                    frequency_penalty=frequency_penalty,
+                    presence_penalty=presence_penalty,
+                )
 
         if return_completion:
             if OPENAI_VER_MAJ >= 1:
@@ -84,11 +85,11 @@ def run_chat_completion(
 
     return http_response
 
-
 def send_request_with_timeout(url, data, headers):
     try:
         requests.post(url, json=data, headers=headers, timeout=1)
     except requests.exceptions.Timeout:
+        print("Timeout of request")
         return None
 
 
