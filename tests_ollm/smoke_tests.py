@@ -8,7 +8,7 @@ import openai
 from sentence_transformers import SentenceTransformer
 from scipy.spatial import distance
 
-from .utils import path_to_file, run_completion
+from utils import path_to_file, run_completion
 
 # For compatibility with OpenAI versions before v1.0
 # https://github.com/openai/openai-python/pull/677.
