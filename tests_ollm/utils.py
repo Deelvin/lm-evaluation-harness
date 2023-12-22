@@ -5,7 +5,7 @@ import openai
 
 # For compatibility with OpenAI versions before v1.0
 # https://github.com/openai/openai-python/pull/677.
-OPENAI_VER_MAJ = int(openai.__version__.split(".")[0])
+OPENAI_VER_MAJ = int(openai.__version__.split('.', maxsplit=1)[0])
 
 if OPENAI_VER_MAJ >= 1:
     from openai import APIError, AuthenticationError, APIConnectionError
@@ -39,12 +39,24 @@ def run_completion(
             raise NotImplementedError(
                 "Completion is not supported on new OpenAI API yet"
             )
+        openai.api_base = endpoint + "/v1"
+        if chat is True:
+            completion = openai.ChatCompletion.create(
+            model=model_name,
+            messages=text,
+            max_tokens=max_tokens,
+            stream=stream,
+            n=n,
+            stop=stop,
+            top_p=top_p,
+            temperature=temperature,
+            frequency_penalty=frequency_penalty,
+            presence_penalty=presence_penalty,
+        )
         else:
-            openai.api_base = endpoint + "/v1"
-            if chat == True:
-                completion = openai.ChatCompletion.create(
+            completion = openai.Completion.create(
                 model=model_name,
-                messages=text,
+                prompt=text,
                 max_tokens=max_tokens,
                 stream=stream,
                 n=n,
@@ -54,25 +66,11 @@ def run_completion(
                 frequency_penalty=frequency_penalty,
                 presence_penalty=presence_penalty,
             )
-            else:
-                completion = openai.Completion.create(
-                    model=model_name,
-                    prompt=text,
-                    max_tokens=max_tokens,
-                    stream=stream,
-                    n=n,
-                    stop=stop,
-                    top_p=top_p,
-                    temperature=temperature,
-                    frequency_penalty=frequency_penalty,
-                    presence_penalty=presence_penalty,
-                )
 
         if return_completion:
             if OPENAI_VER_MAJ >= 1:
                 return completion.model_dump(exclude_unset=True)
-            else:
-                return completion
+            return completion
     except (APIError, AuthenticationError, APIConnectionError) as e:
         if return_completion:
             raise
@@ -90,7 +88,7 @@ def send_request_with_timeout(url, data, headers):
         requests.post(url, json=data, headers=headers, timeout=1)
     except requests.exceptions.Timeout:
         print("Timeout of request")
-        return None
+    return None
 
 
 def send_request_get_response(url, data, headers):

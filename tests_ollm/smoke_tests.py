@@ -21,6 +21,7 @@ else:
     from openai.error import APIError
     from openai.openai_object import OpenAIObject as CompletionObject
 
+
 @pytest.fixture(name="model_name")
 def fixture_model_name(request):
     return request.config.getoption("--model_name")
@@ -124,7 +125,9 @@ def test_invalid_max_tokens(model_name, context_size, token, endpoint):
     ]
     assert run_completion(model_name, messages, token, endpoint, chat=True, max_tokens=-1) == 400
     assert (
-        run_completion(model_name, messages, token, endpoint, chat=True, max_tokens=context_size * 2)
+        run_completion(
+            model_name, messages, token, endpoint, chat=True, max_tokens=context_size * 2
+        )
         == 400
     )
     completion = run_completion(
@@ -401,7 +404,7 @@ def test_valid_content(model_name, prompt, token, endpoint):
 def test_invalid_content(model_name, prompt, token, endpoint):
     message = {"role": "system", "content": prompt}
 
-    assert run_completion(model_name, [message], token, endpoint, chat=True) in 422
+    assert run_completion(model_name, [message], token, endpoint, chat=True) == 422
 
 
 @pytest.mark.input_parameter
@@ -473,7 +476,8 @@ def test_invalid_frequency_penalty(model_name, fr_pen, token, endpoint):
     )
 
     assert (
-        run_completion(model_name, messages, token, endpoint, chat=True, frequency_penalty=fr_pen) == 400
+        run_completion(model_name, messages, token, endpoint, chat=True, frequency_penalty=fr_pen)
+        == 400
     )
 
 
@@ -546,7 +550,8 @@ def test_invalid_presence_penalty(model_name, pr_pen, token, endpoint):
     )
 
     assert (
-        run_completion(model_name, messages, token, endpoint, chat=True, presence_penalty=pr_pen) == 400
+        run_completion(model_name, messages, token, endpoint, chat=True, presence_penalty=pr_pen)
+        == 400
     )
 
 
@@ -557,7 +562,9 @@ def test_response_model_name(model_name, token, endpoint):
         {"role": "system", "content": "You are a helpful assistant."},
         {"role": "user", "content": "Hello!"},
     ]
-    completion = run_completion(model_name, messages, token, endpoint, chat=True, return_completion=True)
+    completion = run_completion(
+        model_name, messages, token, endpoint, chat=True, return_completion=True
+    )
     assert completion["model"] == model_name
 
 
@@ -567,7 +574,9 @@ def test_response_choices(model_name, token, endpoint):
         {"role": "system", "content": "You are a helpful assistant."},
         {"role": "user", "content": "Hello!"},
     ]
-    completion = run_completion(model_name, messages, token, endpoint, chat=True, return_completion=True)
+    completion = run_completion(
+        model_name, messages, token, endpoint, chat=True, return_completion=True
+    )
     assert "choices" in completion.keys()
     assert "index" in completion["choices"][0].keys()
     assert "finish_reason" in completion["choices"][0].keys()
@@ -580,7 +589,9 @@ def test_response_usage(model_name, token, endpoint):
         {"role": "system", "content": "You are a helpful assistant."},
         {"role": "user", "content": "Hello!"},
     ]
-    completion = run_completion(model_name, messages, token, endpoint, chat=True, return_completion=True)
+    completion = run_completion(
+        model_name, messages, token, endpoint, chat=True, return_completion=True
+    )
     assert "usage" in completion.keys()
     assert "prompt_tokens" in completion["usage"].keys()
     assert "total_tokens" in completion["usage"].keys()
@@ -608,7 +619,9 @@ def test_response_object_type(model_name, token, endpoint):
         {"role": "system", "content": "You are a helpful assistant."},
         {"role": "user", "content": "Hello!"},
     ]
-    completion = run_completion(model_name, messages, token, endpoint, chat=True, return_completion=True)
+    completion = run_completion(
+        model_name, messages, token, endpoint, chat=True, return_completion=True
+    )
     assert isinstance(completion, CompletionObject)
 
 
@@ -621,7 +634,9 @@ def test_response_created_time(model_name, token, endpoint):
     # The "created" timestamp is only provided at 1-second
     # granularity, so we shouldn't compare with a finer granularity.
     st_time = int(time.time())
-    completion = run_completion(model_name, messages, token, endpoint, chat=True, return_completion=True)
+    completion = run_completion(
+        model_name, messages, token, endpoint, chat=True, return_completion=True
+    )
     end_time = int(time.time())
     assert st_time <= completion["created"] <= end_time
 
