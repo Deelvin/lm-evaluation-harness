@@ -3,6 +3,7 @@ import pytest
 from lm_eval import tasks, evaluator, utils
 import config as cfg
 import json
+import os
 
 
 def check_output(model_name, task_name, num_fewshot):
@@ -34,7 +35,7 @@ def endpoint(request):
 
 
 @pytest.fixture
-def token(request):
+def token():
     return os.getenv("OCTOAI_TOKEN")
 
 
