@@ -250,8 +250,6 @@ def test_invalid_top_p(model_name, top_p, token, endpoint):
 @pytest.mark.input_parameter
 @pytest.mark.parametrize("n", [1, 5, 10])
 def test_valid_number_chat_completions(model_name, n, token, endpoint):
-    if n > 1:
-        pytest.xfail("Multiple outputs is not supported yet")
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
         {"role": "user", "content": "Hello!"},
