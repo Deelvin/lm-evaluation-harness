@@ -1,4 +1,4 @@
-from typing import NoReturn, Dict
+from typing import NoReturn, Dict, List
 import json
 import datetime
 import os
@@ -32,7 +32,7 @@ def _tmux_active(server: libtmux.Server) -> bool:
 def run_smoke_tests(
     endpoints: Dict[str, str],
     endpoint_type: str,
-    path_to_tests_file: str,
+    paths_to_test_files: List[str],
     write_out_base_path: str = "./",
     write_table: bool = True,
     limit: int = 3,
@@ -67,9 +67,11 @@ def run_smoke_tests(
                                    --path_to_log={log_file} \
                                    --model_name={endpoint_type}_{model_name}"""
 
+        run_cmd = "python3 -m pytest"
+        for file in paths_to_test_files:
+            run_cmd += f" {file} --model_name={model_name} --endpoint={endpoint['url']} --context_size={endpoint['context_size']}"
         tmux_server.sessions[current_session % limit].panes[0].send_keys(
-            f"python3 -m pytest {path_to_tests_file} "
-            f"--model_name={model_name} --endpoint={endpoint['url']} --context_size={endpoint['context_size']}> {log_file} ",
+            f"{run_cmd} > {log_file}",
             enter=True,
         )
         tmux_server.sessions[current_session % limit].panes[0].send_keys(
@@ -108,11 +110,14 @@ def main() -> NoReturn:
         ),
     )
     parser.add_argument(
-        "--tests_file",
+        "--test_files",
         type=str,
-        default=os.path.join(
+        nargs='*',
+        default=[os.path.join(
             os.path.dirname(os.path.dirname(__file__)), "tests_ollm/smoke_tests.py"
-        ),
+        ),os.path.join(
+            os.path.dirname(os.path.dirname(__file__)), "tests_ollm/extended_tests.py"
+        )],
     )
     parser.add_argument("--endpoint_type", type=str, default="dev")
     parser.add_argument("--write_out_base", type=str, default="./logs")
@@ -127,8 +132,9 @@ def main() -> NoReturn:
             "Please export your OctoAI token to environment variable OCTOAI_TOKEN_DEV or OCTOAI_TOKEN_PROD depending on type of endpoints you are going to test"
         )
 
-    if not os.path.exists(args.tests_file):
-        raise FileNotFoundError("Specified test file not found")
+    for file in args.test_files:
+        if not os.path.exists(file):
+            raise FileNotFoundError("Specified test file not found")
     if args.endpoint_type not in ["dev", "prod", "all"]:
         raise ValueError("Please specify only 'dev', 'prod' or 'all' type of endpoints")
 
@@ -137,8 +143,11 @@ def main() -> NoReturn:
 
     endpoints = parse_endpoints(args.endpoints_file)
 
+    pytest_dummy_cmd = "pytest"
+    for file in args.test_files:
+        pytest_dummy_cmd += f" {file} --model_name=" " --endpoint=test --collect-only"
     pytest_nodes = subprocess.check_output(
-        f"pytest {args.tests_file} --model_name=" " --endpoint=test --collect-only",
+        pytest_dummy_cmd,
         shell=True,
         text=True,
     )
@@ -165,7 +174,7 @@ def main() -> NoReturn:
         run_smoke_tests(
             endpoints,
             endpoint_type,
-            args.tests_file,
+            args.test_files,
             write_out_base_path=args.write_out_base,
             write_table=args.write_table,
             limit=args.limit_sessions,

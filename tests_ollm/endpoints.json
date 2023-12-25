@@ -39,6 +39,11 @@
       "url": "https://text.customer-endpoints.nimbus.octoml.ai",
       "model": "mistral-7b-instruct-fp16",
       "context_size": 4096
+    },
+    {
+        "url": "https://text.customer-endpoints.nimbus.octoml.ai",
+        "model": "mixstral-8x7b-instruct-fp16",
+        "context_size": 4096
     }
   ],
 
@@ -82,6 +87,11 @@
       "url": "https://text.octoai.run",
       "model": "mistral-7b-instruct-fp16",
       "context_size": 4096
-    }      
+    },
+    {
+        "url": "https://text.octoai.run",
+        "model": "mixstral-8x7b-instruct-fp16",
+        "context_size": 4096
+    }
   ]
 }
