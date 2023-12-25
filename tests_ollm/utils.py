@@ -21,7 +21,7 @@ def run_completion(
     text,
     token,
     endpoint,
-    chat=False,
+    chat=True,
     max_tokens=10,
     n=1,
     stream=False,
@@ -35,25 +35,34 @@ def run_completion(
     http_response = 200
     openai.api_key = token
     try:
-        if OPENAI_VER_MAJ > 0:
-            raise NotImplementedError(
-                "Completion is not supported on new OpenAI API yet"
-            )
-        openai.api_base = endpoint + "/v1"
+        openai.base_url = endpoint + "/v1"
         if chat is True:
-            completion = openai.ChatCompletion.create(
-            model=model_name,
-            messages=text,
-            max_tokens=max_tokens,
-            stream=stream,
-            n=n,
-            stop=stop,
-            top_p=top_p,
-            temperature=temperature,
-            frequency_penalty=frequency_penalty,
-            presence_penalty=presence_penalty,
-        )
+            if OPENAI_VER_MAJ >= 1:
+                client = openai.OpenAI(
+                    api_key=token,
+                )
+                chat_completions = client.chat.completions
+            else:
+                openai.api_base = endpoint + "/v1"
+                chat_completions = openai.ChatCompletion
+            completion = chat_completions.create(
+                model=model_name,
+                messages=text,
+                max_tokens=max_tokens,
+                stream=stream,
+                n=n,
+                stop=stop,
+                top_p=top_p,
+                temperature=temperature,
+                frequency_penalty=frequency_penalty,
+                presence_penalty=presence_penalty,
+            )
         else:
+            if OPENAI_VER_MAJ >= 1:
+                if chat is False:
+                    raise NotImplementedError(
+                        "Completion is not supported on new OpenAI API yet"
+                    )
             completion = openai.Completion.create(
                 model=model_name,
                 prompt=text,
@@ -66,7 +75,6 @@ def run_completion(
                 frequency_penalty=frequency_penalty,
                 presence_penalty=presence_penalty,
             )
-
         if return_completion:
             if OPENAI_VER_MAJ >= 1:
                 return completion.model_dump(exclude_unset=True)

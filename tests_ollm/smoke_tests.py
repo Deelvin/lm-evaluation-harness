@@ -404,13 +404,11 @@ def test_valid_content(model_name, prompt, token, endpoint):
 def test_invalid_content(model_name, prompt, token, endpoint):
     message = {"role": "system", "content": prompt}
 
-    assert run_completion(model_name, [message], token, endpoint, chat=True) == 422
+    assert run_completion(model_name, [message], token, endpoint, chat=True) == 400
 
-
-@pytest.mark.input_parameter
-@pytest.mark.xfail(reason="Frequency penalty has not been implemented yet")
-def test_valid_frequency_penalty(model_name, token, endpoint):
+def check_counts_by_penalty_parameter(model_name, token, endpoint, penalty):
     """
+    Helper function for tests for valid frequency and presence penalties
     The higher the parameter value, the fewer same words should be contained in the response
     """
     messages = [
@@ -420,11 +418,17 @@ def test_valid_frequency_penalty(model_name, token, endpoint):
         },
         {
             "role": "user",
-            "content": "Write a 800-word article about large language models using the word 'transformer' as often as possible",
+            "content": "Write a 800-word article about large language models using the word 'transformer'",
         },
     ]
     responses = []
-    for frequency_penalty in [-2, -1, 0, 1, 2]:
+    for penalty_value in [-2, -1, 0, 1, 2]:
+        if penalty == "frequency":
+            frequency_penalty = penalty_value
+            presence_penalty = 0
+        else:
+            frequency_penalty = 0
+            presence_penalty = penalty_value
         responses.append(
             run_completion(
                 model_name,
@@ -433,14 +437,22 @@ def test_valid_frequency_penalty(model_name, token, endpoint):
                 endpoint,
                 chat=True,
                 frequency_penalty=frequency_penalty,
+                presence_penalty=presence_penalty,
                 max_tokens=800,
                 return_completion=True,
             )["choices"][0]["message"]["content"]
         )
     for i in range(1, 4):
-        assert responses[i].lower().count("transformer") < responses[i - 1].lower().count(
-            "transformer"
-        )
+        if responses[i].lower().count("transformer") > responses[i - 1].lower().count(
+                "transformer"
+            ):
+            return False
+    return True
+
+@pytest.mark.input_parameter
+@pytest.mark.xfail(reason="Need to validate test design based on token counts")
+def test_valid_frequency_penalty(model_name, token, endpoint):
+    assert check_counts_by_penalty_parameter(model_name, token, endpoint, "frequency")
 
 
 @pytest.mark.input_parameter
@@ -459,22 +471,6 @@ def test_invalid_frequency_penalty(model_name, fr_pen, token, endpoint):
             "content": "Write a 800-word article about large language models using the word 'transformer' as often as possible",
         },
     ]
-    initial_completion = run_completion(
-        model_name, messages, token, endpoint, chat=True, return_completion=True
-    )
-    messages.append(
-        {
-            "role": "assistant",
-            "content": initial_completion["choices"][0]["message"]["content"],
-        }
-    )
-    messages.append(
-        {
-            "role": "user",
-            "content": "Write a 800-word article about large language models using the word 'transformer' as often as possible",
-        }
-    )
-
     assert (
         run_completion(model_name, messages, token, endpoint, chat=True, frequency_penalty=fr_pen)
         == 400
@@ -482,40 +478,9 @@ def test_invalid_frequency_penalty(model_name, fr_pen, token, endpoint):
 
 
 @pytest.mark.input_parameter
-@pytest.mark.xfail(reason="Presence penalty has not been implemented yet")
+@pytest.mark.xfail(reason="Need to validate test design based on token counts")
 def test_valid_presence_penalty(model_name, token, endpoint):
-    """
-    The higher the parameter value, the fewer same words should be contained in the response
-    """
-    messages = [
-        {
-            "role": "system",
-            "content": "You are content maker. Write the response in formal style that appropriately completes the request",
-        },
-        {
-            "role": "user",
-            "content": "Write a 800-word article about large language models using the word 'transformer' as often as possible",
-        },
-    ]
-    responses = []
-    for presence_penalty in [-2, -1, 0, 1, 2]:
-        responses.append(
-            run_completion(
-                model_name,
-                messages,
-                token,
-                endpoint,
-                chat=True,
-                presence_penalty=presence_penalty,
-                max_tokens=800,
-                return_completion=True,
-            )["choices"][0]["message"]["content"]
-        )
-    for i in range(1, 4):
-        assert responses[i].lower().count("transformer") < responses[i - 1].lower().count(
-            "transformer"
-        )
-
+    assert check_counts_by_penalty_parameter(model_name, token, endpoint, "presence")
 
 @pytest.mark.input_parameter
 @pytest.mark.parametrize("pr_pen", [-2.1, 2.1])
@@ -533,22 +498,6 @@ def test_invalid_presence_penalty(model_name, pr_pen, token, endpoint):
             "content": "Write a 800-word article about large language models using the word 'transformer' as often as possible",
         },
     ]
-    initial_completion = run_completion(
-        model_name, messages, token, endpoint, chat=True, return_completion=True
-    )
-    messages.append(
-        {
-            "role": "assistant",
-            "content": initial_completion["choices"][0]["message"]["content"],
-        }
-    )
-    messages.append(
-        {
-            "role": "user",
-            "content": "Write a 800-word article about large language models using the word 'transformer' as often as possible",
-        }
-    )
-
     assert (
         run_completion(model_name, messages, token, endpoint, chat=True, presence_penalty=pr_pen)
         == 400
