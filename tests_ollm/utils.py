@@ -63,6 +63,7 @@ def run_completion(
                     raise NotImplementedError(
                         "Completion is not supported on new OpenAI API yet"
                     )
+            openai.api_base = endpoint + "/v1"
             completion = openai.Completion.create(
                 model=model_name,
                 prompt=text,

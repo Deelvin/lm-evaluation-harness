@@ -168,7 +168,7 @@ def test_multiple_messages(model_name, token, endpoint):
     ]
 
     completion = run_completion(
-        model_name, messages, token, endpoint, chat=True, max_tokens=20, return_completion=True
+        model_name, messages, token, endpoint, max_tokens=20, return_completion=True
     )
     assert "4" in completion["choices"][0]["message"]["content"]
 
@@ -187,11 +187,11 @@ def test_large_input_content(input_tokens, model_name, context_size, token, endp
 
     if (input_tokens + max_tokens) < context_size:
         assert (
-            run_completion(model_name, messages, token, endpoint, chat=True, max_tokens=max_tokens) == 200
+            run_completion(model_name, messages, token, endpoint, max_tokens=max_tokens) == 200
         )
     else:
         assert (
-            run_completion(model_name, messages, token, endpoint, chat=True, max_tokens=max_tokens) == 400
+            run_completion(model_name, messages, token, endpoint, max_tokens=max_tokens) == 400
         )
 
 

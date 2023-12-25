@@ -49,7 +49,7 @@ def test_valid_model_name(model_name, token, endpoint):
         {"role": "system", "content": "You are a helpful assistant."},
         {"role": "user", "content": "Hello!"},
     ]
-    assert run_completion(model_name, messages, token, endpoint, chat=True) == 200
+    assert run_completion(model_name, messages, token, endpoint) == 200
 
 
 @pytest.mark.input_parameter
@@ -59,7 +59,7 @@ def test_invalid_model_name(model_name, token, endpoint):
         {"role": "user", "content": "Hello!"},
     ]
     model_name += "_dummy_check"
-    assert run_completion(model_name, messages, token, endpoint, chat=True) != 200
+    assert run_completion(model_name, messages, token, endpoint) != 200
 
 
 @pytest.mark.input_parameter
@@ -70,7 +70,7 @@ def test_valid_role(model_name, token, endpoint):
         {"role": "assistant", "content": "How are you!"},
     ]
 
-    assert run_completion(model_name, messages, token, endpoint, chat=True) == 200
+    assert run_completion(model_name, messages, token, endpoint) == 200
 
 
 @pytest.mark.input_parameter
@@ -82,10 +82,10 @@ def test_invalid_role(model_name, token, endpoint):
     ]
 
     messages.append({"role": "dummy_role", "content": "dummy_content"})
-    assert run_completion(model_name, messages, token, endpoint, chat=True) != 200
+    assert run_completion(model_name, messages, token, endpoint) != 200
 
     messages.pop()
-    assert run_completion(model_name, messages, token, endpoint, chat=True) == 200
+    assert run_completion(model_name, messages, token, endpoint) == 200
 
 
 @pytest.mark.input_parameter
@@ -123,10 +123,10 @@ def test_invalid_max_tokens(model_name, context_size, token, endpoint):
         },
         {"role": "user", "content": "Write a really long blog about Seattle."},
     ]
-    assert run_completion(model_name, messages, token, endpoint, chat=True, max_tokens=-1) == 400
+    assert run_completion(model_name, messages, token, endpoint, max_tokens=-1) == 400
     assert (
         run_completion(
-            model_name, messages, token, endpoint, chat=True, max_tokens=context_size * 2
+            model_name, messages, token, endpoint, max_tokens=context_size * 2
         )
         == 400
     )
@@ -250,7 +250,7 @@ def test_invalid_top_p(model_name, top_p, token, endpoint):
         {"role": "user", "content": "Write a blog about Seattle"},
     ]
 
-    assert run_completion(model_name, messages, token, endpoint, chat=True, top_p=top_p) == 400
+    assert run_completion(model_name, messages, token, endpoint, top_p=top_p) == 400
 
 
 @pytest.mark.input_parameter
@@ -263,7 +263,7 @@ def test_valid_number_chat_completions(model_name, n, token, endpoint):
         {"role": "user", "content": "Hello!"},
     ]
     completion = run_completion(
-        model_name, messages, token, endpoint, chat=True, n=n, return_completion=True
+        model_name, messages, token, endpoint, n=n, return_completion=True
     )
     assert len(completion["choices"]) == n
 
@@ -274,7 +274,7 @@ def test_invalid_number_chat_completions(model_name, token, endpoint):
         {"role": "system", "content": "You are a helpful assistant."},
         {"role": "user", "content": "Hello!"},
     ]
-    assert run_completion(model_name, messages, token, endpoint, chat=True, n=0) == 400
+    assert run_completion(model_name, messages, token, endpoint, n=0) == 400
 
 
 @pytest.mark.input_parameter
@@ -386,7 +386,7 @@ def test_invalid_stop(model_name, stop, token, endpoint):
 def test_valid_content(model_name, prompt, token, endpoint):
     message = {"role": "system", "content": prompt}
 
-    assert run_completion(model_name, [message], token, endpoint, chat=True) == 200
+    assert run_completion(model_name, [message], token, endpoint) == 200
 
 
 @pytest.mark.input_parameter
@@ -404,7 +404,7 @@ def test_valid_content(model_name, prompt, token, endpoint):
 def test_invalid_content(model_name, prompt, token, endpoint):
     message = {"role": "system", "content": prompt}
 
-    assert run_completion(model_name, [message], token, endpoint, chat=True) == 400
+    assert run_completion(model_name, [message], token, endpoint) == 400
 
 def check_counts_by_penalty_parameter(model_name, token, endpoint, penalty):
     """
@@ -472,7 +472,7 @@ def test_invalid_frequency_penalty(model_name, fr_pen, token, endpoint):
         },
     ]
     assert (
-        run_completion(model_name, messages, token, endpoint, chat=True, frequency_penalty=fr_pen)
+        run_completion(model_name, messages, token, endpoint, frequency_penalty=fr_pen)
         == 400
     )
 
@@ -495,11 +495,11 @@ def test_invalid_presence_penalty(model_name, pr_pen, token, endpoint):
         },
         {
             "role": "user",
-            "content": "Write a 800-word article about large language models using the word 'transformer' as often as possible",
+            "content": "Write a 800-word article about large language models using the word 'transformer'",
         },
     ]
     assert (
-        run_completion(model_name, messages, token, endpoint, chat=True, presence_penalty=pr_pen)
+        run_completion(model_name, messages, token, endpoint, presence_penalty=pr_pen)
         == 400
     )
 
@@ -512,7 +512,7 @@ def test_response_model_name(model_name, token, endpoint):
         {"role": "user", "content": "Hello!"},
     ]
     completion = run_completion(
-        model_name, messages, token, endpoint, chat=True, return_completion=True
+        model_name, messages, token, endpoint, return_completion=True
     )
     assert completion["model"] == model_name
 
@@ -524,7 +524,7 @@ def test_response_choices(model_name, token, endpoint):
         {"role": "user", "content": "Hello!"},
     ]
     completion = run_completion(
-        model_name, messages, token, endpoint, chat=True, return_completion=True
+        model_name, messages, token, endpoint, return_completion=True
     )
     assert "choices" in completion.keys()
     assert "index" in completion["choices"][0].keys()
@@ -539,7 +539,7 @@ def test_response_usage(model_name, token, endpoint):
         {"role": "user", "content": "Hello!"},
     ]
     completion = run_completion(
-        model_name, messages, token, endpoint, chat=True, return_completion=True
+        model_name, messages, token, endpoint, return_completion=True
     )
     assert "usage" in completion.keys()
     assert "prompt_tokens" in completion["usage"].keys()
@@ -554,10 +554,10 @@ def test_response_id(model_name, token, endpoint):
         {"role": "user", "content": "Hello!"},
     ]
     first_completion = run_completion(
-        model_name, messages, token, endpoint, chat=True, return_completion=True
+        model_name, messages, token, endpoint, return_completion=True
     )
     second_completion = run_completion(
-        model_name, messages, token, endpoint, chat=True, return_completion=True
+        model_name, messages, token, endpoint, return_completion=True
     )
     assert first_completion["id"] != second_completion["id"]
 
@@ -569,7 +569,7 @@ def test_response_object_type(model_name, token, endpoint):
         {"role": "user", "content": "Hello!"},
     ]
     completion = run_completion(
-        model_name, messages, token, endpoint, chat=True, return_completion=True
+        model_name, messages, token, endpoint, return_completion=True
     )
     assert isinstance(completion, CompletionObject)
 
@@ -584,7 +584,7 @@ def test_response_created_time(model_name, token, endpoint):
     # granularity, so we shouldn't compare with a finer granularity.
     st_time = int(time.time())
     completion = run_completion(
-        model_name, messages, token, endpoint, chat=True, return_completion=True
+        model_name, messages, token, endpoint, return_completion=True
     )
     end_time = int(time.time())
     assert st_time <= completion["created"] <= end_time
@@ -594,4 +594,4 @@ def test_response_created_time(model_name, token, endpoint):
 @pytest.mark.auth
 def test_invalid_token_authentification(model_name, endpoint):
     messages = [{"role": "user", "content": "Tell a story about a cat"}]
-    assert run_completion(model_name, messages, "invalid", endpoint, chat=True) == 401
+    assert run_completion(model_name, messages, "invalid", endpoint) == 401

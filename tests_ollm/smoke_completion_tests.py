@@ -11,7 +11,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 import openai
 
-from .utils import (
+from utils import (
     path_to_file,
     run_completion,
     send_request_with_timeout,
@@ -53,10 +53,10 @@ def context_size(request):
 
 def test_response(model_name, token, endpoint):
     prompt = "Hello!"
-    assert run_completion(model_name, prompt, token, endpoint) == 200
+    assert run_completion(model_name, prompt, token, endpoint, chat=False) == 200
 
     model_name += "_dummy_check"
-    assert run_completion(model_name, prompt, token, endpoint) != 200
+    assert run_completion(model_name, prompt, token, endpoint, chat=False) != 200
 
 
 @pytest.mark.parametrize("max_tokens", [10, 100, 300, 500, 1024])
@@ -66,7 +66,8 @@ def test_max_tokens(model_name, max_tokens, token, endpoint):
         model_name,
         prompt,
         token,
-        endpoint,
+        endpoint, 
+        chat=False,
         max_tokens=max_tokens,
         return_completion=True,
     )
@@ -80,9 +81,9 @@ def test_max_tokens(model_name, max_tokens, token, endpoint):
 def test_incorrect_max_tokens(model_name, context_size, token, endpoint):
     prompt = "Below is an instruction that describes a task. Write a response that appropriately completes the request. Write a really long blog about Seattle."
 
-    assert run_completion(model_name, prompt, token, endpoint, max_tokens=-1) == 400
+    assert run_completion(model_name, prompt, token, endpoint, max_tokens=-1, chat=False) == 400
     assert (
-        run_completion(model_name, prompt, token, endpoint, max_tokens=context_size * 2)
+        run_completion(model_name, prompt, token, endpoint, max_tokens=context_size * 2, chat=False)
         == 400
     )
     completion = run_completion(
@@ -92,6 +93,7 @@ def test_incorrect_max_tokens(model_name, context_size, token, endpoint):
         endpoint,
         max_tokens=context_size,
         return_completion=True,
+        chat=False
     )
     assert 0 < completion["usage"]["completion_tokens"] <= context_size
     assert len(completion["choices"][0]["text"]) > 0
@@ -115,6 +117,7 @@ def test_valid_temperature(model_name, token, endpoint):
             max_tokens=max_tokens,
             temperature=temperature,
             return_completion=True,
+            chat=False
         )
         curr_embeddings = model.encode(completion["choices"][0]["text"])
         distances.append(distance.cosine(curr_embeddings, goldev_embed))
@@ -139,6 +142,7 @@ def test_temperature_outside_limit(model_name, temperature, token, endpoint):
             endpoint,
             temperature=temperature,
             return_completion=True,
+            chat=False
         )
 
 
@@ -156,6 +160,7 @@ def test_top_p(model_name, token, endpoint):
         max_tokens=max_tokens,
         top_p=0.00001,
         return_completion=True,
+        chat=False
     )
     curr_embeddings = model.encode(completion["choices"][0]["text"])
     prev_dist = distance.cosine(curr_embeddings, goldev_embed)
@@ -169,6 +174,7 @@ def test_top_p(model_name, token, endpoint):
             max_tokens=max_tokens,
             top_p=top_p,
             return_completion=True,
+            chat=False
         )
         curr_embeddings = model.encode(completion["choices"][0]["text"])
         cur_distance = distance.cosine(curr_embeddings, goldev_embed)
@@ -180,7 +186,7 @@ def test_top_p(model_name, token, endpoint):
 def test_top_p_outside_limit(model_name, top_p, token, endpoint):
     prompt = "You are a helpful assistant. Write a blog about Seattle"
 
-    assert run_completion(model_name, prompt, token, endpoint, top_p=top_p) == 400
+    assert run_completion(model_name, prompt, token, endpoint, top_p=top_p, chat=False) == 400
 
 
 @pytest.mark.parametrize("n", [1, 5, 10])
@@ -189,7 +195,7 @@ def test_number_chat_completions(model_name, n, token, endpoint):
         pytest.skip("Multiple outputs is not supported yet")
     prompt = "You are a helpful assistant. Hello!"
     completion = run_completion(
-        model_name, prompt, token, endpoint, n=n, return_completion=True
+        model_name, prompt, token, endpoint, n=n, return_completion=True, chat=False
     )
     assert len(completion["choices"]) == n
 
@@ -208,6 +214,7 @@ def test_stop(model_name, stop, token, endpoint):
         max_tokens=300,
         stop=stop,
         return_completion=True,
+        chat=False
     )
     for seq in stop:
         assert (seq not in completion["choices"][0]["text"]) and completion["choices"][
@@ -231,7 +238,7 @@ def test_stop(model_name, stop, token, endpoint):
 def test_model_name(model_name, token, endpoint):
     prompt = "You are a helpful assistant. Hello!"
     completion = run_completion(
-        model_name, prompt, token, endpoint, return_completion=True
+        model_name, prompt, token, endpoint, return_completion=True, chat=False
     )
     assert completion["model"] == model_name
 
@@ -239,7 +246,7 @@ def test_model_name(model_name, token, endpoint):
 def test_choices_exist(model_name, token, endpoint):
     prompt = "You are a helpful assistant. Hello!"
     completion = run_completion(
-        model_name, prompt, token, endpoint, return_completion=True
+        model_name, prompt, token, endpoint, return_completion=True, chat=False
     )
     assert "choices" in completion.keys()
     assert "index" in completion["choices"][0].keys()
@@ -250,7 +257,7 @@ def test_choices_exist(model_name, token, endpoint):
 def test_usage(model_name, token, endpoint):
     prompt = "You are a helpful assistant. Hello!"
     completion = run_completion(
-        model_name, prompt, token, endpoint, return_completion=True
+        model_name, prompt, token, endpoint, return_completion=True, chat=False
     )
     assert "usage" in completion.keys()
     assert "prompt_tokens" in completion["usage"].keys()
@@ -261,10 +268,10 @@ def test_usage(model_name, token, endpoint):
 def test_id_completion(model_name, token, endpoint):
     prompt = "You are a helpful assistant. Hello!"
     first_completion = run_completion(
-        model_name, prompt, token, endpoint, return_completion=True
+        model_name, prompt, token, endpoint, return_completion=True, chat=False
     )
     second_completion = run_completion(
-        model_name, prompt, token, endpoint, return_completion=True
+        model_name, prompt, token, endpoint, return_completion=True, chat=False
     )
     assert first_completion["id"] != second_completion["id"]
 
@@ -275,7 +282,7 @@ def test_created_time(model_name, token, endpoint):
     # granularity, so we shouldn't compare with a finer granularity.
     st_time = int(time.time())
     completion = run_completion(
-        model_name, prompt, token, endpoint, return_completion=True
+        model_name, prompt, token, endpoint, return_completion=True, chat=False
     )
     end_time = int(time.time())
     assert st_time <= completion["created"] <= end_time
@@ -293,17 +300,17 @@ def test_created_time(model_name, token, endpoint):
     ],
 )
 def test_incorrect_content(model_name, prompt, token, endpoint):
-    assert run_completion(model_name, prompt, token, endpoint) == 400
+    assert run_completion(model_name, prompt, token, endpoint, chat=False) == 400
 
 
 @pytest.mark.parametrize("prompt", ["Hi!", None])
 def test_content(model_name, prompt, token, endpoint):
-    assert run_completion(model_name, prompt, token, endpoint) == 200
+    assert run_completion(model_name, prompt, token, endpoint, chat=False) == 200
 
 
 def test_user_authentication(model_name, token, endpoint):
     prompt = "Tell a story about a cat"
-    assert run_completion(model_name, prompt, "invalid", endpoint) == 401
+    assert run_completion(model_name, prompt, "invalid", endpoint, chat=False) == 401
 
 
 def test_cancel_and_follow_up_requests(model_name, token, endpoint):
@@ -398,6 +405,7 @@ def test_same_completion_len(temperature, model_name, token, endpoint):
             temperature=temperature,
             top_p=1.0,
             return_completion=True,
+            chat=False
         )
         mean += completion["usage"]["completion_tokens"]
         tokens_arr.append(completion["usage"]["completion_tokens"])
@@ -419,12 +427,12 @@ def test_large_input_content(input_tokens, model_name, context_size, token, endp
 
     if (input_tokens + max_tokens) < context_size:
         assert (
-            run_completion(model_name, prompt, token, endpoint, max_tokens=max_tokens)
+            run_completion(model_name, prompt, token, endpoint, max_tokens=max_tokens, chat=False)
             == 200
         )
     else:
         assert (
-            run_completion(model_name, prompt, token, endpoint, max_tokens=max_tokens)
+            run_completion(model_name, prompt, token, endpoint, max_tokens=max_tokens, chat=False)
             == 400
         )
 
