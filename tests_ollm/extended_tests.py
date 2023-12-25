@@ -137,7 +137,6 @@ def test_same_completion_len(temperature, model_name, token, endpoint):
             messages,
             token,
             endpoint,
-            chat=True,
             temperature=temperature,
             top_p=1.0,
             return_completion=True,
