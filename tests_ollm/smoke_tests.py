@@ -103,7 +103,6 @@ def test_valid_max_tokens(model_name, max_tokens, token, endpoint):
         messages,
         token,
         endpoint,
-        chat=True,
         max_tokens=max_tokens,
         return_completion=True,
     )
@@ -135,7 +134,6 @@ def test_invalid_max_tokens(model_name, context_size, token, endpoint):
         messages,
         token,
         endpoint,
-        chat=True,
         max_tokens=context_size,
         return_completion=True,
     )
@@ -162,7 +160,6 @@ def test_valid_temperature(model_name, token, endpoint):
             messages,
             token,
             endpoint,
-            chat=True,
             max_tokens=max_tokens,
             temperature=temperature,
             return_completion=True,
@@ -191,7 +188,6 @@ def test_invalid_temperature(model_name, temperature, token, endpoint):
             messages,
             token,
             endpoint,
-            chat=True,
             temperature=temperature,
             return_completion=True,
         )
@@ -213,7 +209,6 @@ def test_valid_top_p(model_name, token, endpoint):
         messages,
         token,
         endpoint,
-        chat=True,
         max_tokens=max_tokens,
         top_p=0.00001,
         return_completion=True,
@@ -227,7 +222,6 @@ def test_valid_top_p(model_name, token, endpoint):
             messages,
             token,
             endpoint,
-            chat=True,
             max_tokens=max_tokens,
             top_p=top_p,
             return_completion=True,
@@ -298,7 +292,6 @@ def test_stream(model_name, token, endpoint):
         token,
         endpoint,
         stream=True,
-        chat=True,
         temperature=0.0,
         return_completion=True,
     )
@@ -317,7 +310,6 @@ def test_stream(model_name, token, endpoint):
         messages,
         token,
         endpoint,
-        chat=True,
         stream=False,
         temperature=0.0,
         return_completion=True,
@@ -340,7 +332,6 @@ def test_valid_stop(model_name, stop, token, endpoint):
         messages,
         token,
         endpoint,
-        chat=True,
         max_tokens=300,
         stop=stop,
         return_completion=True,
@@ -374,7 +365,6 @@ def test_invalid_stop(model_name, stop, token, endpoint):
             messages,
             token,
             endpoint,
-            chat=True,
             stop=stop,
         )
         == 400
@@ -435,7 +425,6 @@ def check_counts_by_penalty_parameter(model_name, token, endpoint, penalty):
                 messages,
                 token,
                 endpoint,
-                chat=True,
                 frequency_penalty=frequency_penalty,
                 presence_penalty=presence_penalty,
                 max_tokens=800,
