@@ -59,10 +59,9 @@ def run_completion(
             )
         else:
             if OPENAI_VER_MAJ >= 1:
-                if chat is False:
-                    raise NotImplementedError(
-                        "Completion is not supported on new OpenAI API yet"
-                    )
+                raise NotImplementedError(
+                    "Completion is not supported on new OpenAI API yet"
+                )
             openai.api_base = endpoint + "/v1"
             completion = openai.Completion.create(
                 model=model_name,
