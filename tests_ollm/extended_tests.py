@@ -263,3 +263,29 @@ def test_send_increasing_sequence_of_contents(model_name, context_size, token, e
             responses_code_set.add(future.result().status_code)
 
     assert responses_code_set == {200}
+
+
+@pytest.mark.parametrize("n", [1000, 1500, 2000, 2200, 2300, 2500])
+def test_large_number_chat_completions(model_name, n, token, endpoint):
+    messages = [
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user", "content": "Hello!"},
+    ]
+    completion = run_completion(
+        model_name, messages, token, endpoint, n=n, return_completion=True
+    )
+    assert len(completion["choices"]) == n
+
+
+@pytest.mark.parametrize("n", [10, 100, 500, 1000])
+def test_all_completions_same(model_name, n, token, endpoint):
+    messages = [
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user", "content": "Hello!"},
+    ]
+    completion = run_completion(
+        model_name, messages, token, endpoint, n=n, temperature=0.001, return_completion=True
+    )
+    content_arr = set([completion["choices"][i]["message"]["content"] for i in range(n)])
+
+    assert len(content_arr) == 1
