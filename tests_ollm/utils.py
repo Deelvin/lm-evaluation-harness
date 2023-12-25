@@ -102,3 +102,36 @@ def send_request_with_timeout(url, data, headers):
 def send_request_get_response(url, data, headers):
     response = requests.post(url, json=data, headers=headers, timeout=None)
     return response
+
+
+def model_data(
+    model_name,
+    message,
+    max_tokens=10,
+    n=1,
+    stream=False,
+    stop=None,
+    temperature=0.0,
+    top_p=1.0,
+    frequency_penalty=0,
+    presence_penalty=0,
+    return_completion=False,
+):
+    return {
+        "model": model_name,
+        "messages": [
+            {
+                "role": "user",
+                "content": message,
+            }
+        ],
+        "max_tokens": max_tokens,
+        "n": n,
+        "stream": stream,
+        "stop": stop,
+        "temperature": temperature,
+        "top_p": top_p,
+        "presence_penalty": presence_penalty,
+        "frequency_penalty": frequency_penalty,
+        "return_completion": return_completion,
+    }
