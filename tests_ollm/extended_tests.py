@@ -7,7 +7,7 @@ import requests
 import pytest
 
 from utils import (
-    run_chat_completion,
+    run_completion,
     send_request_get_response,
     send_request_with_timeout,
     path_to_file,
@@ -132,11 +132,12 @@ def test_same_completion_len(temperature, model_name, token, endpoint):
     mean = 0
     trials = 4
     for _ in range(trials):
-        completion = run_chat_completion(
+        completion = run_completion(
             model_name,
             messages,
             token,
             endpoint,
+            chat=True,
             temperature=temperature,
             top_p=1.0,
             return_completion=True,
@@ -166,8 +167,8 @@ def test_multiple_messages(model_name, token, endpoint):
         },
     ]
 
-    completion = run_chat_completion(
-        model_name, messages, token, endpoint, max_tokens=20, return_completion=True
+    completion = run_completion(
+        model_name, messages, token, endpoint, chat=True, max_tokens=20, return_completion=True
     )
     assert "4" in completion["choices"][0]["message"]["content"]
 
@@ -186,11 +187,11 @@ def test_large_input_content(input_tokens, model_name, context_size, token, endp
 
     if (input_tokens + max_tokens) < context_size:
         assert (
-            run_chat_completion(model_name, messages, token, endpoint, max_tokens=max_tokens) == 200
+            run_completion(model_name, messages, token, endpoint, chat=True, max_tokens=max_tokens) == 200
         )
     else:
         assert (
-            run_chat_completion(model_name, messages, token, endpoint, max_tokens=max_tokens) == 400
+            run_completion(model_name, messages, token, endpoint, chat=True, max_tokens=max_tokens) == 400
         )
 
 
