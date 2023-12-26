@@ -65,30 +65,30 @@ def test_canceling_requests(model_name, token, endpoint):
     start_time = time.time()
     with ThreadPoolExecutor(max_workers=num_workers) as executor:
         futures = [
-            executor.submit(send_request_get_response, url, request, headers) 
+            executor.submit(send_request_get_response, url, request, headers)
             for _ in range(num_workers)
         ]
         for future in concurrent.futures.as_completed(futures):
             responses_code_set.add(future.result().status_code)
     first_run_time = time.time() - start_time
-    assert (responses_code_set == {200}), "There is a problem with sending request"
-    
+    assert responses_code_set == {200}, "There is a problem with sending request"
+
     with ThreadPoolExecutor(max_workers=num_workers) as executor:
         futures = [
-            executor.submit(send_request_with_timeout, url, request, headers) 
+            executor.submit(send_request_with_timeout, url, request, headers)
             for _ in range(num_workers)
         ]
 
     start_time = time.time()
     with ThreadPoolExecutor(max_workers=num_workers) as executor:
         futures = [
-            executor.submit(send_request_get_response, url, request, headers) 
+            executor.submit(send_request_get_response, url, request, headers)
             for _ in range(num_workers)
         ]
         for future in concurrent.futures.as_completed(futures):
             responses_code_set.add(future.result().status_code)
     second_run_time = time.time() - start_time
-    assert (responses_code_set == {200}), "There is a problem with sending request"
+    assert responses_code_set == {200}, "There is a problem with sending request"
 
     threshold = 5
     assert abs(second_run_time - first_run_time) < threshold
@@ -178,7 +178,7 @@ def test_send_many_request(num_workers, model_name, token, endpoint):
 
     with ThreadPoolExecutor(max_workers=num_workers) as executor:
         futures = [
-            executor.submit(send_request_get_response, url, request, headers) 
+            executor.submit(send_request_get_response, url, request, headers)
             for _ in range(num_workers)
         ]
         for future in concurrent.futures.as_completed(futures):
@@ -202,10 +202,10 @@ def test_send_many_large_input_content(num_workers, input_tokens, model_name, co
         "Authorization": f"Bearer {token}",
     }
     responses_code_set = set()
-        
+
     with ThreadPoolExecutor(max_workers=num_workers) as executor:
         futures = [
-            executor.submit(send_request_get_response, url, request, headers) 
+            executor.submit(send_request_get_response, url, request, headers)
             for _ in range(num_workers)
         ]
         for future in concurrent.futures.as_completed(futures):
@@ -225,7 +225,7 @@ def test_send_small_and_many_big_input_contents(num_workers, model_name, context
         input_tokens = 2031
 
     with open(path_to_file(f"input_context/text_about_{input_tokens}_tokens.txt"), "r") as file:
-        big_prompt = file.read() 
+        big_prompt = file.read()
 
     small_request = model_data(model_name, small_prompt, max_tokens=10)
     big_request = model_data(model_name, big_prompt, max_tokens=10)
@@ -235,11 +235,11 @@ def test_send_small_and_many_big_input_contents(num_workers, model_name, context
         "Authorization": f"Bearer {token}",
     }
     responses_code_set = set()
-        
+
     with ThreadPoolExecutor(max_workers=num_workers) as executor:
         futures = [executor.submit(send_request_get_response, url, small_request, headers)]
         futures += [
-            executor.submit(send_request_get_response, url, big_request, headers) 
+            executor.submit(send_request_get_response, url, big_request, headers)
             for _ in range(num_workers)
         ]
         for future in concurrent.futures.as_completed(futures):
@@ -273,7 +273,7 @@ def test_send_increasing_sequence_of_contents(model_name, context_size, token, e
 
     with ThreadPoolExecutor(max_workers=num_workers) as executor:
         futures = [
-            executor.submit(send_request_get_response, url, request, headers) 
+            executor.submit(send_request_get_response, url, request, headers)
             for request in requests
         ]
         for future in concurrent.futures.as_completed(futures):
