@@ -171,11 +171,12 @@ def test_valid_temperature(model_name, token, endpoint):
 
 
 @pytest.mark.input_parameter
-@pytest.mark.parametrize("temperature", [-0.1, 2.1])
-def test_invalid_temperature(model_name, temperature, token, endpoint):
+@pytest.mark.parametrize("temperature, n", [(-0.1, 1), (2.1, 1), (0.0, 2)])
+def test_invalid_temperature(model_name, temperature, n, token, endpoint):
     """
     Temperature is allowed in range from 0 to 2.0. Outside of this
-    range, an error should be returned in the completion.
+    range, an error should be returned in the completion. 
+    Also, if n > 1, temperature can't be equal to 0.0.
     """
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
@@ -189,6 +190,7 @@ def test_invalid_temperature(model_name, temperature, token, endpoint):
             token,
             endpoint,
             temperature=temperature,
+            n=n,
             return_completion=True,
         )
 
