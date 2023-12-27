@@ -83,7 +83,7 @@ class OctoAIEndpointRunnerBase():
 
   def run(self, requests, results):
     if self.batch_size > 1:
-      for batch_idx, request_batch in enumerate(_batcher(requests)):
+      for batch_idx, request_batch in enumerate(self._batcher(requests)):
         try:
           self.model_generate_parallel(request_batch, results)
         except ConnectionError as e:
