@@ -148,7 +148,7 @@ class OctoAIEndpointRunnerBase():
     raise NotImplementedError("prepare_msg_data method is not implemented in base class")
 
   def response_check(self, response):
-    raise NotImplementedError("response_check method is not implemented in base class")
+    return "choices" in response.keys()
 
   def get_result(self, response):
     raise NotImplementedError("get_result method is not implemented in base class")
@@ -177,11 +177,8 @@ class OctoAIEndpointRunnerGreedyUntil(OctoAIEndpointRunnerBase):
         }
     ]
 
-  def response_check(self, response):
-    return 'choices' in response.keys()
-
   def get_result(self, response):
-    return response['choices'][0]['message']['content']
+    return response["choices"][0]["message"]["content"]
 
   def dummy_result(self):
     return "Dummy response"
@@ -196,16 +193,36 @@ class OctoAIEndpointRunnerLogLikelihood(OctoAIEndpointRunnerBase):
     self.msg = self.get_base_msg()
 
   def prepare_msg_data(self, request):
-    self.msg["context"] = request[0]
-    self.msg["continuation"] = request[1]
-
-  def response_check(self, response):
-    return 'logprob' in response.keys() and 'is_greedy' in response.keys()
+    self.context = request[0]
+    self.continuation = request[1]
+    self.msg["prompt"] = self.context + self.continuation
+    self.msg["loglikelihood"] = True
 
   def get_result(self, response):
-    logprob = response["logprob"]
-    is_greedy = response["is_greedy"]
-    return (logprob, is_greedy)
+    logprob_content = response["choices"][0]["logprobs"]["content"]
+    logprobs =[]
+    tokens = []
+    top1_tokens = []
+    for content in logprob_content:
+      tokens.append(content["token"])
+      logprobs.append(content["logprob"])
+      top1_tokens.append(content["top_logprobs"][0]["token"])
+
+    # Calculate context length
+    ctx_len = 0
+    prob_ctx = self.context
+    while prob_ctx.startswith(tokens[ctx_len]):
+      prob_ctx.replace(tokens[ctx_len], "", 1)
+      ctx_len += 1
+    assert self.continuation.startswith(tokens[ctx_len]), "Tokenization issue"
+
+    res_logprob = sum(logprobs[ctx_len:])
+    res_is_greedy = True
+    for i in range(ctx_len, len(tokens)):
+      if top1_tokens[i] != tokens[i]:
+        res_is_greedy = False
+        break
+    return (res_logprob, res_is_greedy)
 
   def dummy_result(self):
     import sys
