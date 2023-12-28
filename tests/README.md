@@ -28,7 +28,7 @@ cd lm-evaluation-harness/tests
 ```
 or:
 ```bash
-curl -O https://raw.githubusercontent.com/Deelvin/lm-evaluation-harness/dbarinov/unittest_endpoints_docker/run_docker_tests.py
+curl -O https://raw.githubusercontent.com/Deelvin/lm-evaluation-harness/dbarinov/unittest_endpoints_docker/tests/run_docker_tests.py
 ```
 
 ## Step 4: Set Token Environment Variable
