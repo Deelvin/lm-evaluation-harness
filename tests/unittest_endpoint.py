@@ -37,6 +37,7 @@ def check_output(model_name, task_name, num_fewshot):
             result = (f"test_endpoint_{task_name}", model_name, "PASSED")
         except AssertionError as e:
             result = (f"test_endpoint_{task_name}", model_name, f"FAILED: {str(e)}")
+            raise e
 
         write_results_to_csv(result)
 
@@ -68,6 +69,7 @@ def test_endpoint_availability(model_name, endpoint, token):
         result = ("test_endpoint_availability", model_name, "PASSED")
     except AssertionError as e:
         result = ("test_endpoint_availability", model_name, f"FAILED: {str(e)}")
+        raise e
 
     write_results_to_csv(result)
 
@@ -78,7 +80,7 @@ def test_endpoint_gsm8k(model_name, endpoint, token):
 
     evaluator.simple_evaluate(
         model="octoai",
-        model_args=f"model_name='{model_name}',prod={endpoint},token='{token}'",
+        model_args=f"model_name='{model_name}',url={endpoint},token='{token}'",
         tasks=task_name,
         num_fewshot=num_fewshot,
         batch_size=1,
@@ -103,7 +105,7 @@ def test_endpoint_triviaqa(model_name, endpoint, token):
 
     evaluator.simple_evaluate(
         model="octoai",
-        model_args=f"model_name='{model_name}',prod={endpoint},token='{token}'",
+        model_args=f"model_name='{model_name}',url={endpoint},token='{token}'",
         tasks=task_name,
         num_fewshot=num_fewshot,
         batch_size=1,
