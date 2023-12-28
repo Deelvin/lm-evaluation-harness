@@ -59,12 +59,12 @@ path = "test_results"
 
 if not os.path.exists(os.path.join(current_directory, path)):
     os.makedirs(path)
-else:
+if os.path.exists(os.path.join(path, "test_results.csv")):
     os.remove(os.path.join(path, "test_results.csv"))
 
 for model_info in endpoints_data["Prod"]:
     model_name = model_info["model"]
 
-    docker_command = f"docker run -v {current_directory}:/lm_eval/test_results -e OCTOAI_TOKEN={token} lm-eval pytest tests/unittest_endpoint.py -vv --model_name {model_name} --endpoint Prod"
+    docker_command = f"docker run -v {current_directory}/{path}:/lm_eval/test_results -e OCTOAI_TOKEN={token} daniilbarinov/lm-eval:1.0 pytest tests/unittest_endpoint.py -vv --model_name {model_name} --endpoint Prod"
 
     subprocess.run(docker_command, shell=True)
