@@ -1,10 +1,10 @@
-import requests
 import pytest
-from lm_eval import tasks, evaluator, utils
+from lm_eval import evaluator
 import config as cfg
 import json
 import os
 import csv
+from tests.utils import run_chat_completion
 
 
 def write_results_to_csv(result):
@@ -57,35 +57,13 @@ def token():
 
 
 def test_endpoint_availability(model_name, endpoint, token):
-    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {token}"}
-
-    data = {
-        "model": model_name,
-        "messages": [
-            {"role": "system", "content": ""},
-            {"role": "user", "content": "Who is Python author?"},
-        ],
-        "max_tokens": 10,
-        "stream": False,
-    }
-
-    if endpoint == "Prod":
-        endpoint = "https://text.octoai.run"
-    elif endpoint == "Dev":
-        endpoint = "https://text.customer-endpoints.nimbus.octoml.ai"
-    else:
-        print("Incorrect 'endpoint'. Option --endpoint should be 'Prod' or 'Dev'.")
+    messages = [
+        {"role": "system", "content": ""},
+        {"role": "user", "content": "Who is Python author?"},
+    ]
 
     try:
-        response = requests.post(
-            endpoint + "/v1/chat/completions", headers=headers, json=data
-        )
-
-        assert (
-            response.status_code == 200
-        ), f"HTTP Status Code for {model_name}: {response.status_code}"
-
-        assert response.content.strip() != "", f"Response for {model_name} is empty"
+        assert run_chat_completion(model_name, messages, token, endpoint) == 200
 
         result = ("test_endpoint_availability", model_name, "PASSED")
     except AssertionError as e:
