@@ -17,6 +17,7 @@ class OctoAIEndpointRunnerBase():
     model_name: str="llama-2-70b-chat-int4",
     url: str=None,
     batch_size: int=1,
+    max_tokens: int=1024,
     top_p: float=1.0,
     temperature: float=0.0,
     prod=True,
@@ -34,7 +35,7 @@ class OctoAIEndpointRunnerBase():
       self.url = self.construct_request_url(prod)
 
     self.init_msg_header(token)
-    self.init_base_msg(top_p, temperature)
+    self.init_base_msg(max_tokens, top_p, temperature)
 
   def init_msg_header(self, token):
     # Get the API key from the environment variables
@@ -49,11 +50,11 @@ class OctoAIEndpointRunnerBase():
       "content-type": "application/json",
     }
 
-  def init_base_msg(self, top_p, temperature):
+  def init_base_msg(self, max_tokens, top_p, temperature):
     self.base_msg = {
         "model": self.model_name,
         "stream": False,
-        "max_tokens": 256,
+        "max_tokens": max_tokens,
         "top_p": top_p,
         "temperature": temperature,
     }
@@ -248,6 +249,7 @@ class OctoAIEndpointLM(BaseLM):
     batch_size: int=1,
     max_batch_size: int=None,
     device: str=None,
+    max_tokens: int=1024,
     top_p: float=1.0,
     temperature: float=0.0,
     prod=True,
@@ -271,6 +273,7 @@ class OctoAIEndpointLM(BaseLM):
       "model_name": self.model_name,
       "url": url,
       "batch_size": self._batch_size,
+      "max_tokens": max_tokens,
       "top_p": top_p,
       "temperature": temperature,
       "prod": prod,
