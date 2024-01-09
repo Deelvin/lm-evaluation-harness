@@ -6,10 +6,6 @@ import datetime
 import subprocess
 import argparse
 
-import libtmux
-
-from utils import init_gspread_client
-
 FEWSHOTS_PER_TASK = {
     "gsm8k": [0, 5, 8],
     "truthfulqa_gen": [0],
@@ -43,9 +39,9 @@ def run_benchmark(
     limit_sessions: int = 3,
     limit_samples: Optional[int] = None,
 ) -> None:
-    tmux_server = libtmux.Server()
-    os.environ["OCTOAI_API_KEY"] = os.environ.get(f"OCTOAI_TOKEN_{endpoint_type.upper()}", "")
-    assert os.environ["OCTOAI_API_KEY"] != "", "OctoAI token is not specified"
+    os.environ["OCTOAI_TOKEN"] = os.environ.get(f"OCTOAI_TOKEN_{endpoint_type.upper()}", "")
+    assert os.environ["OCTOAI_TOKEN"] != "", "OctoAI token is not specified"
+    cmds: List[str] = []
     for num_endpoint, endpoint in enumerate(endpoints[endpoint_type]):
         res_path = Path(write_out_base_path) / task / f"{endpoint_type}_{endpoint}"
         if not res_path.exists():
@@ -65,14 +61,9 @@ def run_benchmark(
         print()
 
         if num_endpoint < limit_sessions:
-            subprocess.run(
-                f"tmux new-session -d -s {num_endpoint} ",
-                shell=True,
-                universal_newlines=True,
-                check=False,
-            )
-
-        write_table_command = ""
+            cmds.append("")
+        # else:
+        #     cmds[num_endpoint % limit_sessions] += "; "
 
         res_output = str(
             Path(f"nf{num_fewshot}")
@@ -81,44 +72,44 @@ def run_benchmark(
 
         fill_table_script = str(Path(__file__).parent.joinpath("fill_table.py"))
         write_out_abs = str(Path(work_dir) / write_out_base_path)
-        if write_table:
-            write_table_command = f"""  python {fill_table_script} \
-                                        --path_to_results={res_output} \
-                                        --model_name={endpoint_type}_{endpoint} \
-                                        {'--write_table' if write_table else ''} \
-                                        {'--debug_table' if debug else ''} \
-                                        --write_out_base={write_out_abs}"""
+        write_table_command = f"""  python {fill_table_script} \
+                                    --path_to_results={res_output} \
+                                    --model_name={endpoint_type}_{endpoint} \
+                                    {'--write_table' if write_table else ''} \
+                                    {'--debug_table' if debug else ''} \
+                                    --write_out_base={write_out_abs}; """
             
         extra_args = f"--limit={limit_samples}" if limit_samples else ""
 
-        tmux_server.sessions[num_endpoint % limit_sessions].panes[0].send_keys(
-            f"python3 {path_to_benchmark_repo}/main.py "
-            f"--model=octoai "
-            f"--model_args='model_name={endpoint},prod={str(endpoint_type == 'prod')}' "
-            f"--task={task} "
-            f"--output_path={res_output} "
-            f"--no_cache "
-            f"--num_fewshot={num_fewshot} "
-            f"--batch_size=1 "
-            f"--write_out "
-            f"{extra_args} "
-            f"--output_base_path={Path(res_output).parent}/",
-            enter=True,
-        )
-
-        tmux_server.sessions[num_endpoint % limit_sessions].panes[0].send_keys(
-            write_table_command, enter=True
-        )
-        tmux_server.sessions[num_endpoint % limit_sessions].panes[0].send_keys(
-            f"cd {work_dir}", enter=True
-        )
-
-    while len(tmux_server.sessions) > 0:  # wait until all tmux sessions running tests are killed
-        for session in tmux_server.sessions:
-            if session.panes[0].capture_pane()[-1].endswith("$"):
-                session.panes[0].send_keys("exit", enter=True)
-
-    print("Done")
+        cmds[num_endpoint % limit_sessions] += f""" python {path_to_benchmark_repo}/main.py \
+            --model=octoai \
+            --model_args='model_name={endpoint},prod={str(endpoint_type == 'prod')},batch_size={os.cpu_count() // limit_sessions}' \
+            --task={task} \
+            --output_path={res_output} \
+            --no_cache \
+            --num_fewshot={num_fewshot} \
+            --write_out \
+            {extra_args} \
+            --output_base_path={Path(res_output).parent}/; """
+        cmds[num_endpoint % limit_sessions] += write_table_command
+        cmds[num_endpoint % limit_sessions] += f" cd {work_dir}; "
+    # print(cmds)
+    # return
+    running_procs = [
+        subprocess.Popen(
+            cmd, 
+            # stdout=subprocess.PIPE, 
+            # stderr=subprocess.PIPE,
+            shell=True
+        ) for cmd in cmds
+    ]
+    while running_procs:
+        for proc in running_procs:
+            if proc.poll() is not None:
+                running_procs.remove(proc)
+                break
+        print(f"\r{len(running_procs)} sessions left out of {limit_sessions} for {task}", end="")
+    print("\nDone")
 
 
 def main() -> None:  # pylint: disable=missing-function-docstring
@@ -139,9 +130,9 @@ def main() -> None:  # pylint: disable=missing-function-docstring
     parser.add_argument(
         "--task", type=str, default="all"
     )  # [gsm8k, truthfulqa_gen, triviaqa, human_eval, all]
-    parser.add_argument("--endpoint_type", type=str, default="dev")
+    parser.add_argument("--endpoint_type", type=str, default="prod")
     parser.add_argument("--write_table", action="store_true")
-    parser.add_argument("--limit_sessions", type=int, default=4)
+    parser.add_argument("--limit_sessions", type=int, default=os.cpu_count() // 2)
     parser.add_argument("--limit_samples", type=int, default=None)
     parser.add_argument("--debug", action="store_true")
     args = parser.parse_args()
@@ -160,6 +151,7 @@ def main() -> None:  # pylint: disable=missing-function-docstring
     chosen_types = ["dev", "prod"] if args.endpoint_type == "all" else [args.endpoint_type]
 
     if args.write_table:
+        from utils import init_gspread_client
         spreadsheet = init_gspread_client()
         today = str(datetime.date.today())
         table_name = "debug_table" if args.debug else today
@@ -184,7 +176,8 @@ def main() -> None:  # pylint: disable=missing-function-docstring
                         num_fewshot=num_fewshot,
                         write_out_base_path=args.write_out_base,
                         task=task,
-                        limit_sessions=args.limit_sessions,
+                        # bleu metrics take a lot of CPU resources so manually set only 1 process to generate
+                        limit_sessions=args.limit_sessions if task != "truthfulqa" else 1,
                         write_table=args.write_table,
                         debug=args.debug,
                         limit_samples=args.limit_samples,

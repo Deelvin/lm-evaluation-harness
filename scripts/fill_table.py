@@ -1,13 +1,10 @@
-from typing import Dict
+from typing import Dict, Any
 import argparse
 import datetime
 import json
 import os
 
-import gspread
 import pandas as pd
-
-from utils import init_gspread_client
 
 TASKS = ["gsm8k", "truthfulqa_gen", "triviaqa"]
 TASK_CONFIG = {
@@ -32,12 +29,12 @@ TASK_CONFIG = {
 }
 
 
-def get_row_by_model_name(worksheet: gspread.spreadsheet.Worksheet, model_name: str) -> int:
+def get_row_by_model_name(worksheet: Any, model_name: str) -> int:
     models = worksheet.col_values(1)
     return models.index(model_name) + 1
 
 
-def get_paper_results(spreadsheet: gspread.spreadsheet.Spreadsheet) -> Dict[str, Dict[str, float]]:
+def get_paper_results(spreadsheet: Any) -> Dict[str, Dict[str, float]]:
     worksheet = spreadsheet.worksheet("Paper Results")
     models = worksheet.col_values(1)
     gsm8k_results = worksheet.col_values(2)
@@ -58,8 +55,8 @@ def get_paper_results(spreadsheet: gspread.spreadsheet.Spreadsheet) -> Dict[str,
 
 
 def fill_diff_from_paper(
-    spreadsheet: gspread.spreadsheet.Spreadsheet,
-    worksheet: gspread.spreadsheet.Worksheet,
+    spreadsheet: Any,
+    worksheet: Any,
     task: str,
     model_name: str,
     row: int,
@@ -93,8 +90,8 @@ def fill_diff_from_paper(
 
 
 def fill_diff_from_prev(
-    spreadsheet: gspread.spreadsheet.Spreadsheet,
-    worksheet: gspread.spreadsheet.Worksheet,
+    spreadsheet: Any,
+    worksheet: Any,
     task: str,
     model_name: str,
     row: int,
@@ -120,6 +117,7 @@ def process_benchmark_results(
     debug_table: bool = False,
 ) -> None:
     if write_table:
+        from utils import init_gspread_client
         spreadsheet = init_gspread_client()
         today = str(datetime.date.today())
         table_name = "debug_table" if debug_table else today
