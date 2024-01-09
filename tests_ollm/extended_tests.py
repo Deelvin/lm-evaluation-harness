@@ -2,6 +2,8 @@ from concurrent.futures import ThreadPoolExecutor
 import os
 import time
 import concurrent.futures
+import types
+import json
 
 import requests
 import pytest
@@ -306,3 +308,59 @@ def test_all_completions_same(model_name, n, token, endpoint):
     content_arr = set([completion["choices"][i]["message"]["content"] for i in range(n)])
 
     assert len(content_arr) == 1
+
+
+# @pytest.mark.parametrize("num_workers", [16, 32])
+# @pytest.mark.parametrize("n", [1, 10, 100, 500])
+@pytest.mark.parametrize("num_workers", [2])
+@pytest.mark.parametrize("n", [10])
+def test_many_request_and_completion(model_name, num_workers, n, token, endpoint):
+    message = "Create a short story about a friendship between a cat and a dog."
+    request = model_data(model_name, message, max_tokens=300, n=n)
+    url = endpoint + "/v1/chat/completions"
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {token}",
+    }
+    responses_code_set = set()
+    with ThreadPoolExecutor(max_workers=num_workers) as executor:
+        futures = [
+            executor.submit(send_request_get_response, url, request, headers)
+            for _ in range(num_workers)
+        ]
+        for future in concurrent.futures.as_completed(futures):
+            print(future.result().json())
+            responses_code_set.add(future.result().status_code)
+
+    assert responses_code_set == {200}
+
+
+@pytest.mark.parametrize("n", [2, 10, 100])
+def test_stream_with_num_chat_completion(model_name, n, token, endpoint):
+    messages = [
+        {"role": "system", "content": "You are a helpful assistant. Write very short."},
+        {"role": "user", "content": "Describe a dog"},
+    ]
+
+    completion_stream = run_completion(
+        model_name,
+        messages,
+        token,
+        endpoint,
+        n=n,
+        stream=True,
+        max_tokens=300,
+        temperature=0.8,
+        frequency_penalty=0.8,
+        return_completion=True,
+    )
+
+    assert isinstance(completion_stream, types.GeneratorType)
+    stream_finish = set()
+    for chunk in completion_stream:
+        chunk_index = chunk["choices"][0]["index"]
+        chunk_finish_reason = chunk["choices"][0]["finish_reason"]
+
+        assert chunk_index not in stream_finish
+        if chunk_finish_reason is not None:
+            stream_finish.add(chunk_index)
