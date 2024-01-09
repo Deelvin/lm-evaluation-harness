@@ -12,7 +12,6 @@ if OPENAI_VER_MAJ >= 1:
 else:
     from openai.error import APIError, AuthenticationError, APIConnectionError
 
-
 def path_to_file(file_name):
     return os.path.join(os.path.dirname(__file__), file_name)
 
@@ -35,11 +34,11 @@ def run_completion(
     http_response = 200
     openai.api_key = token
     try:
-        openai.base_url = endpoint + "/v1"
         if chat is True:
             if OPENAI_VER_MAJ >= 1:
                 client = openai.OpenAI(
                     api_key=token,
+                    base_url = endpoint + "/v1",
                 )
                 chat_completions = client.chat.completions
             else:
@@ -62,8 +61,15 @@ def run_completion(
                 raise NotImplementedError(
                     "Completion is not supported on new OpenAI API yet"
                 )
-            openai.api_base = endpoint + "/v1"
-            completion = openai.Completion.create(
+                client = openai.OpenAI(
+                    api_key=token,
+                    base_url = endpoint + "/v1",
+                )
+                completion = client.completions
+            else:
+                openai.api_base = endpoint + "/v1"
+                completion = openai.Completion
+            completion = completion.create(
                 model=model_name,
                 prompt=text,
                 max_tokens=max_tokens,

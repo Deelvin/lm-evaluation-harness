@@ -16,7 +16,7 @@ OPENAI_VER_MAJ = int(openai.__version__.split(".")[0])
 
 if OPENAI_VER_MAJ >= 1:
     from openai import APIError
-    from pydantic import BaseModel as CompletionObject
+    from typing import Dict as CompletionObject
 else:
     from openai.error import APIError
     from openai.openai_object import OpenAIObject as CompletionObject
