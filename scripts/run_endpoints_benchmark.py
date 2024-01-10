@@ -7,10 +7,10 @@ import subprocess
 import argparse
 
 FEWSHOTS_PER_TASK = {
-    "gsm8k": [0, 5, 8],
-    "truthfulqa_gen": [0],
+    "gsm8k": [0, 5], #, 8],
+    # "human_eval": [0],
     "triviaqa": [0, 5],
-    # "human_eval": [0]
+    # "truthfulqa_gen": [0],
 }
 
 GSM8K_SIZE = 1319
@@ -36,7 +36,7 @@ def run_benchmark(
     task: str = "gsm8k",
     write_table: bool = True,
     debug: bool = False,
-    limit_sessions: int = 3,
+    limit_sessions: int = 2,
     limit_samples: Optional[int] = None,
 ) -> None:
     os.environ["OCTOAI_TOKEN"] = os.environ.get(f"OCTOAI_TOKEN_{endpoint_type.upper()}", "")
@@ -47,9 +47,8 @@ def run_benchmark(
         if not res_path.exists():
             res_path.mkdir(parents=True)
         work_dir = Path.cwd()
-        os.chdir(res_path)
 
-        nf_path = Path(f"./nf{num_fewshot}")
+        nf_path = Path(res_path / f"nf{num_fewshot}")
         if not nf_path.exists():
             nf_path.mkdir(parents=True)
 
@@ -60,10 +59,8 @@ def run_benchmark(
         print("  -------------------------------------------------------------------------------")
         print()
 
-        if num_endpoint < limit_sessions:
-            cmds.append("")
-        # else:
-        #     cmds[num_endpoint % limit_sessions] += "; "
+        cmds.append("")
+        cmds[num_endpoint] += f"cd {res_path};"
 
         res_output = str(
             Path(f"nf{num_fewshot}")
@@ -81,9 +78,9 @@ def run_benchmark(
             
         extra_args = f"--limit={limit_samples}" if limit_samples else ""
 
-        cmds[num_endpoint % limit_sessions] += f""" python {path_to_benchmark_repo}/main.py \
+        cmds[num_endpoint] += f""" python {path_to_benchmark_repo}/main.py \
             --model=octoai \
-            --model_args='model_name={endpoint},prod={str(endpoint_type == 'prod')},batch_size={os.cpu_count() // limit_sessions}' \
+            --model_args='model_name={endpoint},prod={str(endpoint_type == 'prod')},batch_size={limit_sessions}' \
             --task={task} \
             --output_path={res_output} \
             --no_cache \
@@ -91,24 +88,15 @@ def run_benchmark(
             --write_out \
             {extra_args} \
             --output_base_path={Path(res_output).parent}/; """
-        cmds[num_endpoint % limit_sessions] += write_table_command
-        cmds[num_endpoint % limit_sessions] += f" cd {work_dir}; "
-    # print(cmds)
-    # return
-    running_procs = [
-        subprocess.Popen(
-            cmd, 
-            # stdout=subprocess.PIPE, 
-            # stderr=subprocess.PIPE,
+        cmds[num_endpoint] += write_table_command
+        cmds[num_endpoint] += f" cd {work_dir}; "
+    for cmd in cmds:
+        subprocess.run(
+            cmd,
+            # stdout=subprocess.PIPE,
+            # stderr=subprocess.STDOUT,
             shell=True
-        ) for cmd in cmds
-    ]
-    while running_procs:
-        for proc in running_procs:
-            if proc.poll() is not None:
-                running_procs.remove(proc)
-                break
-        print(f"\r{len(running_procs)} sessions left out of {limit_sessions} for {task}", end="")
+        )
     print("\nDone")
 
 
@@ -132,7 +120,7 @@ def main() -> None:  # pylint: disable=missing-function-docstring
     )  # [gsm8k, truthfulqa_gen, triviaqa, human_eval, all]
     parser.add_argument("--endpoint_type", type=str, default="prod")
     parser.add_argument("--write_table", action="store_true")
-    parser.add_argument("--limit_sessions", type=int, default=os.cpu_count() // 2)
+    parser.add_argument("--limit_sessions", type=int, default=os.cpu_count())
     parser.add_argument("--limit_samples", type=int, default=None)
     parser.add_argument("--debug", action="store_true")
     args = parser.parse_args()
@@ -177,7 +165,7 @@ def main() -> None:  # pylint: disable=missing-function-docstring
                         write_out_base_path=args.write_out_base,
                         task=task,
                         # bleu metrics take a lot of CPU resources so manually set only 1 process to generate
-                        limit_sessions=args.limit_sessions if task != "truthfulqa" else 1,
+                        limit_sessions=args.limit_sessions if task != "truthfulqa_gen" else 1,
                         write_table=args.write_table,
                         debug=args.debug,
                         limit_samples=args.limit_samples,

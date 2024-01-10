@@ -108,6 +108,14 @@ def fill_diff_from_prev(
         diff_cell, f"={TASK_CONFIG[task]['start_column'][0]}{row}-{prev_res_col}{row}", raw=False
     )
 
+def create_summary(artifacts_dir: str) -> pd.DataFrame:
+    dataframes = []
+    for filename in os.listdir(artifacts_dir):
+        dataframes.append(pd.read_csv(os.path.join(artifacts_dir, filename)))
+    summary = dataframes[0]
+    for dataframe in dataframes:
+        summary = summary.merge(dataframe, on=list(set(summary.columns) & set(dataframe.columns)), how="outer")
+    return summary.set_index("endpoint")
 
 def process_benchmark_results(
     path_to_results: str,
@@ -133,7 +141,7 @@ def process_benchmark_results(
         start_column = TASK_CONFIG[task_name]["start_column"][num_fewshot]
         current_results = {}
         for idx, metric in enumerate(TASK_CONFIG[task_name]["metrics"]):
-            current_results[metric] = res_file["results"][task_name][metric]
+            current_results[f"{task_name}_nf={num_fewshot}_{metric}"] = res_file["results"][task_name][metric]
             if write_table:
                 current_row = get_row_by_model_name(worksheet, model_name)
                 worksheet.update(
@@ -159,13 +167,15 @@ def process_benchmark_results(
         artifact_path = os.path.join(artifacts_dir, f"{task_name}_summary.csv")
         if os.path.exists(artifact_path):
             temp_dataframe = pd.read_csv(artifact_path)
-            results_dataframe = pd.concat(
-                [temp_dataframe, results_dataframe], axis=0, ignore_index=True
+            results_dataframe = temp_dataframe.merge(
+                results_dataframe, on=list(set(temp_dataframe.columns) & set(results_dataframe.columns)), how="outer"
             )
         if not os.path.exists(os.path.dirname(artifact_path)):
             os.makedirs(os.path.dirname(artifact_path))
         results_dataframe.to_csv(artifact_path, index=False)
-
+        create_summary(artifacts_dir=artifacts_dir).to_csv(
+            os.path.join(path_to_results_root, "summary.csv")
+        )
 
 def main():
     print("Processing results...")
