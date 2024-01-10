@@ -284,7 +284,7 @@ def evaluate(
             if task_name == "humaneval":
                 task.set_num_answers_per_example(num_answers_per_example)
             reqs = task.construct_requests(doc, ctx)
-            
+
             if write_out:
                 prompt_details.append({"doc_id": doc_id})
 

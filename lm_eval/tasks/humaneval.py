@@ -29,7 +29,7 @@ _CITATION = """
 
 class HumanEval(Task):
     VERSION = 0
-    
+
     def __init__(self):
         self.problems = read_problems().values()
         self.PATH_TO_HUMANEVAL = os.path.dirname(inspect.getfile(lm_eval.datasets.humaneval))
@@ -37,10 +37,10 @@ class HumanEval(Task):
             os.remove(f"{self.PATH_TO_HUMANEVAL}/samples.jsonl")
         if os.path.isfile(f"{self.PATH_TO_HUMANEVAL}/samples.jsonl_results.jsonl"):
             os.remove(f"{self.PATH_TO_HUMANEVAL}/samples.jsonl_results.jsonl")
-    
+
     def set_num_answers_per_example(self, num_answers_per_example):
         self.num_answers_per_example = num_answers_per_example
-        
+
     def has_training_docs(self):
         return False
 
@@ -179,7 +179,7 @@ class HumanEval(Task):
             return f"\n{code_blocks_str}"
         else:
             return "No code blocks found in the response."
-    
+
     def estimate_pass_at_k(self, n, c, k):
         """
         Calculates 1 - comb(n - c, k) / comb(n, k).
@@ -187,5 +187,3 @@ class HumanEval(Task):
         if n - c < k:
             return 1.0
         return 1.0 - np.prod(1.0 - k / np.arange(n - c + 1, n + 1))
-
-    
