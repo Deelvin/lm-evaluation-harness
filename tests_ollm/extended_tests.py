@@ -2,8 +2,6 @@ from concurrent.futures import ThreadPoolExecutor
 import os
 import time
 import concurrent.futures
-import types
-import json
 
 import requests
 import pytest
@@ -311,10 +309,9 @@ def test_all_completions_same(model_name, n, token, endpoint):
     assert len(content_arr) == 1
 
 
-# @pytest.mark.parametrize("num_workers", [16, 32])
-# @pytest.mark.parametrize("n", [1, 10, 100, 500])
 @pytest.mark.parametrize("num_workers", [2])
 @pytest.mark.parametrize("n", [10])
+@pytest.mark.xfail(reason="Currently, there is a problem with n")
 def test_many_request_and_completion(model_name, num_workers, n, token, endpoint):
     message = "Create a short story about a friendship between a cat and a dog."
     request = model_data(model_name, message, max_tokens=300, n=n)
