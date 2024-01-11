@@ -154,7 +154,7 @@ def test_large_input_content(input_tokens, model_name, context_size, token, endp
         prompt = file.read()
     messages = [{"role": "user", "content": prompt}]
     max_tokens = 200
-    if model_name == "codellama-34b-instruct-fp16":
+    if model_name == "codellama-34b-instruct-fp16" and endpoint == "https://text.octoai.run":
         context_size = 16384
 
     if (input_tokens + max_tokens) < context_size:
