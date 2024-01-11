@@ -8,7 +8,7 @@ import argparse
 import yaml
 
 FEWSHOTS_PER_TASK = {
-    "gsm8k": [0, 5],  # , 8],
+    "gsm8k": [0, 5, 8],
     # "human_eval": [0],
     "triviaqa": [0, 5],
     "truthfulqa_gen": [0],
@@ -190,7 +190,7 @@ def main() -> None:  # pylint: disable=missing-function-docstring
                         num_fewshot=num_fewshot,
                         write_out_base_path=args.write_out_base,
                         task=task,
-                        # bleu metrics take a lot of CPU resources so manually set only 1 process to generate
+                        # bleu metrics take a lot of CPU resources so manually set only 1 process to run
                         limit_sessions=args.limit_sessions if task != "truthfulqa_gen" else 1,
                         write_table=args.write_table,
                         debug=args.debug,
