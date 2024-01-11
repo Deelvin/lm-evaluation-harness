@@ -1,11 +1,11 @@
 from typing import Dict, List, Optional, Union, TypeAlias
 from pathlib import Path
-import json
 import os
 import datetime
 import subprocess
-import yaml
 import argparse
+
+import yaml
 
 FEWSHOTS_PER_TASK = {
     "gsm8k": [0, 5],  # , 8],
@@ -122,9 +122,10 @@ def run_benchmark(
     for cmd in cmds:
         subprocess.run(
             cmd,
-            # stdout=subprocess.PIPE,
-            # stderr=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             shell=True,
+            check=True
         )
     print("\nDone")
 
@@ -163,7 +164,7 @@ def main() -> None:  # pylint: disable=missing-function-docstring
     chosen_types = config["models"].keys()
 
     if args.write_table:
-        from utils import init_gspread_client
+        from utils import init_gspread_client # pylint: disable=import-outside-toplevel
 
         spreadsheet = init_gspread_client()
         today = str(datetime.date.today())

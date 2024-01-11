@@ -129,7 +129,7 @@ def process_benchmark_results(
     debug_table: bool = False,
 ) -> None:
     if write_table:
-        from utils import init_gspread_client
+        from utils import init_gspread_client # pylint: disable=import-outside-toplevel
 
         spreadsheet = init_gspread_client()
         today = str(datetime.date.today())
@@ -179,9 +179,12 @@ def process_benchmark_results(
             ) != ["model"]:
                 for column in results_dataframe.columns:
                     if column != "model":
-                        temp_dataframe.loc[temp_dataframe.index[temp_dataframe["model"] == current_results["model"]].tolist()[0], column] = results_dataframe[
-                            column
-                        ].tolist()[0]
+                        temp_dataframe.loc[
+                            temp_dataframe.index[
+                                temp_dataframe["model"] == current_results["model"]
+                            ].tolist()[0],
+                            column,
+                        ] = results_dataframe[column].tolist()[0]
                 results_dataframe = temp_dataframe
             else:
                 results_dataframe = temp_dataframe.merge(
