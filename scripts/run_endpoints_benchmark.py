@@ -1,16 +1,17 @@
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union, TypeAlias
 from pathlib import Path
 import json
 import os
 import datetime
 import subprocess
+import yaml
 import argparse
 
 FEWSHOTS_PER_TASK = {
-    "gsm8k": [0, 5], #, 8],
+    "gsm8k": [0, 5],  # , 8],
     # "human_eval": [0],
     "triviaqa": [0, 5],
-    # "truthfulqa_gen": [0],
+    "truthfulqa_gen": [0],
 }
 
 GSM8K_SIZE = 1319
@@ -18,17 +19,43 @@ TRUTHFULQA_GEN_SIZE = 817
 TRIVIAQA_SIZE = 17944
 HUMANEVAL_SIZE = 163
 
+DEFAULT_CONFIG = str(Path(__file__).parent.joinpath("config.yaml"))
 
-def parse_endpoints(
-    path_to_endpoints_file: str,
-) -> Dict[str, List[str]]:
-    with open(path_to_endpoints_file, "r+", encoding="utf-8") as file:
-        endpoints = json.load(file)
-    return endpoints
+Config: TypeAlias = Dict[str, Union[Dict[str, List[str]], List[str]]]
+
+
+def process_config(config: Config) -> Config:
+    """
+    Validate the structure of config and fill
+    missing parameters with default values
+    """
+    assert list(config.keys()) in [
+        ["models", "tasks"],
+        ["models"],
+        ["tasks"],
+    ], 'Config can contain only "models" and/or "tasks" fields'
+    if "models" in config:
+        assert list(config["models"]) in [
+            ["dev", "prod"],
+            ["dev"],
+            ["prod"],
+        ], 'Need to specify type of endpoint environment ("dev" or "prod")'
+    with open(DEFAULT_CONFIG, "r+", encoding="utf-8") as file:
+        default_config = yaml.safe_load(file)
+    default_config.update(config)
+    return default_config
+
+
+def parse_config(
+    path_to_config_file: str,
+) -> Config:
+    with open(path_to_config_file, "r+", encoding="utf-8") as file:
+        config = yaml.safe_load(file)
+    return config
 
 
 def run_benchmark(
-    endpoints: Dict[str, List[str]],
+    models: Dict[str, List[str]],
     endpoint_type: str,
     path_to_benchmark_repo: str,
     num_fewshot: int = 0,
@@ -42,7 +69,7 @@ def run_benchmark(
     os.environ["OCTOAI_TOKEN"] = os.environ.get(f"OCTOAI_TOKEN_{endpoint_type.upper()}", "")
     assert os.environ["OCTOAI_TOKEN"] != "", "OctoAI token is not specified"
     cmds: List[str] = []
-    for num_endpoint, endpoint in enumerate(endpoints[endpoint_type]):
+    for num_endpoint, endpoint in enumerate(models[endpoint_type]):
         res_path = Path(write_out_base_path) / task / f"{endpoint_type}_{endpoint}"
         if not res_path.exists():
             res_path.mkdir(parents=True)
@@ -75,10 +102,12 @@ def run_benchmark(
                                     {'--write_table' if write_table else ''} \
                                     {'--debug_table' if debug else ''} \
                                     --write_out_base={write_out_abs}; """
-            
+
         extra_args = f"--limit={limit_samples}" if limit_samples else ""
 
-        cmds[num_endpoint] += f""" python {path_to_benchmark_repo}/main.py \
+        cmds[
+            num_endpoint
+        ] += f""" python {path_to_benchmark_repo}/main.py \
             --model=octoai \
             --model_args='model_name={endpoint},prod={str(endpoint_type == 'prod')},batch_size={limit_sessions}' \
             --task={task} \
@@ -94,8 +123,8 @@ def run_benchmark(
         subprocess.run(
             cmd,
             # stdout=subprocess.PIPE,
-            # stderr=subprocess.STDOUT,
-            shell=True
+            # stderr=subprocess.PIPE,
+            shell=True,
         )
     print("\nDone")
 
@@ -103,9 +132,9 @@ def run_benchmark(
 def main() -> None:  # pylint: disable=missing-function-docstring
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--endpoints_file",
+        "--config",
         type=str,
-        default=str(Path(__file__).parent.joinpath("endpoints.json")),
+        default=DEFAULT_CONFIG,
     )
     parser.add_argument(
         "--benchmark_repo", type=str, default=str(Path(__file__).resolve().parents[1])
@@ -118,7 +147,6 @@ def main() -> None:  # pylint: disable=missing-function-docstring
     parser.add_argument(
         "--task", type=str, default="all"
     )  # [gsm8k, truthfulqa_gen, triviaqa, human_eval, all]
-    parser.add_argument("--endpoint_type", type=str, default="prod")
     parser.add_argument("--write_table", action="store_true")
     parser.add_argument("--limit_sessions", type=int, default=os.cpu_count())
     parser.add_argument("--limit_samples", type=int, default=None)
@@ -129,17 +157,14 @@ def main() -> None:  # pylint: disable=missing-function-docstring
         raise RuntimeError(
             """Please export your OctoAI token to environment variable 
             OCTOAI_TOKEN_DEV or OCTOAI_TOKEN_PROD depending on type of 
-            endpoints you are going to test"""
+            endpoint environment you are going to test"""
         )
-
-    if args.endpoint_type not in ["dev", "prod", "all"]:
-        raise RuntimeError("Please specify only 'dev', 'prod' or 'all' type of endpoints")
-
-    endpoints: Dict[str, List[Dict[str, str]]] = parse_endpoints(args.endpoints_file)
-    chosen_types = ["dev", "prod"] if args.endpoint_type == "all" else [args.endpoint_type]
+    config: Config = process_config(parse_config(args.config))
+    chosen_types = config["models"].keys()
 
     if args.write_table:
         from utils import init_gspread_client
+
         spreadsheet = init_gspread_client()
         today = str(datetime.date.today())
         table_name = "debug_table" if args.debug else today
@@ -149,16 +174,16 @@ def main() -> None:  # pylint: disable=missing-function-docstring
             worksheet = spreadsheet.worksheet("Template").duplicate(new_sheet_name=table_name)
         idx = 0
         for endpoint_type in chosen_types:
-            for endpoint in endpoints[endpoint_type]:
-                worksheet.update(f"A{3 + idx}", f"{endpoint_type}_{endpoint}")
+            for model in config["models"][endpoint_type]:
+                worksheet.update(f"A{3 + idx}", f"{endpoint_type}_{model}")
                 idx += 1
 
     for num_fewshot in [0, 5, 8]:
         for endpoint_type in chosen_types:
-            for task in FEWSHOTS_PER_TASK:
+            for task in config["tasks"]:
                 if num_fewshot in FEWSHOTS_PER_TASK[task]:
                     run_benchmark(
-                        endpoints,
+                        config["models"],
                         endpoint_type,
                         args.benchmark_repo,
                         num_fewshot=num_fewshot,

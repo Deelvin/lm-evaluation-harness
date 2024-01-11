@@ -108,14 +108,18 @@ def fill_diff_from_prev(
         diff_cell, f"={TASK_CONFIG[task]['start_column'][0]}{row}-{prev_res_col}{row}", raw=False
     )
 
+
 def create_summary(artifacts_dir: str) -> pd.DataFrame:
     dataframes = []
     for filename in os.listdir(artifacts_dir):
         dataframes.append(pd.read_csv(os.path.join(artifacts_dir, filename)))
     summary = dataframes[0]
     for dataframe in dataframes:
-        summary = summary.merge(dataframe, on=list(set(summary.columns) & set(dataframe.columns)), how="outer")
-    return summary.set_index("endpoint")
+        summary = summary.merge(
+            dataframe, on=list(set(summary.columns) & set(dataframe.columns)), how="outer"
+        )
+    return summary.set_index("model")
+
 
 def process_benchmark_results(
     path_to_results: str,
@@ -126,6 +130,7 @@ def process_benchmark_results(
 ) -> None:
     if write_table:
         from utils import init_gspread_client
+
         spreadsheet = init_gspread_client()
         today = str(datetime.date.today())
         table_name = "debug_table" if debug_table else today
@@ -141,7 +146,9 @@ def process_benchmark_results(
         start_column = TASK_CONFIG[task_name]["start_column"][num_fewshot]
         current_results = {}
         for idx, metric in enumerate(TASK_CONFIG[task_name]["metrics"]):
-            current_results[f"{task_name}_nf={num_fewshot}_{metric}"] = res_file["results"][task_name][metric]
+            current_results[f"{task_name}_nf={num_fewshot}_{metric}"] = res_file["results"][
+                task_name
+            ][metric]
             if write_table:
                 current_row = get_row_by_model_name(worksheet, model_name)
                 worksheet.update(
@@ -162,20 +169,35 @@ def process_benchmark_results(
                     model_name=model_name,
                     row=current_row,
                 )
-        current_results["endpoint"] = model_name
+        current_results["model"] = model_name
         results_dataframe = pd.DataFrame(current_results, index=[0])
         artifact_path = os.path.join(artifacts_dir, f"{task_name}_summary.csv")
         if os.path.exists(artifact_path):
             temp_dataframe = pd.read_csv(artifact_path)
-            results_dataframe = temp_dataframe.merge(
-                results_dataframe, on=list(set(temp_dataframe.columns) & set(results_dataframe.columns)), how="outer"
-            )
+            if current_results["model"] in temp_dataframe["model"].tolist() and list(
+                set(temp_dataframe.columns) & set(results_dataframe.columns)
+            ) != ["model"]:
+                for column in results_dataframe.columns:
+                    if column != "model":
+                        temp_dataframe.loc[temp_dataframe.index[temp_dataframe["model"] == current_results["model"]].tolist()[0], column] = results_dataframe[
+                            column
+                        ].tolist()[0]
+                results_dataframe = temp_dataframe
+            else:
+                results_dataframe = temp_dataframe.merge(
+                    results_dataframe,
+                    on=list(set(temp_dataframe.columns) & set(results_dataframe.columns)),
+                    how="outer",
+                )
         if not os.path.exists(os.path.dirname(artifact_path)):
             os.makedirs(os.path.dirname(artifact_path))
+        new_columns_order = [elem for elem in sorted(results_dataframe.columns) if elem != "model"]
+        results_dataframe = results_dataframe[["model"] + new_columns_order]
         results_dataframe.to_csv(artifact_path, index=False)
         create_summary(artifacts_dir=artifacts_dir).to_csv(
             os.path.join(path_to_results_root, "summary.csv")
         )
+
 
 def main():
     print("Processing results...")
