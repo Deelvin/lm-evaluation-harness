@@ -8,7 +8,7 @@ import openai
 from sentence_transformers import SentenceTransformer
 from scipy.spatial import distance
 
-from utils import path_to_file, run_completion
+from utils import path_to_file, run_completion, is_stream_type
 
 # For compatibility with OpenAI versions before v1.0
 # https://github.com/openai/openai-python/pull/677.
@@ -296,12 +296,12 @@ def test_stream(model_name, token, endpoint):
         return_completion=True,
     )
     time_to_first_token = time.time() - start_time
-    assert isinstance(completion_stream, types.GeneratorType)
+    assert is_stream_type(completion_stream)
     stream_str = ""
     for chunk in completion_stream:
-        chunk_data = chunk["choices"][0]["delta"]["content"]
-        if chunk["choices"][0]["delta"]["role"] == "assistant" and chunk_data is not None:
-            if chunk["choices"][0]["finish_reason"] != "stop":
+        chunk_data = chunk.choices[0].delta.content
+        if chunk.choices[0].delta.role == "assistant" and chunk_data is not None:
+            if chunk.choices[0].finish_reason != "stop":
                 assert chunk_data != "", "Recieved chunk consists of empty string"
             stream_str += chunk_data
     start_time = time.time()

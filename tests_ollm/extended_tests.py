@@ -14,6 +14,7 @@ from utils import (
     send_request_with_timeout,
     path_to_file,
     model_data,
+    is_stream_type,
 )
 
 
@@ -355,11 +356,11 @@ def test_stream_with_num_chat_completion(model_name, n, token, endpoint):
         return_completion=True,
     )
 
-    assert isinstance(completion_stream, types.GeneratorType)
+    assert is_stream_type(completion_stream)
     stream_finish = set()
     for chunk in completion_stream:
-        chunk_index = chunk["choices"][0]["index"]
-        chunk_finish_reason = chunk["choices"][0]["finish_reason"]
+        chunk_index = chunk.choices[0].index
+        chunk_finish_reason = chunk.choices[0].finish_reason
 
         assert chunk_index not in stream_finish
         if chunk_finish_reason is not None:

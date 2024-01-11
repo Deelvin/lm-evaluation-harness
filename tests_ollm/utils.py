@@ -2,6 +2,7 @@ import os
 
 import requests
 import openai
+import types
 
 # For compatibility with OpenAI versions before v1.0
 # https://github.com/openai/openai-python/pull/677.
@@ -75,7 +76,7 @@ def run_completion(
                 presence_penalty=presence_penalty,
             )
         if return_completion:
-            if OPENAI_VER_MAJ >= 1:
+            if OPENAI_VER_MAJ >= 1 and not stream:
                 return completion.model_dump(exclude_unset=True)
             return completion
     except (APIError, AuthenticationError, APIConnectionError) as e:
@@ -134,3 +135,9 @@ def model_data(
         "frequency_penalty": frequency_penalty,
         "return_completion": return_completion,
     }
+
+
+def is_stream_type(stream_object):
+    if OPENAI_VER_MAJ >= 1:
+        return isinstance(stream_object, openai.Stream)
+    return isinstance(stream_object, types.GeneratorType)
