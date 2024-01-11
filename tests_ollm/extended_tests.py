@@ -140,7 +140,7 @@ def test_multiple_messages(model_name, token, endpoint):
     ]
 
     completion = run_completion(
-        model_name, messages, token, endpoint, max_tokens=20, return_completion=True
+        model_name, messages, token, endpoint, max_tokens=100, return_completion=True
     )
     assert "4" in completion["choices"][0]["message"]["content"]
 
