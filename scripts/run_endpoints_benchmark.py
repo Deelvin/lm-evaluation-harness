@@ -145,9 +145,6 @@ def main() -> None:  # pylint: disable=missing-function-docstring
         type=str,
         default=str(Path(__file__).resolve().parents[1].joinpath("logs")),
     )
-    parser.add_argument(
-        "--task", type=str, default="all"
-    )  # [gsm8k, truthfulqa_gen, triviaqa, human_eval, all]
     parser.add_argument("--write_table", action="store_true")
     parser.add_argument("--limit_sessions", type=int, default=os.cpu_count())
     parser.add_argument("--limit_samples", type=int, default=None)
