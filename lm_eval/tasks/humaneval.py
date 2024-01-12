@@ -10,7 +10,12 @@ import json
 import numpy as np
 from lm_eval.base import Task, rf
 from lm_eval.metrics import mean
-from lm_eval.datasets.humaneval.data import stream_jsonl, PATH_TO_HUMANEVAL
+from lm_eval.datasets.humaneval.data import (
+    stream_jsonl,
+    PATH_TO_HUMANEVAL,
+    PATH_TO_HUMANEVAL_DATA,
+    HUMAN_EVAL,
+)
 
 _CITATION = """
 @article{chen2021codex,
@@ -28,10 +33,12 @@ class HumanEval(Task):
     VERSION = 0
     DATASET_PATH = "openai_humaneval"
     DATASET_NAME = None
-    if os.path.isfile(f"{PATH_TO_HUMANEVAL}/samples.jsonl"):
-        os.remove(f"{PATH_TO_HUMANEVAL}/samples.jsonl")
-    if os.path.isfile(f"{PATH_TO_HUMANEVAL}/samples.jsonl_results.jsonl"):
-        os.remove(f"{PATH_TO_HUMANEVAL}/samples.jsonl_results.jsonl")
+
+    os.makedirs(PATH_TO_HUMANEVAL_DATA, exist_ok=True)
+    if os.path.isfile(f"{PATH_TO_HUMANEVAL_DATA}/samples.jsonl"):
+        os.remove(f"{PATH_TO_HUMANEVAL_DATA}/samples.jsonl")
+    if os.path.isfile(f"{PATH_TO_HUMANEVAL_DATA}/samples.jsonl_results.jsonl"):
+        os.remove(f"{PATH_TO_HUMANEVAL_DATA}/samples.jsonl_results.jsonl")
 
     def set_num_answers_per_example(self, num_answers_per_example):
         self.num_answers_per_example = num_answers_per_example
@@ -52,7 +59,7 @@ class HumanEval(Task):
         raise NotImplementedError
 
     def test_docs(self):
-        self.dataset["test"].to_json(f"{PATH_TO_HUMANEVAL}/HumanEval.jsonl")
+        self.dataset["test"].to_json(HUMAN_EVAL)
         return self.dataset["test"]
 
     def doc_to_text(self, doc):
@@ -76,7 +83,7 @@ class HumanEval(Task):
 
     def _is_correct(self, completion, doc):
         results = []
-        for sample in stream_jsonl(f"{PATH_TO_HUMANEVAL}/samples.jsonl_results.jsonl"):
+        for sample in stream_jsonl(f"{PATH_TO_HUMANEVAL_DATA}/samples.jsonl_results.jsonl"):
             task_id = sample["task_id"]
             if task_id == doc["task_id"]:
                 results.append(sample["passed"])
@@ -98,11 +105,11 @@ class HumanEval(Task):
             The results of the requests created in construct_requests.
         """
         # log outputs to a jsonl file, for use with the official evaluation + execution script.
-        with open(f"{PATH_TO_HUMANEVAL}/samples.jsonl", "a") as file:
+        with open(f"{PATH_TO_HUMANEVAL_DATA}/samples.jsonl", "a") as file:
             for completion in results:
                 completion = self.extract_code_and_imports_as_string(completion)
                 file.write(json.dumps({"task_id": doc["task_id"], "completion": completion}) + "\n")
-        tmp = os.popen(f"python {PATH_TO_HUMANEVAL}/evaluate_functional_correctness.py {PATH_TO_HUMANEVAL}/samples.jsonl").read()
+        tmp = os.popen(f"python {PATH_TO_HUMANEVAL}/evaluate_functional_correctness.py {PATH_TO_HUMANEVAL_DATA}/samples.jsonl").read()
         return self._is_correct(completion, doc)
 
     def aggregation(self):

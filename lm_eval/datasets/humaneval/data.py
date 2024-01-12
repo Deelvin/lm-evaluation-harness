@@ -5,9 +5,10 @@ import os
 import inspect
 import lm_eval.datasets.humaneval
 
-ROOT = os.path.dirname(os.path.abspath(__file__))
-HUMAN_EVAL = os.path.join(ROOT, "HumanEval.jsonl")
+ROOT = os.getcwd()
+HUMAN_EVAL = os.path.join(ROOT, "data/HumanEval.jsonl")
 PATH_TO_HUMANEVAL = os.path.dirname(inspect.getfile(lm_eval.datasets.humaneval))
+PATH_TO_HUMANEVAL_DATA = os.path.join(ROOT, "data")
 
 def read_problems(evalset_file: str = HUMAN_EVAL) -> Dict[str, Dict]:
     return {task["task_id"]: task for task in stream_jsonl(evalset_file)}
