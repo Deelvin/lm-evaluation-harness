@@ -15,7 +15,7 @@ docker run \
     ailurus1/lm-eval-octoai:latest
 ```
 This will run all models and tasks specified in default `config.yaml`. You can change set of models or tasks by providing your own config file as `--config` argument at the end of command.  
-In `.env` file you should set environment variables `OCTOAI_TOKEN_<endpoint type>` with OctoAI tokens. All results, including the main artifact `summary.csv` will be saved in `./results` directory.  
+In `.env` file you should set environment variables `OCTOAI_TOKEN_DEV` and/or `OCTOAI_TOKEN_PROD` with OctoAI tokens. All results, including the main artifact `summary.csv` will be saved in `./results` directory.  
   
 __Notes:__
 - Currently this method does not support filling Google Spreadsheet. Only `summary.csv` will be generated
