@@ -4,16 +4,13 @@ https://arxiv.org/abs/2107.03374
 TODO: add abstract/description
 Homepage: https://github.com/openai/human-eval
 """
-import inspect
 import re
 import os
 import json
+import numpy as np
 from lm_eval.base import Task, rf
 from lm_eval.metrics import mean
-import lm_eval.datasets.humaneval
-from lm_eval.datasets.humaneval.data import read_problems, stream_jsonl
-
-import numpy as np
+from lm_eval.datasets.humaneval.data import stream_jsonl, PATH_TO_HUMANEVAL
 
 _CITATION = """
 @article{chen2021codex,
@@ -29,14 +26,12 @@ _CITATION = """
 
 class HumanEval(Task):
     VERSION = 0
-
-    def __init__(self):
-        self.problems = read_problems().values()
-        self.PATH_TO_HUMANEVAL = os.path.dirname(inspect.getfile(lm_eval.datasets.humaneval))
-        if os.path.isfile(f"{self.PATH_TO_HUMANEVAL}/samples.jsonl"):
-            os.remove(f"{self.PATH_TO_HUMANEVAL}/samples.jsonl")
-        if os.path.isfile(f"{self.PATH_TO_HUMANEVAL}/samples.jsonl_results.jsonl"):
-            os.remove(f"{self.PATH_TO_HUMANEVAL}/samples.jsonl_results.jsonl")
+    DATASET_PATH = "openai_humaneval"
+    DATASET_NAME = None
+    if os.path.isfile(f"{PATH_TO_HUMANEVAL}/samples.jsonl"):
+        os.remove(f"{PATH_TO_HUMANEVAL}/samples.jsonl")
+    if os.path.isfile(f"{PATH_TO_HUMANEVAL}/samples.jsonl_results.jsonl"):
+        os.remove(f"{PATH_TO_HUMANEVAL}/samples.jsonl_results.jsonl")
 
     def set_num_answers_per_example(self, num_answers_per_example):
         self.num_answers_per_example = num_answers_per_example
@@ -57,7 +52,8 @@ class HumanEval(Task):
         raise NotImplementedError
 
     def test_docs(self):
-        return self.problems
+        self.dataset["test"].to_json(f"{PATH_TO_HUMANEVAL}/HumanEval.jsonl")
+        return self.dataset["test"]
 
     def doc_to_text(self, doc):
         return doc["prompt"]
@@ -80,7 +76,7 @@ class HumanEval(Task):
 
     def _is_correct(self, completion, doc):
         results = []
-        for sample in stream_jsonl(f"{self.PATH_TO_HUMANEVAL}/samples.jsonl_results.jsonl"):
+        for sample in stream_jsonl(f"{PATH_TO_HUMANEVAL}/samples.jsonl_results.jsonl"):
             task_id = sample["task_id"]
             if task_id == doc["task_id"]:
                 results.append(sample["passed"])
@@ -102,11 +98,11 @@ class HumanEval(Task):
             The results of the requests created in construct_requests.
         """
         # log outputs to a jsonl file, for use with the official evaluation + execution script.
-        with open(f"{self.PATH_TO_HUMANEVAL}/samples.jsonl", "a") as file:
+        with open(f"{PATH_TO_HUMANEVAL}/samples.jsonl", "a") as file:
             for completion in results:
                 completion = self.extract_code_and_imports_as_string(completion)
                 file.write(json.dumps({"task_id": doc["task_id"], "completion": completion}) + "\n")
-        tmp = os.popen(f"python {self.PATH_TO_HUMANEVAL}/evaluate_functional_correctness.py {self.PATH_TO_HUMANEVAL}/samples.jsonl").read()
+        tmp = os.popen(f"python {PATH_TO_HUMANEVAL}/evaluate_functional_correctness.py {PATH_TO_HUMANEVAL}/samples.jsonl").read()
         return self._is_correct(completion, doc)
 
     def aggregation(self):

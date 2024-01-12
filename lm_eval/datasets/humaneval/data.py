@@ -2,11 +2,12 @@ from typing import Iterable, Dict
 import gzip
 import json
 import os
-
+import inspect
+import lm_eval.datasets.humaneval
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
-HUMAN_EVAL = os.path.join(ROOT, "HumanEval.jsonl.gz")
-
+HUMAN_EVAL = os.path.join(ROOT, "HumanEval.jsonl")
+PATH_TO_HUMANEVAL = os.path.dirname(inspect.getfile(lm_eval.datasets.humaneval))
 
 def read_problems(evalset_file: str = HUMAN_EVAL) -> Dict[str, Dict]:
     return {task["task_id"]: task for task in stream_jsonl(evalset_file)}
