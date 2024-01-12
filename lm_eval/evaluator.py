@@ -15,6 +15,7 @@ def simple_evaluate(
     model_args=None,
     tasks=[],
     num_fewshot=0,
+    num_answers_per_example=1,
     batch_size=None,
     max_batch_size=None,
     device=None,
@@ -40,6 +41,8 @@ def simple_evaluate(
         List of task names or Task objects. Task objects will be taken to have name task.EVAL_HARNESS_NAME if defined and type(task).__name__ otherwise.
     :param num_fewshot: int
         Number of examples in few-shot context
+    :param num_answers_per_example: int
+        Number of answers to generate on one example
     :param batch_size: int or str, optional
         Batch size for model
     :param max_batch_size: int, optional
@@ -105,6 +108,7 @@ def simple_evaluate(
         lm=lm,
         task_dict=task_dict,
         num_fewshot=num_fewshot,
+        num_answers_per_example=num_answers_per_example,
         limit=limit,
         bootstrap_iters=bootstrap_iters,
         description_dict=description_dict,
@@ -123,6 +127,7 @@ def simple_evaluate(
         ),
         "model_args": model_args,
         "num_fewshot": num_fewshot,
+        "num_answers_per_example": num_answers_per_example,
         "batch_size": batch_size,
         "batch_sizes": list(lm.batch_sizes.values())
         if hasattr(lm, "batch_sizes")
@@ -146,6 +151,7 @@ def evaluate(
     task_dict,
     provide_description=None,
     num_fewshot=0,
+    num_answers_per_example=1,
     limit=None,
     bootstrap_iters=100000,
     description_dict=None,
@@ -166,6 +172,8 @@ def evaluate(
         Not implemented, and this option is deprecated and will be removed in a future version in favor of a different description providing method
     :param num_fewshot: int
         Number of examples in few-shot context
+    :param num_answers_per_example: int
+        Number of answers to generate on one example
     :param limit: int, optional
         Limit the number of examples per task (only use this for testing)
     :param bootstrap_iters:
@@ -273,6 +281,8 @@ def evaluate(
             ctx = task.fewshot_context(
                 doc=doc, num_fewshot=num_fewshot, rnd=rnd, description=description
             )
+            if task_name == "humaneval":
+                task.set_num_answers_per_example(num_answers_per_example)
             reqs = task.construct_requests(doc, ctx)
 
             if write_out:
