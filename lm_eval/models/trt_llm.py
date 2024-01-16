@@ -76,10 +76,12 @@ class TRTLM(BaseLM):
                 end_id=self.tokenizer.eos_token_id,
                 pad_id=self.tokenizer.pad_token_id,
                 temperature=0.0,
-                repetition_penalty=0.0,
+                repetition_penalty=1.0,
+                output_sequence_lengths=True,
+                return_dict=True
             )
             torch.cuda.synchronize()
-        return outputs.squeeze()
+        return outputs["output_ids"].squeeze()[len(context):outputs["sequence_lengths"][0]]
 
     def greedy_until(
         self,
