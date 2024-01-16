@@ -1,10 +1,9 @@
-import os
-from typing import List, Tuple, Union, Iterable, Optional
+from typing import List, Tuple, Union, Optional
 
 import torch
+from transformers import AutoTokenizer
 
 from lm_eval.base import BaseLM
-from transformers import AutoTokenizer
 
 class TRTLM(BaseLM):
     def __init__(
@@ -14,7 +13,7 @@ class TRTLM(BaseLM):
         tokenizer_path: str,
         batch_size: int = 1,
     ):
-        from tensorrt_llm.runtime import ModelRunner
+        from tensorrt_llm.runtime import ModelRunner # pylint: disable=import-outside-toplevel
         super().__init__()
 
         self.tokenizer = AutoTokenizer.from_pretrained(
@@ -52,7 +51,7 @@ class TRTLM(BaseLM):
 
     @property
     def device(self):
-        raise "cuda"
+        return "cuda"
 
     def tok_encode(self, string: str):
         return self.tokenizer.encode(string)
@@ -60,14 +59,11 @@ class TRTLM(BaseLM):
     def tok_decode(self, tokens):
         return self.tokenizer.decode(tokens)
 
-    def _loglikelihood_tokens(self, requests):
-        raise NotImplementedError()
-
     def _model_call(self, inps):
         raise NotImplementedError()
 
     def _model_generate(
-        self, 
+        self,
         context: torch.Tensor,
         max_length: int,
         eos_token_id: Optional[List[str]] = None
@@ -86,7 +82,7 @@ class TRTLM(BaseLM):
         return outputs.squeeze()
 
     def greedy_until(
-        self, 
+        self,
         requests: List[Tuple[str, Union[List[str], str]]]
     ) -> List[str]:
         if not requests:
@@ -107,4 +103,4 @@ class TRTLM(BaseLM):
                 )
             )
             print(f"\r{num}/{len(requests)} requests processed", end="")
-        return res
+        return results
