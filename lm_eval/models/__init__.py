@@ -6,6 +6,7 @@ from . import textsynth
 from . import dummy
 from . import octoai_llms
 from . import mlc_llm
+from . import trt_llm
 
 MODEL_REGISTRY = {
     "hf": gpt2.HFLM,
@@ -18,7 +19,8 @@ MODEL_REGISTRY = {
     "textsynth": textsynth.TextSynthLM,
     "dummy": dummy.DummyLM,
     "octoai": octoai_llms.OctoAIEndpointLM,
-    "mlc-llm": mlc_llm.MLCLM
+    "mlc-llm": mlc_llm.MLCLM,
+    "trt-llm": trt_llm.TRTLM
 }
 
 
