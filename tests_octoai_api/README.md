@@ -19,6 +19,7 @@ The list of these tests:
 
 **Other differences:**
 
-In the openai api, `test_invalid_stop` consider that the `int(=42)` and `dict(={"stop": "tomato"})` can't be a stop word, but in the octoai api it can be.
+In the openai api, `test_invalid_stop` consider that the `dict(={"stop": "tomato"})` can't be a stop word, but in the octoai api it can be. 
+At the same time, `[{"stop": "tomato"}]` is an invalid stop parameter in octoai api.
 
 In the openai api, `test_valid_content` consider that the `None` can be a message, but in the octoai api it can't be.

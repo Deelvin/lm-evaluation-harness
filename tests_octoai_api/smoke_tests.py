@@ -339,10 +339,10 @@ def test_valid_stop(model_name, stop, token, endpoint):
 
 
 @pytest.mark.input_parameter
-@pytest.mark.parametrize("stop", [[1, 2, 3]])
+@pytest.mark.parametrize("stop", ["tomato", [{"stop": "tomato"}], 42, [1, 2, 3]])
 def test_invalid_stop(model_name, stop, token, endpoint):
     '''
-    In the openai api, int (42) and dict ({"stop": "tomato"}) is invalid stop word.
+    In the openai api, dict ({"stop": "tomato"}) is invalid stop word.
     '''
     messages = [{"role": "user", "content": "How to cook tomato paste?"}]
     assert (
