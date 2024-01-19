@@ -1,0 +1,97 @@
+{
+  "dev": [
+    {
+      "url": "https://text.customer-endpoints.nimbus.octoml.ai",
+      "model": "codellama-7b-instruct-fp16",
+      "context_size": 4096
+    },
+    {
+      "url": "https://text.customer-endpoints.nimbus.octoml.ai",
+      "model": "codellama-13b-instruct-fp16",
+      "context_size": 4096
+    },
+    {
+      "url": "https://text.customer-endpoints.nimbus.octoml.ai",
+      "model": "codellama-34b-instruct-int4",
+      "context_size": 4096
+    },
+    {
+      "url": "https://text.customer-endpoints.nimbus.octoml.ai",
+      "model": "codellama-34b-instruct-fp16",
+      "context_size": 4096
+    },
+    {
+      "url": "https://text.customer-endpoints.nimbus.octoml.ai",
+      "model": "llama-2-13b-chat-fp16",
+      "context_size": 4096
+    },
+    {
+      "url": "https://text.customer-endpoints.nimbus.octoml.ai",
+      "model": "llama-2-70b-chat-int4",
+      "context_size": 4096
+    },
+    {
+      "url": "https://text.customer-endpoints.nimbus.octoml.ai",
+      "model": "llama-2-70b-chat-fp16",
+      "context_size": 4096 
+    },
+    {
+      "url": "https://text.customer-endpoints.nimbus.octoml.ai",
+      "model": "mistral-7b-instruct-fp16",
+      "context_size": 4096
+    },
+    {
+        "url": "https://text.customer-endpoints.nimbus.octoml.ai",
+        "model": "mixtral-8x7b-instruct-fp16",
+        "context_size": 4096
+    }
+  ],
+
+  "prod": [
+    {
+      "url": "https://text.octoai.run",
+      "model": "codellama-7b-instruct-fp16",
+      "context_size": 4096
+    },
+    {
+      "url": "https://text.octoai.run",
+      "model": "codellama-13b-instruct-fp16",
+      "context_size": 4096
+    },
+    {
+      "url": "https://text.octoai.run",
+      "model": "codellama-34b-instruct-int4",
+      "context_size": 4096
+    },
+    {
+      "url": "https://text.octoai.run",
+      "model": "codellama-34b-instruct-fp16",
+      "context_size": 16384
+    },
+    {
+      "url": "https://text.octoai.run",
+      "model": "llama-2-13b-chat-fp16",
+      "context_size": 4096
+    },
+    {
+      "url": "https://text.octoai.run",
+      "model": "llama-2-70b-chat-int4",
+      "context_size": 4096
+    },
+    {
+      "url": "https://text.octoai.run",
+      "model": "llama-2-70b-chat-fp16",
+      "context_size": 4096
+    },
+    {
+      "url": "https://text.octoai.run",
+      "model": "mistral-7b-instruct-fp16",
+      "context_size": 4096
+    },
+    {
+        "url": "https://text.octoai.run",
+        "model": "mixtral-8x7b-instruct-fp16",
+        "context_size": 4096
+    }
+  ]
+}
