@@ -41,7 +41,6 @@ def run_completion(
             frequency_penalty=frequency_penalty,
             presence_penalty=presence_penalty,
         )
-        print(completion.dict())
         if return_completion:
             return completion.dict()
     except OctoAIError as e:
