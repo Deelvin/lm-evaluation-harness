@@ -2,7 +2,6 @@ import os
 
 import requests
 import openai
-import types
 
 # For compatibility with OpenAI versions before v1.0
 # https://github.com/openai/openai-python/pull/677.
@@ -10,11 +9,17 @@ OPENAI_VER_MAJ = int(openai.__version__.split('.', maxsplit=1)[0])
 
 if OPENAI_VER_MAJ >= 1:
     from openai import APIError, AuthenticationError, APIConnectionError
-else:
+    from openai import stream as StreamObject
+    from typing import Dict as CompletionObject
+else:  # OPENAI_VER_MAJ == 0
     from openai.error import APIError, AuthenticationError, APIConnectionError
+    from openai.openai_object import OpenAIObject as CompletionObject
+    from types import GeneratorType as StreamObject
+
 
 def path_to_file(file_name):
     return os.path.join(os.path.dirname(__file__), file_name)
+
 
 def run_completion(
     model_name,
@@ -91,6 +96,7 @@ def run_completion(
 
     return http_response
 
+
 def send_request_with_timeout(url, data, headers):
     try:
         requests.post(url, json=data, headers=headers, timeout=1)
@@ -135,9 +141,3 @@ def model_data(
         "frequency_penalty": frequency_penalty,
         "return_completion": return_completion,
     }
-
-
-def is_stream_type(stream_object):
-    if OPENAI_VER_MAJ >= 1:
-        return isinstance(stream_object, openai.Stream)
-    return isinstance(stream_object, types.GeneratorType)

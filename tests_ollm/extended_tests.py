@@ -3,7 +3,6 @@ import os
 import time
 import concurrent.futures
 
-import requests
 import pytest
 
 from utils import (
@@ -12,7 +11,7 @@ from utils import (
     send_request_with_timeout,
     path_to_file,
     model_data,
-    is_stream_type,
+    StreamObject,
 )
 
 
@@ -353,7 +352,7 @@ def test_stream_with_num_chat_completion(model_name, n, token, endpoint):
         return_completion=True,
     )
 
-    assert is_stream_type(completion_stream)
+    assert isinstance(completion_stream, StreamObject)
     stream_finish = set()
     for chunk in completion_stream:
         chunk_index = chunk.choices[0].index
