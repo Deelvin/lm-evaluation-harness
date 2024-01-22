@@ -9,12 +9,17 @@ OPENAI_VER_MAJ = int(openai.__version__.split('.', maxsplit=1)[0])
 
 if OPENAI_VER_MAJ >= 1:
     from openai import APIError, AuthenticationError, APIConnectionError
-else:
+    from openai import Stream as StreamObject
+    from typing import Dict as CompletionObject
+else:  # OPENAI_VER_MAJ == 0
     from openai.error import APIError, AuthenticationError, APIConnectionError
+    from openai.openai_object import OpenAIObject as CompletionObject
+    from types import GeneratorType as StreamObject
 
 
 def path_to_file(file_name):
     return os.path.join(os.path.dirname(__file__), file_name)
+
 
 def run_completion(
     model_name,
@@ -35,11 +40,11 @@ def run_completion(
     http_response = 200
     openai.api_key = token
     try:
-        openai.base_url = endpoint + "/v1"
         if chat is True:
             if OPENAI_VER_MAJ >= 1:
                 client = openai.OpenAI(
                     api_key=token,
+                    base_url = endpoint + "/v1",
                 )
                 chat_completions = client.chat.completions
             else:
@@ -76,7 +81,7 @@ def run_completion(
                 presence_penalty=presence_penalty,
             )
         if return_completion:
-            if OPENAI_VER_MAJ >= 1:
+            if OPENAI_VER_MAJ >= 1 and not stream:
                 return completion.model_dump(exclude_unset=True)
             return completion
     except (APIError, AuthenticationError, APIConnectionError) as e:
@@ -90,6 +95,7 @@ def run_completion(
             http_response = e.http_status
 
     return http_response
+
 
 def send_request_with_timeout(url, data, headers):
     try:

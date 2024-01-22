@@ -3,7 +3,6 @@ import os
 import time
 import concurrent.futures
 
-import requests
 import pytest
 
 from utils import (
@@ -12,6 +11,7 @@ from utils import (
     send_request_with_timeout,
     path_to_file,
     model_data,
+    StreamObject,
 )
 
 
@@ -137,7 +137,7 @@ def test_multiple_messages(model_name, token, endpoint):
     ]
 
     completion = run_completion(
-        model_name, messages, token, endpoint, max_tokens=20, return_completion=True
+        model_name, messages, token, endpoint, max_tokens=100, return_completion=True
     )
     assert "4" in completion["choices"][0]["message"]["content"]
 
@@ -151,7 +151,7 @@ def test_large_input_content(input_tokens, model_name, context_size, token, endp
         prompt = file.read()
     messages = [{"role": "user", "content": prompt}]
     max_tokens = 200
-    if model_name == "codellama-34b-instruct-fp16":
+    if model_name == "codellama-34b-instruct-fp16" and endpoint == "https://text.octoai.run":
         context_size = 16384
 
     if (input_tokens + max_tokens) < context_size:
@@ -306,3 +306,58 @@ def test_all_completions_same(model_name, n, token, endpoint):
     content_arr = set([completion["choices"][i]["message"]["content"] for i in range(n)])
 
     assert len(content_arr) == 1
+
+
+@pytest.mark.parametrize("num_workers", [2])
+@pytest.mark.parametrize("n", [10])
+@pytest.mark.xfail(reason="Currently, there is a problem with n")
+def test_many_request_and_completion(model_name, num_workers, n, token, endpoint):
+    message = "Create a short story about a friendship between a cat and a dog."
+    request = model_data(model_name, message, max_tokens=300, n=n)
+    url = endpoint + "/v1/chat/completions"
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {token}",
+    }
+    responses_code_set = set()
+    with ThreadPoolExecutor(max_workers=num_workers) as executor:
+        futures = [
+            executor.submit(send_request_get_response, url, request, headers)
+            for _ in range(num_workers)
+        ]
+        for future in concurrent.futures.as_completed(futures):
+            print(future.result().json())
+            responses_code_set.add(future.result().status_code)
+
+    assert responses_code_set == {200}
+
+
+@pytest.mark.parametrize("n", [2, 10, 100])
+def test_stream_with_num_chat_completion(model_name, n, token, endpoint):
+    messages = [
+        {"role": "system", "content": "You are a helpful assistant. Write very short."},
+        {"role": "user", "content": "Describe a dog"},
+    ]
+
+    completion_stream = run_completion(
+        model_name,
+        messages,
+        token,
+        endpoint,
+        n=n,
+        stream=True,
+        max_tokens=300,
+        temperature=0.8,
+        frequency_penalty=0.8,
+        return_completion=True,
+    )
+
+    assert isinstance(completion_stream, StreamObject)
+    stream_finish = set()
+    for chunk in completion_stream:
+        chunk_index = chunk.choices[0].index
+        chunk_finish_reason = chunk.choices[0].finish_reason
+
+        assert chunk_index not in stream_finish
+        if chunk_finish_reason is not None:
+            stream_finish.add(chunk_index)
