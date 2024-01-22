@@ -9,7 +9,7 @@ OPENAI_VER_MAJ = int(openai.__version__.split('.', maxsplit=1)[0])
 
 if OPENAI_VER_MAJ >= 1:
     from openai import APIError, AuthenticationError, APIConnectionError
-    from openai import stream as StreamObject
+    from openai import Stream as StreamObject
     from typing import Dict as CompletionObject
 else:  # OPENAI_VER_MAJ == 0
     from openai.error import APIError, AuthenticationError, APIConnectionError
