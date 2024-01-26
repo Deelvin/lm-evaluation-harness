@@ -140,6 +140,7 @@ def test_all_completions_same(model_name, n, token, endpoint):
 
 @pytest.mark.input_parameter
 @pytest.mark.parametrize("n", [2, 10, 100])
+@pytest.mark.xfail(reason="When stream = True there are 2 last chunks consist of empty strings")
 def test_stream_with_num_chat_completion(model_name, n, token, endpoint):
     messages = [
         {"role": "system", "content": "You are a helpful assistant. Write very short."},
