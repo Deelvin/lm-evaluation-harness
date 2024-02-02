@@ -1,17 +1,17 @@
 import os
 import time
 
-import pytest
 import numpy as np
-from sentence_transformers import SentenceTransformer
+import pytest
 from scipy.spatial import distance
+from sentence_transformers import SentenceTransformer
 
-from utils import (
-    path_to_file,
-    run_completion,
+from ..utils import (
     APIError,
     StreamObject,
-    CompletionObject,
+    check_completion,
+    path_to_file,
+    run_completion,
 )
 
 
@@ -84,10 +84,15 @@ def test_invalid_role(model_name, token, endpoint):
 @pytest.mark.input_parameter
 @pytest.mark.parametrize("max_tokens", [10, 100, 300, 500, 1024])
 def test_valid_max_tokens(model_name, max_tokens, token, endpoint):
+    if "llamaguard" in model_name:
+        pytest.skip(reason="FIXME: MLS-254")
     messages = [
         {
             "role": "system",
-            "content": "Below is an instruction that describes a task. Write a response that appropriately completes the request.",
+            "content": (
+                "Below is an instruction that describes a task. "
+                "Write a response that appropriately completes the request."
+            ),
         },
         {"role": "user", "content": "Write a really long blog about Seattle."},
     ]
@@ -105,13 +110,19 @@ def test_valid_max_tokens(model_name, max_tokens, token, endpoint):
 
 @pytest.mark.input_parameter
 @pytest.mark.xfail(
-    reason="Due to Internal Server Error (500) hides expected invalid_request_error (400)"
+    reason=(
+        "Due to Internal Server Error (500) hides "
+        "expected invalid_request_error (400)"
+    )
 )
 def test_invalid_max_tokens(model_name, context_size, token, endpoint):
     messages = [
         {
             "role": "system",
-            "content": "Below is an instruction that describes a task. Write a response that appropriately completes the request.",
+            "content": (
+                "Below is an instruction that describes a task. "
+                "Write a response that appropriately completes the request."
+            ),
         },
         {"role": "user", "content": "Write a really long blog about Seattle."},
     ]
@@ -137,14 +148,16 @@ def test_invalid_max_tokens(model_name, context_size, token, endpoint):
 @pytest.mark.input_parameter
 @pytest.mark.xfail(reason="Need to validate distance measurement approach")
 def test_valid_temperature(model_name, token, endpoint):
-    """The higher the temperature, the greater the distance from the golden embeddings"""
+    """The higher the temperature, the greater the distance
+    from the golden embeddings.
+    """
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
         {"role": "user", "content": "Write a blog about Seattle"},
     ]
     max_tokens = 784
     model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
-    goldev_embed = np.load(path_to_file("golden_temp_0.npy"))
+    goldev_embed = np.load(path_to_file("tests/data/golden_temp_0.npy"))
 
     distances = []
     for temperature in [0.0, 1.0, 2.0]:
@@ -166,18 +179,16 @@ def test_valid_temperature(model_name, token, endpoint):
 @pytest.mark.input_parameter
 @pytest.mark.parametrize("temperature, n", [(-0.1, 1), (2.1, 1), (0.0, 2)])
 def test_invalid_temperature(model_name, temperature, n, token, endpoint):
-    """
-    Temperature is allowed in range from 0 to 2.0. Outside of this
-    range, an error should be returned in the completion. 
+    """Temperature is allowed in range from 0 to 2.0. Outside of this
+    range, an error should be returned in the completion.
     Also, if n > 1, temperature can't be equal to 0.0.
     """
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
         {"role": "user", "content": "Write a blog about Seattle"},
     ]
-
     with pytest.raises(APIError):
-        completion = run_completion(
+        _ = run_completion(
             model_name,
             messages,
             token,
@@ -198,7 +209,7 @@ def test_valid_top_p(model_name, token, endpoint):
     ]
     max_tokens = 784
     model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
-    goldev_embed = np.load(path_to_file("golden_top_p_0.npy"))
+    goldev_embed = np.load(path_to_file("tests/data/golden_top_p_0.npy"))
     completion = run_completion(
         model_name,
         messages,
@@ -230,8 +241,7 @@ def test_valid_top_p(model_name, token, endpoint):
 @pytest.mark.input_parameter
 @pytest.mark.parametrize("top_p", [-0.1, 0.0, 1.1])
 def test_invalid_top_p(model_name, top_p, token, endpoint):
-    """
-    top_p is allowed in (0, 1]. Outside of this
+    """top_p is allowed in (0, 1]. Outside of this
     range, an error should be returned in the completion.
     """
     messages = [
@@ -245,6 +255,8 @@ def test_invalid_top_p(model_name, top_p, token, endpoint):
 @pytest.mark.input_parameter
 @pytest.mark.parametrize("n", [1, 5, 10])
 def test_valid_number_chat_completions(model_name, n, token, endpoint):
+    if "llamaguard" in model_name:
+        pytest.skip(reason="FIXME: MLS-254")
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
         {"role": "user", "content": "Hello!"},
@@ -267,8 +279,7 @@ def test_invalid_number_chat_completions(model_name, token, endpoint):
 @pytest.mark.input_parameter
 @pytest.mark.xfail(reason="When stream = True last chunks consist of empty strings")
 def test_stream(model_name, token, endpoint):
-    """
-    Recieved chunks should not contain empty strings.
+    """Recieved chunks should not contain empty strings.
 
     When stream == True the first token should be
     recieved faster than whole response with stream == False
@@ -330,9 +341,9 @@ def test_valid_stop(model_name, stop, token, endpoint):
         return_completion=True,
     )
     for seq in stop:
-        assert (seq not in completion["choices"][0]["message"]["content"]) and completion[
-            "choices"
-        ][0]["finish_reason"] == "stop"
+        assert (
+            seq not in completion["choices"][0]["message"]["content"]
+        ) and completion["choices"][0]["finish_reason"] == "stop"
 
     # These test assumes that stop token return with completion
     # assert completion["choices"][0]["finish_reason"] == "stop"
@@ -389,19 +400,26 @@ def test_invalid_content(model_name, prompt, token, endpoint):
 
     assert run_completion(model_name, [message], token, endpoint) == 400
 
+
 def check_counts_by_penalty_parameter(model_name, token, endpoint, penalty):
-    """
-    Helper function for tests for valid frequency and presence penalties
-    The higher the parameter value, the fewer same words should be contained in the response
+    """Helper function for tests for valid frequency and presence penalties
+    The higher the parameter value, the fewer same words should be
+    contained in the response.
     """
     messages = [
         {
             "role": "system",
-            "content": "You are content maker. Write the response in formal style that appropriately completes the request",
+            "content": (
+                "You are content maker. Write the response in formal "
+                "style that appropriately completes the request"
+            ),
         },
         {
             "role": "user",
-            "content": "Write a 800-word article about large language models using the word 'transformer'",
+            "content": (
+                "Write a 800-word article about large language "
+                "models using the word 'transformer'"
+            ),
         },
     ]
     responses = []
@@ -426,10 +444,11 @@ def check_counts_by_penalty_parameter(model_name, token, endpoint, penalty):
         )
     for i in range(1, 4):
         if responses[i].lower().count("transformer") > responses[i - 1].lower().count(
-                "transformer"
-            ):
+            "transformer"
+        ):
             return False
     return True
+
 
 @pytest.mark.input_parameter
 @pytest.mark.xfail(reason="Need to validate test design based on token counts")
@@ -440,17 +459,21 @@ def test_valid_frequency_penalty(model_name, token, endpoint):
 @pytest.mark.input_parameter
 @pytest.mark.parametrize("fr_pen", [-2.1, 2.1])
 def test_invalid_frequency_penalty(model_name, fr_pen, token, endpoint):
-    """
-    frequency_penalty values have to be in range [-2, 2]
-    """
+    """frequency_penalty values have to be in range [-2, 2]"""
     messages = [
         {
             "role": "system",
-            "content": "You are content maker. Write the response in formal style that appropriately completes the request",
+            "content": (
+                "You are content maker. Write the response in formal "
+                "style that appropriately completes the request"
+            ),
         },
         {
             "role": "user",
-            "content": "Write a 800-word article about large language models using the word 'transformer' as often as possible",
+            "content": (
+                "Write a 800-word article about large language "
+                "models using the word 'transformer' as often as possible"
+            ),
         },
     ]
     assert (
@@ -464,20 +487,25 @@ def test_invalid_frequency_penalty(model_name, fr_pen, token, endpoint):
 def test_valid_presence_penalty(model_name, token, endpoint):
     assert check_counts_by_penalty_parameter(model_name, token, endpoint, "presence")
 
+
 @pytest.mark.input_parameter
 @pytest.mark.parametrize("pr_pen", [-2.1, 2.1])
 def test_invalid_presence_penalty(model_name, pr_pen, token, endpoint):
-    """
-    presence_penalty values have to be in range [-2, 2]
-    """
+    """presence_penalty values have to be in range [-2, 2]"""
     messages = [
         {
             "role": "system",
-            "content": "You are content maker. Write the response in formal style that appropriately completes the request",
+            "content": (
+                "You are content maker. Write the response in "
+                "formal style that appropriately completes the request"
+            ),
         },
         {
             "role": "user",
-            "content": "Write a 800-word article about large language models using the word 'transformer'",
+            "content": (
+                "Write a 800-word article about large "
+                "language models using the word 'transformer'"
+            ),
         },
     ]
     assert (
@@ -553,7 +581,7 @@ def test_response_object_type(model_name, token, endpoint):
     completion = run_completion(
         model_name, messages, token, endpoint, return_completion=True
     )
-    assert isinstance(completion, CompletionObject)
+    check_completion(completion)
 
 
 @pytest.mark.response_correctness
@@ -577,3 +605,135 @@ def test_response_created_time(model_name, token, endpoint):
 def test_invalid_token_authentification(model_name, endpoint):
     messages = [{"role": "user", "content": "Tell a story about a cat"}]
     assert run_completion(model_name, messages, "invalid", endpoint) == 401
+
+
+@pytest.mark.input_parameter
+def test_response_format(model_name, token, endpoint):
+    messages = [
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user", "content": "Which team won the World Series in 2016?"},
+    ]
+
+    # no response type
+    completion = run_completion(
+        model_name,
+        messages,
+        token,
+        endpoint,
+        max_tokens=20,
+        response_format=None,
+        return_completion=True,
+    )
+
+    assert len(completion["choices"][0]["message"]["content"]) > 0
+
+    # response type = json_object (valid model)
+    if "mistral" in model_name or "mixtral" in model_name:
+        completion = run_completion(
+            model_name,
+            messages,
+            token,
+            endpoint,
+            max_tokens=20,
+            response_format={
+                "type": "json_object",
+                "schema": {
+                    "properties": {"winner": {"title": "Winner", "type": "string"}},
+                    "required": ["winner"],
+                    "title": "WorldSeries",
+                    "type": "object",
+                },
+            },
+            return_completion=True,
+        )
+
+        assert len(completion["choices"][0]["message"]["content"]) > 0
+
+    # response type = json_object (invalid model)
+    else:
+        with pytest.raises(APIError):
+            completion = run_completion(
+                model_name,
+                messages,
+                token,
+                endpoint,
+                max_tokens=20,
+                response_format={
+                    "type": "json_object",
+                    "schema": {
+                        "properties": {"winner": {"title": "Winner", "type": "string"}},
+                        "required": ["winner"],
+                        "title": "WorldSeries",
+                        "type": "object",
+                    },
+                },
+                return_completion=True,
+            )
+
+
+@pytest.mark.input_parameter
+def test_response_format_invalid_type(model_name, token, endpoint):
+    messages = [
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user", "content": "Which team won the World Series in 2016?"},
+    ]
+
+    # unsupported xml_object type
+    with pytest.raises(APIError):
+        run_completion(
+            model_name,
+            messages,
+            token,
+            endpoint,
+            max_tokens=20,
+            response_format={"type": "xml_object"},
+            return_completion=True,
+        )
+
+
+@pytest.mark.input_parameter
+def test_response_format_null_schema(model_name, token, endpoint):
+    messages = [
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user", "content": "Which team won the World Series in 2016?"},
+    ]
+
+    # no schema
+    with pytest.raises(APIError):
+        run_completion(
+            model_name,
+            messages,
+            token,
+            endpoint,
+            response_format={"type": "json_object"},
+            return_completion=True,
+        )
+
+
+@pytest.mark.input_parameter
+def test_response_format_invalid_schema(model_name, token, endpoint):
+    messages = [
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user", "content": "Which team won the World Series in 2016?"},
+    ]
+
+    # invalid schema - "required" must be an array
+    with pytest.raises(APIError):
+        run_completion(
+            model_name,
+            messages,
+            token,
+            endpoint,
+            response_format={
+                "type": "json_object",
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "name": {"type": "string"},
+                        "age": {"type": "integer"},
+                    },
+                    "required": "name",
+                },
+            },
+            return_completion=True,
+        )

@@ -1,7 +1,8 @@
 import argparse
-import requests
 import json
 import os
+
+import requests
 
 
 def parse_args():

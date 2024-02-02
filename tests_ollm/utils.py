@@ -1,20 +1,24 @@
 import os
 
-import requests
 import openai
+import requests
 
 # For compatibility with OpenAI versions before v1.0
 # https://github.com/openai/openai-python/pull/677.
-OPENAI_VER_MAJ = int(openai.__version__.split('.', maxsplit=1)[0])
+OPENAI_VER_MAJ = int(openai.__version__.split(".", maxsplit=1)[0])
 
 if OPENAI_VER_MAJ >= 1:
-    from openai import APIError, AuthenticationError, APIConnectionError
-    from openai import Stream as StreamObject
-    from typing import Dict as CompletionObject
+    from typing import Dict
+
+    from openai import APIConnectionError, APIError, AuthenticationError  # type: ignore
+    from openai import Stream as StreamObject  # type: ignore
 else:  # OPENAI_VER_MAJ == 0
-    from openai.error import APIError, AuthenticationError, APIConnectionError
-    from openai.openai_object import OpenAIObject as CompletionObject
-    from types import GeneratorType as StreamObject
+    from types import (
+        GeneratorType as StreamObject,  # noqa # pylint: disable=unused-import
+    )
+
+    from openai.error import APIConnectionError, APIError, AuthenticationError
+    from openai.openai_object import OpenAIObject
 
 
 def path_to_file(file_name):
@@ -35,6 +39,7 @@ def run_completion(
     top_p=1.0,
     frequency_penalty=0,
     presence_penalty=0,
+    response_format=None,
     return_completion=False,
 ):
     http_response = 200
@@ -43,8 +48,8 @@ def run_completion(
         if chat is True:
             if OPENAI_VER_MAJ >= 1:
                 client = openai.OpenAI(
+                    base_url=endpoint + "/v1",
                     api_key=token,
-                    base_url = endpoint + "/v1",
                 )
                 chat_completions = client.chat.completions
             else:
@@ -61,6 +66,7 @@ def run_completion(
                 temperature=temperature,
                 frequency_penalty=frequency_penalty,
                 presence_penalty=presence_penalty,
+                response_format=response_format,
             )
         else:
             if OPENAI_VER_MAJ >= 1:
@@ -79,6 +85,7 @@ def run_completion(
                 temperature=temperature,
                 frequency_penalty=frequency_penalty,
                 presence_penalty=presence_penalty,
+                response_format=response_format,
             )
         if return_completion:
             if OPENAI_VER_MAJ >= 1 and not stream:
@@ -141,3 +148,9 @@ def model_data(
         "frequency_penalty": frequency_penalty,
         "return_completion": return_completion,
     }
+
+
+def check_completion(completion):
+    if OPENAI_VER_MAJ >= 1:
+        assert isinstance(completion, Dict)
+    assert isinstance(completion, OpenAIObject)  # OPENAI_VER_MAJ == 0 # type: ignore
