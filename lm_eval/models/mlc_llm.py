@@ -2,6 +2,7 @@ import os
 import json
 from typing import List, Tuple, Union, Iterable, Optional
 
+import requests
 import torch
 import numpy as np
 from transformers import AutoTokenizer
@@ -221,5 +222,163 @@ class MLCLM(BaseLM):
                 )
             )
             print(f"\r{num}/{len(requests)} requests processed", end="")
+
+        return results
+
+
+class MLCServe(BaseLM):
+    def __init__(
+        self,
+        model_name: str,
+        ip: str = "0.0.0.0",
+        port: int = 32777,
+        batch_size: int = 1,
+        temperature: float = 0.0,
+        top_p: float = 1.0,
+        parallel: bool = False,
+    ):
+        super().__init__()
+
+        self.model_name = model_name
+        self.ip = ip
+        self.port = port
+        self._batch_size = batch_size
+        self.temperature = temperature
+        self.top_p = top_p
+
+        self.url_suffix = "/v1/chat/completions"
+        self.parallel = parallel
+        assert batch_size == 1 and parallel, "Please insert batch size bigger than 1 for parallel regime"
+
+        token = os.environ["OCTOAI_TOKEN"]
+        self.headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {token}",
+        }
+
+    @property
+    def eot_token_id(self):
+        return self.tokenizer.eos_token_id
+
+    @property
+    def max_length(self):
+        return 2048
+
+    @property
+    def max_gen_toks(self):
+        return 256
+
+    @property
+    def batch_size(self):
+        return self._batch_size
+
+    @property
+    def device(self):
+        return self._device
+
+    def tok_encode(self, string: str):
+        raise NotImplementedError("Cannot call tokenizer by API")
+
+    def tok_decode(self, tokens: Iterable[int]):
+        raise NotImplementedError("Cannot call tokenizer by API")
+
+    def create_chat_completion_payload(
+        self,
+        prompt,
+        stop_token = None,
+    ):
+        payload = {
+            "model": self.model_name,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": prompt,
+                }
+            ],
+            "stream": False,
+            "stop": [stop_token],
+            "top_p": self.top_p,
+            "temperature": self.temperature,
+        }
+
+        return payload
+
+    def prepare_msg(self, request):
+        prompt = request[0]
+        request_args = request[1]
+        until = request_args["until"]
+
+        return self.create_chat_completion_payload(prompt, until)
+
+    def send_request(self, payload):
+        response = requests.post(
+            f"http://{self.ip}:{self.port}{self.url_suffix}", json=payload, headers=self.headers
+        )
+
+        if response.status_code != 200:
+            print(f"Error: {response.status_code} - {response.text}")
+
+        return json.loads(response.text)
+
+    def get_output(self, response):
+        return response["choices"][0]["message"]["content"]
+
+    def model_call(self, request, results):
+        payload = self.prepare_msg(request)
+        output_json = self.send_request(payload)
+
+        results.append(
+            self.get_output(output_json)
+        )
+
+    def model_generate_parallel(self, request_batch, results):
+        import concurrent.futures
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=self.batch_size) as executor:
+            futures = []
+            parallel_results = {}
+            for id in range(len(request_batch)):
+                parallel_results[id]=[]
+                futures.append(executor.submit(self.model_call, request_batch[id], parallel_results[id]))
+
+        for future in concurrent.futures.as_completed(futures):
+            try:
+                future.result()
+            except Exception as exc:
+                print(f"Error parallel generating predictions: {exc}")
+
+        # Collect results together
+        for id in range(len(request_batch)):
+            results.extend(parallel_results[id])
+
+    def _batcher(self, requests):
+        for i in range(0, len(requests), self._batch_size):
+            yield requests[i:i + self._batch_size]
+
+    def parallel_requests(self, requests, results):
+        for batch_idx, request_batch in enumerate(self._batcher(requests)):
+            try:
+                self.model_generate_parallel(request_batch, results)
+            except ConnectionError as e:
+                print(f"ConnectionError: {e}. Skipping this batch and continuing...")
+                print(
+                    f"\r{(batch_idx + 1) * self._batch_size}/{len(requests)} requests processed",
+                    end="",
+                )
+
+    def greedy_until(
+        self,
+        requests: List[Tuple[str, Union[List[str], str]]]
+    ) -> List[str]:
+        if not requests:
+            return []
+
+        results = []
+        if self.parallel:
+            self.parallel_requests(requests, results)
+        else:
+            for num, request in enumerate(requests):
+                self.model_call(request, results)
+                print(f"\r{num}/{len(requests)} requests processed", end="")
 
         return results
