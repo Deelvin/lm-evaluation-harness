@@ -247,8 +247,8 @@ class MLCServe(BaseLM):
         self.top_p = top_p
 
         self.url_suffix = "/v1/chat/completions"
-        self.parallel = parallel
-        assert batch_size == 1 and parallel, "Please insert batch size bigger than 1 for parallel regime"
+        self.parallel = parallel or batch_size > 1
+        assert batch_size == 1 and not parallel, "Please insert batch size bigger than 1 for parallel regime"
 
         token = os.environ["OCTOAI_TOKEN"]
         self.headers = {
