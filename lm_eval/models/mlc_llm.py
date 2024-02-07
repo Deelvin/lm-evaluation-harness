@@ -382,3 +382,15 @@ class MLCServe(BaseLM):
                 print(f"\r{num}/{len(requests)} requests processed", end="")
 
         return results
+
+    def loglikelihood(
+        self,
+        requests: List[Tuple[str, Union[List[str], str]]]
+    ):
+        raise NotImplementedError("MLC-LLM server has not supported loglikelihood yet")
+
+    def _model_call(self, inps):
+        raise NotImplementedError("MLC-LLM server does not support one model call in current format, loglikelyhood method will be overrided")
+
+    def _model_generate(self, context, max_length, eos_token_id):
+        raise NotImplementedError("MLC-LLM server does not support model generate in current format, greedy_until method was override")
