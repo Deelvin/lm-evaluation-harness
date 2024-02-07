@@ -248,7 +248,10 @@ class MLCServe(BaseLM):
 
         self.url_suffix = "/v1/chat/completions"
         self.parallel = parallel or batch_size > 1
-        assert batch_size == 1 and not parallel, "Please insert batch size bigger than 1 for parallel regime"
+        assert (
+            (batch_size == 1 and not parallel) or
+            (batch_size > 1 and parallel)
+        ), "Please insert batch size bigger than 1 for parallel regime"
 
         token = os.environ["OCTOAI_TOKEN"]
         self.headers = {
@@ -285,7 +288,7 @@ class MLCServe(BaseLM):
     def create_chat_completion_payload(
         self,
         prompt,
-        stop_token = None,
+        stop_tokens = None,
     ):
         payload = {
             "model": self.model_name,
@@ -296,7 +299,7 @@ class MLCServe(BaseLM):
                 }
             ],
             "stream": False,
-            "stop": [stop_token],
+            "stop": stop_tokens,
             "top_p": self.top_p,
             "temperature": self.temperature,
         }
