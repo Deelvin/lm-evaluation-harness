@@ -9,6 +9,7 @@ ENDPOINTS_DATA = {
         "codellama-34b-instruct-fp16": 3,
         "mistral-7b-instruct-fp16": 3,
         "mixtral-8x7b-instruct-fp16": 3,
+        "llamaguard-7b-fp16": 1,
     },
     "triviaqa": {
         "llama-2-13b-chat-fp16": 2,
@@ -20,5 +21,6 @@ ENDPOINTS_DATA = {
         "codellama-34b-instruct-fp16": 3,
         "mistral-7b-instruct-fp16": 3,
         "mixtral-8x7b-instruct-fp16": 3,
+        "llamaguard-7b-fp16": 3,
     },
 }
