@@ -253,10 +253,8 @@ class MLCServe(BaseLM):
             (batch_size > 1 and parallel)
         ), "Please insert batch size bigger than 1 for parallel regime"
 
-        token = os.environ["OCTOAI_TOKEN"]
         self.headers = {
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {token}",
         }
 
     @property
