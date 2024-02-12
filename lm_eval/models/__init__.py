@@ -18,7 +18,8 @@ MODEL_REGISTRY = {
     "textsynth": textsynth.TextSynthLM,
     "dummy": dummy.DummyLM,
     "octoai": octoai_llms.OctoAIEndpointLM,
-    "mlc-llm": mlc_llm.MLCLM
+    "mlc-llm": mlc_llm.MLCLM,
+    "mlc-serve": mlc_llm.MLCServe
 }
 
 
