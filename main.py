@@ -18,6 +18,7 @@ def parse_args():
     parser.add_argument("--provide_description", action="store_true")
     parser.add_argument("--num_fewshot", type=int, default=0)
     parser.add_argument("--num_answers_per_example", type=int, default=1)
+    parser.add_argument("--use_updated_scorer", action="store_true")
     parser.add_argument("--batch_size", type=str, default=None)
     parser.add_argument(
         "--max_batch_size",

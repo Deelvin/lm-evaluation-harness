@@ -1,5 +1,6 @@
 import collections
 import itertools
+import os
 import numpy as np
 import random
 import lm_eval.metrics
@@ -29,6 +30,7 @@ def simple_evaluate(
     output_base_path=None,
     samples_choice=None,
     no_shuffle=False,
+    use_updated_scorer=False
 ):
     """Instantiate and evaluate a model on a list of tasks.
 
@@ -67,6 +69,8 @@ def simple_evaluate(
         Create subset of the dataset with specified indexes of samples.
     :param no_shuffle: bool
         If True, no shuffling would be performed and downloaded dataset would be determined in terms of indexing.
+    :param use_updated_scorer: bool
+        Whether to use updated scorer (primarily for llama models) or not
     :return
         Dictionary of results
     """
@@ -74,6 +78,9 @@ def simple_evaluate(
     np.random.seed(1234)
 
     assert tasks != [], "No tasks specified"
+
+    if "llama" in model_args:
+        os.environ["USE_UPDATED_SCORER"] = 1
 
     if isinstance(model, str):
         if model_args is None:

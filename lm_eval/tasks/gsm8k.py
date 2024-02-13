@@ -16,6 +16,7 @@ model's sample/generation function.
 
 Homepage: https://github.com/openai/grade-school-math
 """
+import os
 import re
 from lm_eval.base import Task, rf
 from lm_eval.metrics import mean
@@ -32,9 +33,9 @@ _CITATION = """
 }
 """
 
-
-# ANS_RE = re.compile(r"#### (\-?[0-9\.\,]+)")
-ANS_RE = re.compile(r"\b\d+(\.\d+)?\b(?![\s\S]*\b\d+(\.\d+)?\b)")
+ANS_RE = re.compile(r"#### (\-?[0-9\.\,]+)")
+if os.environ.get("USE_UPDATED_SCORER", "") == 1:
+    ANS_RE = re.compile(r"\b\d+(\.\d+)?\b(?![\s\S]*\b\d+(\.\d+)?\b)")
 INVALID_ANS = "[invalid]"
 
 
