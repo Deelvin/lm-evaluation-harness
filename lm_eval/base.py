@@ -717,7 +717,7 @@ class Task(abc.ABC):
                 "".join(
                     [
                         self.doc_to_text(doc) + "\n[/INST]\n" + self.doc_to_target(doc) + "\n</s>\n\n<s>\n[INST]\n"
-                        if os.environ.get("USE_UPDATED_SCORER", "") == 1
+                        if os.environ.get("USE_LLAMA_TEMPLATE", "") == "yes"
                         else self.doc_to_text(doc) + self.doc_to_target(doc)
                         for doc in fewshotex
                     ]

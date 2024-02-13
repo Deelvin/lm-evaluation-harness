@@ -30,7 +30,8 @@ def simple_evaluate(
     output_base_path=None,
     samples_choice=None,
     no_shuffle=False,
-    use_updated_scorer=False
+    use_updated_scorer=False,
+    use_llama_template=False
 ):
     """Instantiate and evaluate a model on a list of tasks.
 
@@ -71,6 +72,8 @@ def simple_evaluate(
         If True, no shuffling would be performed and downloaded dataset would be determined in terms of indexing.
     :param use_updated_scorer: bool
         Whether to use updated scorer (primarily for llama models) or not
+    :param use_llama_template: bool
+        Whether to use llama template for fewshot construction or not
     :return
         Dictionary of results
     """
@@ -79,8 +82,10 @@ def simple_evaluate(
 
     assert tasks != [], "No tasks specified"
 
-    if "llama" in model_args:
-        os.environ["USE_UPDATED_SCORER"] = 1
+    if use_updated_scorer:
+        os.environ["USE_UPDATED_SCORER"] = "yes"
+    if use_llama_template:
+        os.environ["USE_LLAMA_TEMPLATE"] = "yes"
 
     if isinstance(model, str):
         if model_args is None:
