@@ -285,8 +285,8 @@ class MLCServe(BaseLM):
 
     def create_chat_completion_payload(
         self,
-        prompt,
-        stop_tokens = None,
+        prompt: str,
+        stop_tokens: List[str] = None,
     ):
         payload = {
             "model": self.model_name,
@@ -298,6 +298,7 @@ class MLCServe(BaseLM):
             ],
             "stream": False,
             "stop": stop_tokens,
+            "max_tokens": self.max_gen_toks,
             "top_p": self.top_p,
             "temperature": self.temperature,
         }
@@ -309,7 +310,7 @@ class MLCServe(BaseLM):
         request_args = request[1]
         until = request_args["until"]
 
-        return self.create_chat_completion_payload(prompt, until)
+        return self.create_chat_completion_payload(prompt)
 
     def send_request(self, payload):
         response = requests.post(
@@ -360,6 +361,7 @@ class MLCServe(BaseLM):
         for batch_idx, request_batch in enumerate(self._batcher(requests)):
             try:
                 self.model_generate_parallel(request_batch, results)
+                print(f"\r{(batch_idx + 1) * self.batch_size}/{len(requests)} requests processed", end="")
             except ConnectionError as e:
                 print(f"ConnectionError: {e}. Skipping this batch and continuing...")
                 print(
