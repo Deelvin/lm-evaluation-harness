@@ -351,12 +351,14 @@ class MLCServe(BaseLM):
         # TODO(vvchernov): support all model types
         # Special symbol from tokenizer like underbar (Llama2-style)
         sym = bytes.fromhex("e29681").decode("utf-8")
-        while prob_ctx.endswith(tokens[-cont_len].replace(sym, " ")):
-            if context.endswith(tokens[-cont_len].replace(sym, " ")):
+        token = tokens[-cont_len].replace("_", " ", 1).replace(sym, " ")
+        while prob_ctx.endswith(token):
+            if context.endswith(token):
                 cont_len -= 1
                 break
-            prob_ctx = re.sub(f"{tokens[-cont_len].replace(sym, ' ')}$", "", prob_ctx)
+            prob_ctx = re.sub(f"{token}$", "", prob_ctx)
             cont_len += 1
+            token = tokens[-cont_len].replace("_", " ", 1).replace(sym, " ")
         assert continuation.startswith(
             tokens[-cont_len].replace(sym, " ")
         ), "Tokenization issue"
