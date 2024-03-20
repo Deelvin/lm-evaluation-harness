@@ -243,15 +243,15 @@ class MLCServe(BaseLM):
         self.model_name = model_name
         self.ip = ip
         self.port = port
-        self._batch_size = batch_size
+        self._batch_size = int(batch_size)
         self.temperature = temperature
         self.top_p = top_p
 
         self.url_suffix = "/v1/chat/completions"
-        self.parallel = parallel or batch_size > 1
+        self.parallel = parallel or self._batch_size > 1
         assert (
-            (batch_size == 1 and not parallel) or
-            (batch_size > 1 and parallel)
+            (self._batch_size == 1 and not self.parallel) or
+            (self._batch_size > 1 and self.parallel)
         ), "Please insert batch size bigger than 1 for parallel regime"
 
         self.headers = {
