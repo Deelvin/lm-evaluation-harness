@@ -352,8 +352,10 @@ class MLCServe(BaseLM):
         # Special symbol from tokenizer like underbar (Llama2-style)
         sym = bytes.fromhex("e29681").decode("utf-8")
         token = tokens[-cont_len].replace("_", " ", 1).replace(sym, " ")
+        prob_cont = ""
         while prob_ctx.endswith(token):
-            if context.endswith(token):
+            prob_cont = token + prob_cont
+            if continuation == prob_cont:
                 cont_len -= 1
                 token = tokens[-cont_len].replace("_", " ", 1).replace(sym, " ")
                 break
