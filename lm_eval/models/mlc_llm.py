@@ -1,5 +1,6 @@
 import os
 import json
+import re
 from typing import List, Tuple, Union, Iterable, Optional
 
 import requests
@@ -286,6 +287,7 @@ class MLCServe(BaseLM):
     def create_chat_completion_payload(
         self,
         prompt,
+        loglikelihood = False,
         stop_tokens = None,
     ):
         payload = {
@@ -300,6 +302,7 @@ class MLCServe(BaseLM):
             "stop": stop_tokens,
             "top_p": self.top_p,
             "temperature": self.temperature,
+            "loglikelihood": loglikelihood,
         }
 
         return payload
@@ -307,9 +310,10 @@ class MLCServe(BaseLM):
     def prepare_msg(self, request):
         prompt = request[0]
         request_args = request[1]
+        loglikelihood = request_args["loglikelihood"]
         until = request_args["until"]
 
-        return self.create_chat_completion_payload(prompt, until)
+        return self.create_chat_completion_payload(prompt, loglikelihood, until)
 
     def send_request(self, payload):
         response = requests.post(
@@ -332,15 +336,68 @@ class MLCServe(BaseLM):
             self.get_output(output_json)
         )
 
-    def model_generate_parallel(self, request_batch, results):
+    def get_output_loglikelihood(response, context, continuation):
+        logprob_content = response["choices"][0]["logprobs"]["content"]
+        logprobs = []
+        tokens = []
+        top1_tokens = []
+        for content in logprob_content:
+            tokens.append(content["token"])
+            logprobs.append(content["logprob"])
+            top1_tokens.append(content["top_logprobs"][0]["token"])
+
+        # Calculate context length
+        cont_len = 1
+        prob_ctx = context + continuation
+        # TODO(vvchernov): support all model types
+        # Special symbol from tokenizer like underbar (Llama2-style)
+        sym = bytes.fromhex("e29681").decode("utf-8")
+        while prob_ctx.endswith(tokens[-cont_len].replace(sym, " ")):
+            if context.endswith(tokens[-cont_len].replace(sym, " ")):
+                cont_len -= 1
+                break
+            prob_ctx = re.sub(f"{tokens[-cont_len].replace(sym, ' ')}$", "", prob_ctx)
+            cont_len += 1
+        assert continuation.startswith(
+            tokens[-cont_len].replace(sym, " ")
+        ), "Tokenization issue"
+
+        res_logprob = sum(logprobs[-cont_len:])
+        tokens_len = len(tokens)
+        res_is_greedy = True
+        for i in range(tokens_len - cont_len, tokens_len):
+            if top1_tokens[i] != tokens[i]:
+                res_is_greedy = False
+                break
+        return res_logprob, res_is_greedy
+
+    def model_call_loglikelihood(self, request, results):
+        payload = self.prepare_msg(
+            request = (
+                request[0] + request[1],
+                {"loglikelihood": True},
+            )
+        )
+        output_json = self.send_request(payload)
+
+        results.append(
+            self.get_output_loglikelihood(output_json)
+        )
+
+    def model_generate_parallel(self, request_batch, results, loglikelihood=False):
         import concurrent.futures
+
+        if loglikelihood:
+            run = self.model_call_loglikelihood
+        else:
+            run = self.model_call
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=self.batch_size) as executor:
             futures = []
             parallel_results = {}
             for id in range(len(request_batch)):
                 parallel_results[id]=[]
-                futures.append(executor.submit(self.model_call, request_batch[id], parallel_results[id]))
+                futures.append(executor.submit(run, request_batch[id], parallel_results[id]))
 
         for future in concurrent.futures.as_completed(futures):
             try:
@@ -356,10 +413,10 @@ class MLCServe(BaseLM):
         for i in range(0, len(requests), self._batch_size):
             yield requests[i:i + self._batch_size]
 
-    def parallel_requests(self, requests, results):
+    def parallel_requests(self, requests, results, loglikelihood=False):
         for batch_idx, request_batch in enumerate(self._batcher(requests)):
             try:
-                self.model_generate_parallel(request_batch, results)
+                self.model_generate_parallel(request_batch, results, loglikelihood=True)
             except ConnectionError as e:
                 print(f"ConnectionError: {e}. Skipping this batch and continuing...")
                 print(
@@ -386,9 +443,20 @@ class MLCServe(BaseLM):
 
     def loglikelihood(
         self,
-        requests: List[Tuple[str, Union[List[str], str]]]
-    ):
-        raise NotImplementedError("MLC-LLM server has not supported loglikelihood yet")
+        requests: List[Tuple[str, str]],
+    ) -> List[Tuple[float, bool]]:
+        if not requests:
+            return []
+
+        results = []
+        if self.parallel:
+            self.parallel_requests(requests, results, loglikelihood=True)
+        else:
+            for num, request in enumerate(requests):
+                self.model_call_loglikelihood(request, results)
+                print(f"\r{num}/{len(requests)} requests processed", end="")
+
+        return results
 
     def _model_call(self, inps):
         raise NotImplementedError("MLC-LLM server does not support one model call in current format, loglikelyhood method will be overrided")
