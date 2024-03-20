@@ -355,13 +355,12 @@ class MLCServe(BaseLM):
         while prob_ctx.endswith(token):
             if context.endswith(token):
                 cont_len -= 1
+                token = tokens[-cont_len].replace("_", " ", 1).replace(sym, " ")
                 break
             prob_ctx = re.sub(f"{token}$", "", prob_ctx)
             cont_len += 1
             token = tokens[-cont_len].replace("_", " ", 1).replace(sym, " ")
-        assert continuation.startswith(
-            tokens[-cont_len].replace(sym, " ")
-        ), "Tokenization issue"
+        assert continuation.startswith(token), f"Tokenization issue, wrong token: {token}"
 
         res_logprob = sum(logprobs[-cont_len:])
         tokens_len = len(tokens)
