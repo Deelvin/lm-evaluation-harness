@@ -307,10 +307,9 @@ class MLCServe(BaseLM):
 
         return payload
 
-    def prepare_msg(self, request):
+    def prepare_msg(self, request, loglikelihood=False):
         prompt = request[0]
         request_args = request[1]
-        loglikelihood = request_args["loglikelihood"]
         until = request_args["until"]
 
         return self.create_chat_completion_payload(prompt, loglikelihood, until)
@@ -375,8 +374,9 @@ class MLCServe(BaseLM):
         payload = self.prepare_msg(
             request = (
                 request[0] + request[1],
-                {"loglikelihood": True},
-            )
+                {"until": []},
+            ),
+            loglikelihood = True,
         )
         output_json = self.send_request(payload)
 
