@@ -335,7 +335,7 @@ class MLCServe(BaseLM):
             self.get_output(output_json)
         )
 
-    def get_output_loglikelihood(response, context, continuation):
+    def get_output_loglikelihood(self, response, context, continuation):
         logprob_content = response["choices"][0]["logprobs"]["content"]
         logprobs = []
         tokens = []
@@ -381,7 +381,7 @@ class MLCServe(BaseLM):
         output_json = self.send_request(payload)
 
         results.append(
-            self.get_output_loglikelihood(output_json)
+            self.get_output_loglikelihood(output_json, request[0], request[1])
         )
 
     def model_generate_parallel(self, request_batch, results, loglikelihood=False):
