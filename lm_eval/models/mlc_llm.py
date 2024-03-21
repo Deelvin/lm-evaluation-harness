@@ -335,6 +335,17 @@ class MLCServe(BaseLM):
             self.get_output(output_json)
         )
 
+    def get_llama_token(self, token: str):
+        res = token
+        # Special symbol from tokenizer like underbar (Llama2-style)
+        sym = bytes.fromhex("e29681").decode("utf-8")
+        # workaround for case sym + "_"
+        if token.startswith("_" + sym):
+            res = token.replace("_" + sym, "  ", 1)
+        elif token.startswith(sym):
+            res = token.replace(sym, " ", 1)
+        return res
+
     def get_output_loglikelihood(self, response, context, continuation):
         logprob_content = response["choices"][0]["logprobs"]["content"]
         logprobs = []
@@ -349,9 +360,7 @@ class MLCServe(BaseLM):
         cont_len = 1
         prob_ctx = context + continuation
         # TODO(vvchernov): support all model types
-        # Special symbol from tokenizer like underbar (Llama2-style)
-        sym = bytes.fromhex("e29681").decode("utf-8")
-        token = tokens[-cont_len].replace("_", " ", 1).replace(sym, " ")
+        token = self.get_llama_token(tokens[-cont_len])
         prob_cont = ""
         while prob_ctx.endswith(token):
             prob_cont = token + prob_cont
@@ -359,8 +368,15 @@ class MLCServe(BaseLM):
                 break
             prob_ctx = prob_ctx[:-len(token)]
             cont_len += 1
-            token = tokens[-cont_len].replace("_", " ", 1).replace(sym, " ")
-        assert continuation.startswith(token), f"Tokenization issue, wrong token: \"{token}\""
+            token = self.get_llama_token(tokens[-cont_len])
+        try:
+            assert continuation.startswith(token), f"Tokenization issue, wrong token: \"{token}\""
+        except:
+            print("CONTEXT:", context)
+            print("CONTINUATION:", continuation)
+            print("TOKENS:", tokens)
+            print("TOKEN:", f"\"{token}\"")
+            return -100000.0, False
 
         res_logprob = sum(logprobs[-cont_len:])
         tokens_len = len(tokens)
@@ -417,7 +433,7 @@ class MLCServe(BaseLM):
     def parallel_requests(self, requests, results, loglikelihood=False):
         for batch_idx, request_batch in enumerate(self._batcher(requests)):
             try:
-                self.model_generate_parallel(request_batch, results, loglikelihood=True)
+                self.model_generate_parallel(request_batch, results, loglikelihood=loglikelihood)
             except ConnectionError as e:
                 print(f"ConnectionError: {e}. Skipping this batch and continuing...")
                 print(
