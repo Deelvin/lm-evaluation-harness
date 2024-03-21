@@ -343,7 +343,7 @@ class MLCServe(BaseLM):
         if token.startswith("_" + sym):
             res = token.replace("_" + sym, "  ", 1)
         elif token.startswith(sym):
-            res = token.replace(sym, " ", 1)
+            res = token.replace(sym, " ")
         return res
 
     def get_output_loglikelihood(self, response, context, continuation):
