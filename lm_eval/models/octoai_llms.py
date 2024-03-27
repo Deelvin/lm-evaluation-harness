@@ -6,7 +6,7 @@ import requests
 import asyncio
 from lm_eval.base import BaseLM
 import aiohttp
-REPEAT_REQUEST_TO_OCTOAI_SERVER = 1
+REPEAT_REQUEST_TO_OCTOAI_SERVER = 10
 
 
 class OctoAIEndpointRunnerBase():
@@ -90,7 +90,7 @@ class OctoAIEndpointRunnerBase():
         except ConnectionError as e:
           print(f"ConnectionError: {e}. Skipping this batch and continuing...")
         print(
-          f"\r{(batch_idx + 1) * self.batch_size}/{len(requests)} requests processed!!!!!!!!!!!!!!!!!!!!!!!!!",
+          f"\r{(batch_idx + 1) * self.batch_size}/{len(requests)} requests processed",
           end="",
         )
     else:
