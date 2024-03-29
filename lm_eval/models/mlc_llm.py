@@ -1,6 +1,5 @@
 import os
 import json
-import re
 from typing import List, Tuple, Union, Iterable, Optional
 
 import requests
@@ -8,7 +7,10 @@ import torch
 import numpy as np
 from transformers import AutoTokenizer
 
+import asyncio
 from lm_eval.base import BaseLM
+import aiohttp
+REPEAT_REQUEST_TO_MLCSERVE_SERVER = 10
 
 def load_params(params_path: str, device):
     from tvm.contrib import tvmjs  # pylint: disable=import-outside-toplevel
@@ -314,22 +316,39 @@ class MLCServe(BaseLM):
 
         return self.create_chat_completion_payload(prompt, loglikelihood, until)
 
-    def send_request(self, payload):
-        response = requests.post(
-            f"http://{self.ip}:{self.port}{self.url_suffix}", json=payload, headers=self.headers
-        )
-
-        if response.status_code != 200:
-            print(f"Error: {response.status_code} - {response.text}")
-
-        return json.loads(response.text)
+    async def send_request(self, payload):
+        success = False
+        async with aiohttp.ClientSession() as session:
+            for _ in range(REPEAT_REQUEST_TO_MLCSERVE_SERVER):
+                async with session.post(
+                    f"http://{self.ip}:{self.port}{self.url_suffix}",
+                    headers=self.headers,
+                    json=payload,
+                ) as response:
+                    response_status = await response.status_code
+                    if response.status_code == 200:
+                        response_json = json.loads(response.text)
+                        success = True
+                        break
+                    else:
+                        print(f"Error: {response.status_code} - {response.text}")
+        if success:
+            return response_json
+        else:
+            print("ERROR: request sending failed. Dummy response was inserted")
+            return None
 
     def get_output(self, response):
+        if response is None:
+            return self.dummy_output()
         return response["choices"][0]["message"]["content"]
 
-    def model_call(self, request, results):
+    def dummy_output(self):
+        return "Dummy response"
+
+    async def model_call(self, request, results):
         payload = self.prepare_msg(request)
-        output_json = self.send_request(payload)
+        output_json = await self.send_request(payload)
 
         results.append(
             self.get_output(output_json)
@@ -347,6 +366,9 @@ class MLCServe(BaseLM):
         return res
 
     def get_output_loglikelihood(self, response, context, continuation):
+        if response is None:
+            return self.dummy_loglikelihood_output()
+
         logprob_content = response["choices"][0]["logprobs"]["content"]
         logprobs = []
         tokens = []
@@ -376,7 +398,7 @@ class MLCServe(BaseLM):
             print("CONTINUATION:", continuation)
             print("TOKENS:", tokens)
             print("TOKEN:", f"\"{token}\"")
-            return -100000.0, False
+            return self.dummy_loglikelihood_output()
 
         res_logprob = sum(logprobs[-cont_len:])
         tokens_len = len(tokens)
@@ -387,7 +409,11 @@ class MLCServe(BaseLM):
                 break
         return res_logprob, res_is_greedy
 
-    def model_call_loglikelihood(self, request, results):
+    def dummy_loglikelihood_output(self):
+        import sys
+        return -sys.float_info.max, False
+
+    async def model_call_loglikelihood(self, request, results):
         payload = self.prepare_msg(
             request = (
                 request[0] + request[1],
@@ -395,34 +421,24 @@ class MLCServe(BaseLM):
             ),
             loglikelihood = True,
         )
-        output_json = self.send_request(payload)
+        output_json = await self.send_request(payload)
 
         results.append(
             self.get_output_loglikelihood(output_json, request[0], request[1])
         )
 
-    def model_generate_parallel(self, request_batch, results, loglikelihood=False):
-        import concurrent.futures
+    async def model_generate_parallel(self, request_batch, results, loglikelihood=False):
+        parallel_results = {}
+        for id in range(len(request_batch)):
+            parallel_results[id]=[]
 
         if loglikelihood:
             run = self.model_call_loglikelihood
         else:
             run = self.model_call
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=self.batch_size) as executor:
-            futures = []
-            parallel_results = {}
-            for id in range(len(request_batch)):
-                parallel_results[id]=[]
-                futures.append(executor.submit(run, request_batch[id], parallel_results[id]))
-
-        for future in concurrent.futures.as_completed(futures):
-            try:
-                future.result()
-            except Exception as exc:
-                print(f"Error parallel generating predictions: {exc}")
-
-        # Collect results together
+        tasks = [run(request_batch[id], parallel_results[id]) for id in range(len(request_batch))]
+        await asyncio.gather(*tasks)
         for id in range(len(request_batch)):
             results.extend(parallel_results[id])
 
@@ -433,7 +449,7 @@ class MLCServe(BaseLM):
     def parallel_requests(self, requests, results, loglikelihood=False):
         for batch_idx, request_batch in enumerate(self._batcher(requests)):
             try:
-                self.model_generate_parallel(request_batch, results, loglikelihood=loglikelihood)
+                asyncio.run(self.model_generate_parallel(request_batch, results, loglikelihood=loglikelihood))
             except ConnectionError as e:
                 print(f"ConnectionError: {e}. Skipping this batch and continuing...")
                 print(
@@ -453,7 +469,7 @@ class MLCServe(BaseLM):
             self.parallel_requests(requests, results)
         else:
             for num, request in enumerate(requests):
-                self.model_call(request, results)
+                asyncio.run(self.model_call(request, results))
                 print(f"\r{num}/{len(requests)} requests processed", end="")
 
         return results
@@ -470,7 +486,7 @@ class MLCServe(BaseLM):
             self.parallel_requests(requests, results, loglikelihood=True)
         else:
             for num, request in enumerate(requests):
-                self.model_call_loglikelihood(request, results)
+                asyncio.run(self.model_call_loglikelihood(request, results))
                 print(f"\r{num}/{len(requests)} requests processed", end="")
 
         return results
