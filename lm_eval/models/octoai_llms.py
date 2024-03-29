@@ -205,9 +205,51 @@ class OctoAIEndpointRunnerLogLikelihood(OctoAIEndpointRunnerBase):
     self.msg["prompt"] = self.context + self.continuation
     self.msg["loglikelihood"] = True
 
-  def get_result(self, response):
+  def model_generate(self, request, results):
+    success = False
+    self.prepare_msg_data(request)
+    for _ in range(REPEAT_REQUEST_TO_OCTOAI_SERVER):
+      response = self.call_octoai_inference()
+      if self.response_check(response):
+        success = True
+        break
+    if success:
+      results.append(self.get_result(response, request[0], request[1]))
+    else:
+      print("ERROR: response check failed. Dummy response was inserted")
+      results.append(self.dummy_result())
+
+  async def model_generate_async(self, request, results):
+    success = False
+    self.prepare_msg_data(request)
+    async with aiohttp.ClientSession() as session:
+      for _ in range(REPEAT_REQUEST_TO_OCTOAI_SERVER):
+        async with session.post(self.url+ self.url_postfix, headers=self.headers, json=self.msg) as response:
+          response_text = await response.text()
+          response_text = json.loads(response_text)
+          if self.response_check(response_text):
+            success = True
+            break
+      if success:
+        results.append(self.get_result(response_text, request[0], request[1]))
+      else:
+        print("ERROR: response check failed. Dummy response was inserted")
+        results.append(self.dummy_result())
+
+  def get_llama_token(self, token: str):
+    res = token
+    # Special symbol from tokenizer like underbar (Llama2-style)
+    sym = bytes.fromhex("e29681").decode("utf-8")
+    # workaround for case sym + "_"
+    if token.startswith("_" + sym):
+      res = token.replace("_" + sym, "  ", 1)
+    elif token.startswith(sym):
+      res = token.replace(sym, " ")
+    return res
+
+  def get_result(self, response, context, continuation):
     logprob_content = response["choices"][0]["logprobs"]["content"]
-    logprobs =[]
+    logprobs = []
     tokens = []
     top1_tokens = []
     for content in logprob_content:
@@ -215,17 +257,32 @@ class OctoAIEndpointRunnerLogLikelihood(OctoAIEndpointRunnerBase):
       logprobs.append(content["logprob"])
       top1_tokens.append(content["top_logprobs"][0]["token"])
 
-    # Calculate context length
-    ctx_len = 0
-    prob_ctx = self.context
-    while prob_ctx.startswith(tokens[ctx_len]):
-      prob_ctx.replace(tokens[ctx_len], "", 1)
-      ctx_len += 1
-    assert self.continuation.startswith(tokens[ctx_len]), "Tokenization issue"
+    # Calculate continuation length
+    cont_len = 1
+    prob_ctx = context + continuation
+    # TODO(vvchernov): support all model types
+    token = self.get_llama_token(tokens[-cont_len])
+    prob_cont = ""
+    while prob_ctx.endswith(token):
+      prob_cont = token + prob_cont
+      if continuation == prob_cont:
+        break
+      prob_ctx = prob_ctx[:-len(token)]
+      cont_len += 1
+      token = self.get_llama_token(tokens[-cont_len])
+    try:
+      assert continuation.startswith(token), f"Tokenization issue, wrong token: \"{token}\""
+    except:
+      print("CONTEXT:", context)
+      print("CONTINUATION:", continuation)
+      print("TOKENS:", tokens)
+      print("TOKEN:", f"\"{token}\"")
+      return self.dummy_result()
 
-    res_logprob = sum(logprobs[ctx_len:])
+    res_logprob = sum(logprobs[cont_len:])
+    tokens_len = len(tokens)
     res_is_greedy = True
-    for i in range(ctx_len, len(tokens)):
+    for i in range(tokens_len - cont_len, tokens_len):
       if top1_tokens[i] != tokens[i]:
         res_is_greedy = False
         break
