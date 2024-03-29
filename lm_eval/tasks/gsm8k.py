@@ -33,11 +33,7 @@ _CITATION = """
 }
 """
 
-ANS_RE = re.compile(r"#### (\-?[0-9\.\,]+)")
-if os.environ.get("USE_UPDATED_SCORER", "") == "yes":
-    ANS_RE = re.compile(r"\b\d+(\.\d+)?\b(?![\s\S]*\b\d+(\.\d+)?\b)")
 INVALID_ANS = "[invalid]"
-
 
 class GradeSchoolMath8K(Task):
     VERSION = 0
@@ -85,13 +81,17 @@ class GradeSchoolMath8K(Task):
         return completion
 
     def _extract_answer(self, completion):
-        match = ANS_RE.search(completion)
+        if not hasattr(self, ans_re):
+            self.ans_re = re.compile(r"#### (\-?[0-9\.\,]+)")
+            match_group = 1
+            if os.environ.get("SOFT_SCORER") == "ON":
+                self.ans_re = re.compile(r"\b\d+(\.\d+)?\b(?![\s\S]*\b\d+(\.\d+)?\b)")
+                match_group = 0
+
+        match = self.ans_re.search(completion)
         if match:
-            if os.environ.get("USE_UPDATED_SCORER", "") == "yes":
-                match_str = match.group(0)
-            else:
-                match_str = match.group(1).strip()
-                match_str = match_str.replace(",", "")
+            match_str = match.group(match_group).strip()
+            match_str = match_str.replace(",", "")
             return match_str
         else:
             return INVALID_ANS
