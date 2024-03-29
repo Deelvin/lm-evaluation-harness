@@ -3,9 +3,9 @@ import json
 import time
 
 import requests
-
+import asyncio
 from lm_eval.base import BaseLM
-
+import aiohttp
 REPEAT_REQUEST_TO_OCTOAI_SERVER = 10
 
 
@@ -86,7 +86,7 @@ class OctoAIEndpointRunnerBase():
     if self.batch_size > 1:
       for batch_idx, request_batch in enumerate(self._batcher(requests)):
         try:
-          self.model_generate_parallel(request_batch, results)
+          asyncio.run(self.model_generate_parallel(request_batch, results))
         except ConnectionError as e:
           print(f"ConnectionError: {e}. Skipping this batch and continuing...")
         print(
@@ -125,25 +125,31 @@ class OctoAIEndpointRunnerBase():
     for id in range(len(request_batch)):
       results.extend(parallel_results[id])
 
-  def model_generate_parallel(self, request_batch, results):
-    import concurrent.futures
+  async def model_generate_async(self, request, results):
+    success = False
+    self.prepare_msg_data(request)
+    async with aiohttp.ClientSession() as session:
+      for _ in range(REPEAT_REQUEST_TO_OCTOAI_SERVER):
+        async with session.post(self.url+ self.url_postfix, headers=self.headers, json=self.msg) as response:
+          response_text = await response.text()
+          response_text = json.loads(response_text)
+          if self.response_check(response_text):
+            success = True
+            break
+      if success:
+        results.append(self.get_result(response_text))
+      else:
+        print("ERROR: response check failed. Dummy response was inserted")
+        results.append(self.dummy_result())
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=self.batch_size) as executor:
-      futures = []
-      parallel_results = {}
-      for id in range(len(request_batch)):
-        parallel_results[id]=[]
-        futures.append(executor.submit(self.model_generate, request_batch[id], parallel_results[id]))
-
-      for future in concurrent.futures.as_completed(futures):
-        try:
-          future.result()
-        except Exception as exc:
-          print(f"Error parallel generating predictions: {exc}")
-
-      # Collect results together
-      for id in range(len(request_batch)):
-        results.extend(parallel_results[id])
+  async def model_generate_parallel(self, request_batch, results):
+    parallel_results = {}
+    for id in range(len(request_batch)):
+      parallel_results[id]=[]
+    tasks = [self.model_generate_async(request_batch[id], parallel_results[id]) for id in range(len(request_batch))]
+    await asyncio.gather(*tasks)
+    for id in range(len(request_batch)):
+      results.extend(parallel_results[id])
 
   def prepare_msg_data(self, request):
     raise NotImplementedError("prepare_msg_data method is not implemented in base class")
