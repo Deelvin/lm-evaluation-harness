@@ -81,16 +81,16 @@ class GradeSchoolMath8K(Task):
         return completion
 
     def _extract_answer(self, completion):
-        if not hasattr(self, ans_re):
+        if not hasattr(self, "ans_re"):
             self.ans_re = re.compile(r"#### (\-?[0-9\.\,]+)")
-            match_group = 1
+            self.match_group = 1
             if os.environ.get("SOFT_SCORER") == "ON":
                 self.ans_re = re.compile(r"\b\d+(\.\d+)?\b(?![\s\S]*\b\d+(\.\d+)?\b)")
-                match_group = 0
+                self.match_group = 0
 
         match = self.ans_re.search(completion)
         if match:
-            match_str = match.group(match_group).strip()
+            match_str = match.group(self.match_group).strip()
             match_str = match_str.replace(",", "")
             return match_str
         else:
