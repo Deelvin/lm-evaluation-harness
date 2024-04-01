@@ -10,12 +10,11 @@ REPEAT_REQUEST_TO_OCTOAI_SERVER = 10
 
 
 class OctoAIEndpointRunnerBase():
-  url_postfix = None
-
   def __init__(
     self,
     model_name: str="llama-2-70b-chat-int4",
     url: str=None,
+    url_postfix: str = "/v1/chat/completions",
     batch_size: int=1,
     max_tokens: int=1024,
     top_p: float=1.0,
@@ -29,10 +28,12 @@ class OctoAIEndpointRunnerBase():
     """
     self.model_name = model_name
     self.batch_size=batch_size
+
     if url is not None:
       self.url = url
     else:
       self.url = self.construct_request_url(prod)
+    self.url_postfix = url_postfix
 
     self.init_msg_header(token)
     self.init_base_msg(max_tokens, top_p, temperature)
@@ -165,8 +166,6 @@ class OctoAIEndpointRunnerBase():
 
 
 class OctoAIEndpointRunnerGreedyUntil(OctoAIEndpointRunnerBase):
-  url_postfix = "/v1/chat/completions"
-
   def __init__(self, **kwargs):
     super().__init__(**kwargs)
 
@@ -192,8 +191,6 @@ class OctoAIEndpointRunnerGreedyUntil(OctoAIEndpointRunnerBase):
 
 
 class OctoAIEndpointRunnerLogLikelihood(OctoAIEndpointRunnerBase):
-  url_postfix = "/v1/completions"
-
   def __init__(self, **kwargs):
     super().__init__(**kwargs)
 
@@ -293,15 +290,15 @@ class OctoAIEndpointRunnerLogLikelihood(OctoAIEndpointRunnerBase):
     return (-sys.float_info.max, False)
 
 
-runners = {
+runners_available = {
   "greedy": OctoAIEndpointRunnerGreedyUntil,
   "loglikelihood": OctoAIEndpointRunnerLogLikelihood,
 }
 
 def get_octoai_runner(runner_name: str):
-  if not runner_name in runners.keys():
-    raise ValueError(f"{runner_name} is not a name of octoai runner")
-  return runners[runner_name]
+  if not runner_name in runners_available.keys():
+    raise ValueError(f"{runner_name} is not a name of available octoai runner")
+  return runners_available[runner_name]
 
 
 class OctoAIEndpointLM(BaseLM):
@@ -309,6 +306,7 @@ class OctoAIEndpointLM(BaseLM):
     self,
     model_name: str="llama-2-70b-chat-int4",
     url: str=None,
+    url_postfix: str = "/v1/chat/completions",
     batch_size: int=1,
     max_batch_size: int=None,
     device: str=None,
@@ -335,6 +333,7 @@ class OctoAIEndpointLM(BaseLM):
     self.runner_args = {
       "model_name": self.model_name,
       "url": url,
+      "url_postfix": url_postfix,
       "batch_size": self._batch_size,
       "max_tokens": max_tokens,
       "top_p": top_p,
