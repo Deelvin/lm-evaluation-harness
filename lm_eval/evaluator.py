@@ -1,3 +1,4 @@
+import os
 import collections
 import itertools
 import numpy as np
@@ -29,6 +30,8 @@ def simple_evaluate(
     output_base_path=None,
     samples_choice=None,
     no_shuffle=False,
+    use_soft_scorer=True,
+    conversation_template=None
 ):
     """Instantiate and evaluate a model on a list of tasks.
 
@@ -67,6 +70,10 @@ def simple_evaluate(
         Create subset of the dataset with specified indexes of samples.
     :param no_shuffle: bool
         If True, no shuffling would be performed and downloaded dataset would be determined in terms of indexing.
+    :param use_soft_scorer: bool
+        Whether to use soft scorer (primarily for llama models or 0-shot tasks) or not
+    :param conversation_template: Optional[str]
+        Model specific conversation template for fewshot construction
     :return
         Dictionary of results
     """
@@ -74,6 +81,9 @@ def simple_evaluate(
     np.random.seed(1234)
 
     assert tasks != [], "No tasks specified"
+
+    os.environ["SOFT_SCORER"] = "ON" if use_soft_scorer else "OFF"
+    os.environ["CONVERSATION_TEMPLATE"] = conversation_template
 
     if isinstance(model, str):
         if model_args is None:

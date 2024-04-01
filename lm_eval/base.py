@@ -693,6 +693,12 @@ class Task(abc.ABC):
 
         description = description + "\n\n" if description else ""
 
+        template_tags = {
+            "default": ("", "\n\n"),
+            "llama": ("\n[/INST]\n", "\n</s>\n\n<s>\n[INST]\n")
+        }
+        template_type = os.environ.get("CONVERSATION_TEMPLATE", "default")
+
         if num_fewshot == 0:
             labeled_examples = ""
         else:
@@ -713,9 +719,11 @@ class Task(abc.ABC):
                 fewshotex = [x for x in fewshotex if x != doc][:num_fewshot]
 
             labeled_examples = (
-                "\n\n".join(
+                "\n\n" +
+                "".join(
                     [
-                        self.doc_to_text(doc) + self.doc_to_target(doc)
+                        self.doc_to_text(doc) + template_tags[template_type][0] + \
+                        self.doc_to_target(doc) + template_tags[template_type][1]
                         for doc in fewshotex
                     ]
                 )

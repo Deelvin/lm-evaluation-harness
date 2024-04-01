@@ -16,6 +16,7 @@ model's sample/generation function.
 
 Homepage: https://github.com/openai/grade-school-math
 """
+import os
 import re
 from lm_eval.base import Task, rf
 from lm_eval.metrics import mean
@@ -32,11 +33,7 @@ _CITATION = """
 }
 """
 
-
-# ANS_RE = re.compile(r"#### (\-?[0-9\.\,]+)")
-ANS_RE = re.compile(r"\b\d+(\.\d+)?\b(?![\s\S]*\b\d+(\.\d+)?\b)")
 INVALID_ANS = "[invalid]"
-
 
 class GradeSchoolMath8K(Task):
     VERSION = 0
@@ -84,11 +81,22 @@ class GradeSchoolMath8K(Task):
         return completion
 
     def _extract_answer(self, completion):
-        match = ANS_RE.search(completion)
+        if not hasattr(self, "ans_re"):
+            """
+            Check for presence of attribute to
+            set it only once instead of compilation
+            of regexp on each answer comparison
+            """
+            self.ans_re = re.compile(r"#### (\-?[0-9\.\,]+)")
+            self.match_group = 1
+            if os.environ.get("SOFT_SCORER") == "ON":
+                self.ans_re = re.compile(r"\b\d+(\.\d+)?\b(?![\s\S]*\b\d+(\.\d+)?\b)")
+                self.match_group = 0
+
+        match = self.ans_re.search(completion)
         if match:
-            # match_str = match.group(1).strip()
-            # match_str = match_str.replace(",", "")
-            match_str = match.group(0)
+            match_str = match.group(self.match_group).strip()
+            match_str = match_str.replace(",", "")
             return match_str
         else:
             return INVALID_ANS

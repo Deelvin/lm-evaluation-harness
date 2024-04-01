@@ -18,6 +18,8 @@ def parse_args():
     parser.add_argument("--provide_description", action="store_true")
     parser.add_argument("--num_fewshot", type=int, default=0)
     parser.add_argument("--num_answers_per_example", type=int, default=1)
+    parser.add_argument("--use_soft_scorer", action="store_true")
+    parser.add_argument("--conversation_template", type=str, default=None)
     parser.add_argument("--batch_size", type=str, default=None)
     parser.add_argument(
         "--max_batch_size",
@@ -87,6 +89,8 @@ def main():
         output_base_path=args.output_base_path,
         samples_choice=args.samples_choice,
         no_shuffle=args.no_shuffle,
+        use_soft_scorer=args.use_soft_scorer,
+        conversation_template=args.conversation_template
     )
 
     dumped = json.dumps(results, indent=2)

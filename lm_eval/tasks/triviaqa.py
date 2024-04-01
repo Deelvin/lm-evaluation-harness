@@ -87,7 +87,7 @@ class TriviaQA(Task):
         continuation = rf.greedy_until(ctx, {"until": ["\n", ".", ","]})
         return continuation
 
-    def simple_check(self, continuation, list_of_candidates):
+    def soft_simple_check(self, continuation, list_of_candidates):
         check = False
         for candidate in list_of_candidates:
             if re.search(candidate, continuation):
@@ -109,7 +109,10 @@ class TriviaQA(Task):
             alias.lower().translate(str.maketrans("", "", string.punctuation))
             for alias in self._remove_prefixes(doc["answer"]["aliases"])
         ]
-        return {"em": self.simple_check(continuation, list_of_candidates)}
+
+        if os.environ.get("USE_SOFT_SCORER") == "ON":
+            return {"em": self.soft_simple_check(continuation, list_of_candidates)}
+        return self.orig_simple_check(continuation, list_of_candidates)
 
     def aggregation(self):
         return {
