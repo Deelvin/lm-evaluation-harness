@@ -42,7 +42,7 @@ For OctoAI models you need to first export your token to environment variable `O
 
 ```bash
 python main.py \
-    --model octoai
+    --model octoai \
     --model_args model_name=mistral-7b-instruct,url=127.0.0.1:8000,batch_size=16 \
     --task gsm8k \
     --num_fewshot 5 \
