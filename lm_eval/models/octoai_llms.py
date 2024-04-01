@@ -42,9 +42,7 @@ class OctoAIEndpointRunnerBase():
     # Get the API key from the environment variables
 
     if token is None: # there is no customized token, try to find in env
-      token = os.environ["OCTOAI_TOKEN"]
-      if token is None:
-        raise ValueError("TOKEN not found.")
+      token = os.environ.get("OCTOAI_TOKEN", "dummy_token")
 
     self.headers = {
       "authorization": f"Bearer {token}",
