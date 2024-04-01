@@ -82,6 +82,11 @@ class GradeSchoolMath8K(Task):
 
     def _extract_answer(self, completion):
         if not hasattr(self, "ans_re"):
+            """
+            Check for presence of attribute to
+            set it only once instead of compilation
+            of regexp on each answer comparison
+            """
             self.ans_re = re.compile(r"#### (\-?[0-9\.\,]+)")
             self.match_group = 1
             if os.environ.get("SOFT_SCORER") == "ON":

@@ -694,10 +694,10 @@ class Task(abc.ABC):
         description = description + "\n\n" if description else ""
 
         template_tags = {
-            "none": ("", ""),
+            "default": ("", "\n\n"),
             "llama": ("\n[/INST]\n", "\n</s>\n\n<s>\n[INST]\n")
         }
-        template_type = os.environ.get("CONVERSATION_TEMPLATE", "none")
+        template_type = os.environ.get("CONVERSATION_TEMPLATE", "default")
 
         if num_fewshot == 0:
             labeled_examples = ""
