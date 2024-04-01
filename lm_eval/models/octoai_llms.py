@@ -176,12 +176,15 @@ class OctoAIEndpointRunnerGreedyUntil(OctoAIEndpointRunnerBase):
     # TODO(vvchernov): use until to init stop tokens
     # request_args = request[1]
     # until = request_args["until"]
-    self.msg["messages"] = [
-        {
-            "role": "user",
-            "content": inp,
-        }
-    ]
+    if self.url_postfix == "v1/chat/completion":
+      self.msg["messages"] = [
+          {
+              "role": "user",
+              "content": inp,
+          }
+      ]
+    else:  # "v1/completion"
+      self.msg["prompt"] = inp
 
   def get_result(self, response):
     return response["choices"][0]["message"]["content"]
@@ -199,7 +202,15 @@ class OctoAIEndpointRunnerLogLikelihood(OctoAIEndpointRunnerBase):
   def prepare_msg_data(self, request):
     self.context = request[0]
     self.continuation = request[1]
-    self.msg["prompt"] = self.context + self.continuation
+    if self.url_postfix == "v1/chat/completion":
+      self.msg["messages"] = [
+          {
+              "role": "user",
+              "content": self.context + self.continuation,
+          }
+      ]
+    else:  # "v1/completion"
+      self.msg["prompt"] = self.context + self.continuation
     self.msg["loglikelihood"] = True
 
   def model_generate(self, request, results):
