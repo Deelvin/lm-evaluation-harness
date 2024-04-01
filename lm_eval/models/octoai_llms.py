@@ -10,12 +10,11 @@ REPEAT_REQUEST_TO_OCTOAI_SERVER = 10
 
 
 class OctoAIEndpointRunnerBase():
-  url_postfix = None
-
   def __init__(
     self,
     model_name: str="llama-2-70b-chat-int4",
     url: str=None,
+    url_postfix: str = "/v1/chat/completions",
     batch_size: int=1,
     max_tokens: int=1024,
     top_p: float=1.0,
@@ -29,10 +28,12 @@ class OctoAIEndpointRunnerBase():
     """
     self.model_name = model_name
     self.batch_size=batch_size
+
     if url is not None:
       self.url = url
     else:
       self.url = self.construct_request_url(prod)
+    self.url_postfix = url_postfix
 
     self.init_msg_header(token)
     self.init_base_msg(max_tokens, top_p, temperature)
@@ -165,8 +166,6 @@ class OctoAIEndpointRunnerBase():
 
 
 class OctoAIEndpointRunnerGreedyUntil(OctoAIEndpointRunnerBase):
-  url_postfix = "/v1/chat/completions"
-
   def __init__(self, **kwargs):
     super().__init__(**kwargs)
 
@@ -177,12 +176,15 @@ class OctoAIEndpointRunnerGreedyUntil(OctoAIEndpointRunnerBase):
     # TODO(vvchernov): use until to init stop tokens
     # request_args = request[1]
     # until = request_args["until"]
-    self.msg["messages"] = [
-        {
-            "role": "user",
-            "content": inp,
-        }
-    ]
+    if self.url_postfix == "/v1/chat/completions":
+      self.msg["messages"] = [
+          {
+              "role": "user",
+              "content": inp,
+          }
+      ]
+    else:  # "v1/completion"
+      self.msg["prompt"] = inp
 
   def get_result(self, response):
     return response["choices"][0]["message"]["content"]
@@ -192,8 +194,6 @@ class OctoAIEndpointRunnerGreedyUntil(OctoAIEndpointRunnerBase):
 
 
 class OctoAIEndpointRunnerLogLikelihood(OctoAIEndpointRunnerBase):
-  url_postfix = "/v1/completions"
-
   def __init__(self, **kwargs):
     super().__init__(**kwargs)
 
@@ -202,12 +202,62 @@ class OctoAIEndpointRunnerLogLikelihood(OctoAIEndpointRunnerBase):
   def prepare_msg_data(self, request):
     self.context = request[0]
     self.continuation = request[1]
-    self.msg["prompt"] = self.context + self.continuation
+    if self.url_postfix == "/v1/chat/completions":
+      self.msg["messages"] = [
+          {
+              "role": "user",
+              "content": self.context + self.continuation,
+          }
+      ]
+    else:  # "v1/completion"
+      self.msg["prompt"] = self.context + self.continuation
     self.msg["loglikelihood"] = True
 
-  def get_result(self, response):
+  def model_generate(self, request, results):
+    success = False
+    self.prepare_msg_data(request)
+    for _ in range(REPEAT_REQUEST_TO_OCTOAI_SERVER):
+      response = self.call_octoai_inference()
+      if self.response_check(response):
+        success = True
+        break
+    if success:
+      results.append(self.get_result(response, request[0], request[1]))
+    else:
+      print("ERROR: response check failed. Dummy response was inserted")
+      results.append(self.dummy_result())
+
+  async def model_generate_async(self, request, results):
+    success = False
+    self.prepare_msg_data(request)
+    async with aiohttp.ClientSession() as session:
+      for _ in range(REPEAT_REQUEST_TO_OCTOAI_SERVER):
+        async with session.post(self.url+ self.url_postfix, headers=self.headers, json=self.msg) as response:
+          response_text = await response.text()
+          response_text = json.loads(response_text)
+          if self.response_check(response_text):
+            success = True
+            break
+      if success:
+        results.append(self.get_result(response_text, request[0], request[1]))
+      else:
+        print("ERROR: response check failed. Dummy response was inserted")
+        results.append(self.dummy_result())
+
+  def get_llama_token(self, token: str):
+    res = token
+    # Special symbol from tokenizer like underbar (Llama2-style)
+    sym = bytes.fromhex("e29681").decode("utf-8")
+    # workaround for case sym + "_"
+    if token.startswith("_" + sym):
+      res = token.replace("_" + sym, "  ", 1)
+    elif token.startswith(sym):
+      res = token.replace(sym, " ")
+    return res
+
+  def get_result(self, response, context, continuation):
     logprob_content = response["choices"][0]["logprobs"]["content"]
-    logprobs =[]
+    logprobs = []
     tokens = []
     top1_tokens = []
     for content in logprob_content:
@@ -215,17 +265,32 @@ class OctoAIEndpointRunnerLogLikelihood(OctoAIEndpointRunnerBase):
       logprobs.append(content["logprob"])
       top1_tokens.append(content["top_logprobs"][0]["token"])
 
-    # Calculate context length
-    ctx_len = 0
-    prob_ctx = self.context
-    while prob_ctx.startswith(tokens[ctx_len]):
-      prob_ctx.replace(tokens[ctx_len], "", 1)
-      ctx_len += 1
-    assert self.continuation.startswith(tokens[ctx_len]), "Tokenization issue"
+    # Calculate continuation length
+    cont_len = 1
+    prob_ctx = context + continuation
+    # TODO(vvchernov): support all model types
+    token = self.get_llama_token(tokens[-cont_len])
+    prob_cont = ""
+    while prob_ctx.endswith(token):
+      prob_cont = token + prob_cont
+      if continuation == prob_cont:
+        break
+      prob_ctx = prob_ctx[:-len(token)]
+      cont_len += 1
+      token = self.get_llama_token(tokens[-cont_len])
+    try:
+      assert continuation.startswith(token), f"Tokenization issue, wrong token: \"{token}\""
+    except:
+      print("CONTEXT:", context)
+      print("CONTINUATION:", continuation)
+      print("TOKENS:", tokens)
+      print("TOKEN:", f"\"{token}\"")
+      return self.dummy_result()
 
-    res_logprob = sum(logprobs[ctx_len:])
+    res_logprob = sum(logprobs[cont_len:])
+    tokens_len = len(tokens)
     res_is_greedy = True
-    for i in range(ctx_len, len(tokens)):
+    for i in range(tokens_len - cont_len, tokens_len):
       if top1_tokens[i] != tokens[i]:
         res_is_greedy = False
         break
@@ -236,15 +301,15 @@ class OctoAIEndpointRunnerLogLikelihood(OctoAIEndpointRunnerBase):
     return (-sys.float_info.max, False)
 
 
-runners = {
+runners_available = {
   "greedy": OctoAIEndpointRunnerGreedyUntil,
   "loglikelihood": OctoAIEndpointRunnerLogLikelihood,
 }
 
 def get_octoai_runner(runner_name: str):
-  if not runner_name in runners.keys():
-    raise ValueError(f"{runner_name} is not a name of octoai runner")
-  return runners[runner_name]
+  if not runner_name in runners_available.keys():
+    raise ValueError(f"{runner_name} is not a name of available octoai runner")
+  return runners_available[runner_name]
 
 
 class OctoAIEndpointLM(BaseLM):
@@ -252,6 +317,7 @@ class OctoAIEndpointLM(BaseLM):
     self,
     model_name: str="llama-2-70b-chat-int4",
     url: str=None,
+    url_postfix: str = "/v1/chat/completions",
     batch_size: int=1,
     max_batch_size: int=None,
     device: str=None,
@@ -278,6 +344,7 @@ class OctoAIEndpointLM(BaseLM):
     self.runner_args = {
       "model_name": self.model_name,
       "url": url,
+      "url_postfix": url_postfix,
       "batch_size": self._batch_size,
       "max_tokens": max_tokens,
       "top_p": top_p,
