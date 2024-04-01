@@ -319,19 +319,18 @@ class MLCServe(BaseLM):
     async def send_request(self, payload):
         success = False
         async with aiohttp.ClientSession() as session:
-            for _ in range(REPEAT_REQUEST_TO_MLCSERVE_SERVER):
+            for i in range(REPEAT_REQUEST_TO_MLCSERVE_SERVER):
                 async with session.post(
                     f"http://{self.ip}:{self.port}{self.url_suffix}",
                     headers=self.headers,
                     json=payload,
                 ) as response:
-                    response_status = await response.status_code
-                    if response.status_code == 200:
-                        response_json = json.loads(response.text)
+                    response_json = await response.json()
+                    if response.status == 200:
                         success = True
                         break
                     else:
-                        print(f"Error: {response.status_code} - {response.text}")
+                        print(f"Error (iteration {i}): status = {response.status}\nJson:\n{response_json}")
         if success:
             return response_json
         else:
