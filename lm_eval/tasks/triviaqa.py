@@ -113,7 +113,7 @@ class TriviaQA(Task):
 
         if os.environ.get("USE_SOFT_SCORER") == "ON":
             return {"em": self.soft_simple_check(continuation, list_of_candidates)}
-        return self.orig_simple_check(continuation, list_of_candidates)
+        return {"em": self.orig_simple_check(continuation, list_of_candidates)}
 
     def aggregation(self):
         return {
