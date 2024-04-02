@@ -83,7 +83,8 @@ def simple_evaluate(
     assert tasks != [], "No tasks specified"
 
     os.environ["SOFT_SCORER"] = "ON" if use_soft_scorer else "OFF"
-    os.environ["CONVERSATION_TEMPLATE"] = conversation_template
+    if conversation_template:
+        os.environ["CONVERSATION_TEMPLATE"] = conversation_template
 
     if isinstance(model, str):
         if model_args is None:
