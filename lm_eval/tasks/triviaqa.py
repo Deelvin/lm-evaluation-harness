@@ -9,6 +9,7 @@ high quality distant supervision for answering the questions.
 
 Homepage: https://nlp.cs.washington.edu/triviaqa/
 """
+import os
 import inspect
 import string
 import re
