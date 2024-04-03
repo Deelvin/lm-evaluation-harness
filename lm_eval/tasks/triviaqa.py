@@ -111,7 +111,7 @@ class TriviaQA(Task):
             for alias in self._remove_prefixes(doc["answer"]["aliases"])
         ]
 
-        if os.environ.get("USE_SOFT_SCORER") == "ON":
+        if os.environ.get("SOFT_SCORER") == "ON":
             return {"em": self.soft_simple_check(continuation, list_of_candidates)}
         return {"em": self.orig_simple_check(continuation, list_of_candidates)}
 
