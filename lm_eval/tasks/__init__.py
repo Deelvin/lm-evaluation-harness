@@ -32,6 +32,7 @@ from . import triviaqa_truncated_70b
 from . import triviaqa_truncated_llama
 from . import triviaqa_truncated_codellama
 from . import triviaqa_truncated_mistral
+from . import triviaqa_truncated_hermes_2_pro_mistral
 from . import triviaqa_truncated_mixtral
 from . import pubmedqa
 from . import sciq
@@ -61,6 +62,7 @@ from . import gsm8k_truncated_13b
 from . import gsm8k_truncated_70b
 from . import gsm8k_truncated_llama
 from . import gsm8k_truncated_codellama
+from . import gsm8k_truncated_hermes_2_pro_mistral
 from . import gsm8k_truncated_mistral
 from . import gsm8k_truncated_mixtral
 from . import storycloze
@@ -154,6 +156,7 @@ TASK_REGISTRY = {
     "triviaqa_truncated_70b": triviaqa_truncated_70b.TruncatedTriviaQA,
     "triviaqa_truncated_llama": triviaqa_truncated_llama.TruncatedTriviaQA,
     "triviaqa_truncated_codellama": triviaqa_truncated_codellama.TruncatedTriviaQA,
+    "triviaqa_truncated_hermes_2_pro_mistral": triviaqa_truncated_hermes_2_pro_mistral.TruncatedTriviaQA,
     "triviaqa_truncated_mistral": triviaqa_truncated_mistral.TruncatedTriviaQA,
     "triviaqa_truncated_mixtral": triviaqa_truncated_mixtral.TruncatedTriviaQA,
     "arc_easy": arc.ARCEasy,
@@ -202,6 +205,7 @@ TASK_REGISTRY = {
     "gsm8k_truncated_70b": gsm8k_truncated_70b.TruncatedGradeSchoolMath8K,
     "gsm8k_truncated_llama": gsm8k_truncated_llama.TruncatedGradeSchoolMath8K,
     "gsm8k_truncated_codellama": gsm8k_truncated_codellama.TruncatedGradeSchoolMath8K,
+    "gsm8k_truncated_hermes_2_pro_mistral": gsm8k_truncated_hermes_2_pro_mistral.TruncatedGradeSchoolMath8K,
     "gsm8k_truncated_mistral": gsm8k_truncated_mistral.TruncatedGradeSchoolMath8K,
     "gsm8k_truncated_mixtral": gsm8k_truncated_mixtral.TruncatedGradeSchoolMath8K,
     # arithmetic
