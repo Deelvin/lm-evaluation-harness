@@ -54,6 +54,7 @@ class OctoAIEndpointRunnerBase():
         "model": self.model_name,
         "stream": False,
         "max_tokens": max_tokens,
+        "stop": ["<|eot_id|>"] if os.environ.get("CONVERSATION_TEMPLATE", "default") == "llama3" else [],
         "top_p": top_p,
         "temperature": temperature,
     }

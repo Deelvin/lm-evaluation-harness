@@ -695,7 +695,8 @@ class Task(abc.ABC):
 
         template_tags = {
             "default": ("", "\n\n"),
-            "llama": ("\n[/INST]\n", "\n</s>\n\n<s>\n[INST]\n")
+            "llama": ("\n[/INST]\n", "\n</s>\n\n<s>\n[INST]\n"),
+            "llama3": ("<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n", "<|eot_id|><|start_header_id|>user<|end_header_id|>\n\n"),
         }
         template_type = os.environ.get("CONVERSATION_TEMPLATE", "default")
 
