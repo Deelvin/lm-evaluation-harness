@@ -286,7 +286,7 @@ class OctoAIEndpointRunnerLogLikelihood(OctoAIEndpointRunnerBase):
       print("TOKEN:", f"\"{token}\"")
       return self.dummy_result()
 
-    res_logprob = sum(logprobs[cont_len:])
+    res_logprob = sum(logprobs[-cont_len:])
     tokens_len = len(tokens)
     res_is_greedy = True
     for i in range(tokens_len - cont_len, tokens_len):
