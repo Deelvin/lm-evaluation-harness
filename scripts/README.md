@@ -41,3 +41,51 @@ By default all logs are saved in `lm-evaluation-harness/logs`. Example of genera
           ├──dev_codellama-7b-instruct-fp16_2023-11-29_16:00:00.0000.json
           └──gsm8k_write_out_info.json
 ```
+
+## Running loglikelihood benchmarks
+### Run on h100
+- commands for mlc-serve:
+```bash
+/opt/bin/cuda-reserve.py --num-gpus <N> python3 -m mlc_serve --artifact-name <model_dir> --port 9001
+```
+`N` - the number of `--tensor-parallel-shards` from model build
+
+```bash
+python main.py \ 
+--model octoai \
+--model_args model_name=<model_name>,url=http://127.0.0.1:9001,batch_size=16 \
+--num_fewshot=0 \
+--tasks <list_of_tasks> \
+--no_cache \
+--write_out \
+--output_base_path <path_for_answers> \
+--output_path <path_for_result>
+```
+
+- commands for hugginface backend:
+```bash
+/opt/bin/cuda-reserve.py --num-gpus <N> python3 -m main \
+--model hf-causal-experimental \
+--device auto \
+--model_args pretrained=/opt/models/<model> \
+--batch_size=16 \
+--num_fewshot=0 \
+--tasks <list_of_tasks> \
+--no_cache \
+--write_out \
+--output_base_path <path_for_answers> \
+--output_path <path_for_result>
+```
+
+However, at the moment, there are .bin files available for llama-70b. In order to use the model,  you will need to add `use_safetensors=False` [here](https://github.com/Deelvin/lm-evaluation-harness/blob/bafc4d61280904824b92a0387f0e4e0ff87705fb/lm_eval/models/huggingface.py#L283).
+
+The list of all tasks (bigbench, mmlu, hellaswag, arc, winogrande, truthfulqa):
+
+```
+bigbench_causal_judgement,bigbench_date_understanding,bigbench_disambiguation_qa,bigbench_dyck_languages,bigbench_formal_fallacies_syllogisms_negation,bigbench_hyperbaton,bigbench_logical_deduction_five_objects,bigbench_logical_deduction_seven_objects,bigbench_logical_deduction_three_objects,bigbench_movie_recommendation,bigbench_navigate,bigbench_reasoning_about_colored_objects,bigbench_ruin_names,bigbench_salient_translation_error_detection,bigbench_snarks,bigbench_sports_understanding,bigbench_temporal_sequences,bigbench_tracking_shuffled_objects_five_objects,bigbench_tracking_shuffled_objects_seven_objects,bigbench_tracking_shuffled_objects_three_objects,hendrycksTest-anatomy,hendrycksTest-astronomy,hendrycksTest-business_ethics,hendrycksTest-clinical_knowledge,hendrycksTest-college_biology,hendrycksTest-college_chemistry,hendrycksTest-college_computer_science,hendrycksTest-college_mathematics,hendrycksTest-college_medicine,hendrycksTest-college_physics,hendrycksTest-computer_security,hendrycksTest-conceptual_physics,hendrycksTest-econometrics,hendrycksTest-electrical_engineering,hendrycksTest-elementary_mathematics,hendrycksTest-formal_logic,hendrycksTest-global_facts,hendrycksTest-high_school_biology,hendrycksTest-high_school_chemistry,hendrycksTest-high_school_computer_science,hendrycksTest-high_school_european_history,hendrycksTest-high_school_geography,hendrycksTest-high_school_government_and_politics,hendrycksTest-high_school_macroeconomics,hendrycksTest-high_school_mathematics,hendrycksTest-high_school_microeconomics,hendrycksTest-high_school_physics,hendrycksTest-high_school_psychology,hendrycksTest-high_school_statistics,hendrycksTest-high_school_us_history,hendrycksTest-high_school_world_history,hendrycksTest-human_aging,hendrycksTest-human_sexuality,hendrycksTest-international_law,hendrycksTest-jurisprudence,hendrycksTest-logical_fallacies,hendrycksTest-machine_learning,hendrycksTest-management,hendrycksTest-marketing,hendrycksTest-medical_genetics,hendrycksTest-miscellaneous,hendrycksTest-moral_disputes,hendrycksTest-moral_scenarios,hendrycksTest-nutrition,hendrycksTest-philosophy,hendrycksTest-prehistory,hendrycksTest-professional_accounting,hendrycksTest-professional_law,hendrycksTest-professional_medicine,hendrycksTest-professional_psychology,hendrycksTest-public_relations,hendrycksTest-security_studies,hendrycksTest-sociology,hendrycksTest-us_foreign_policy,hendrycksTest-virology,hendrycksTest-world_religions,truthfulqa_mc,hellaswag,winogrande,arc_easy,arc_challenge
+```
+
+### To parse the results
+To parse the results into an Excel table, use the script `make_table_results_excel.py`. You can either parse a single file (`--input_file`) or a folder containing the results (`--input_dir`). Please note that the final files will be named after the original .json files. 
+
+The default dir for saving is `.logs/`. You can change it with flag `--output_dir`.
