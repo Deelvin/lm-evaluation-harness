@@ -44,12 +44,13 @@ By default all logs are saved in `lm-evaluation-harness/logs`. Example of genera
 
 ## Running loglikelihood benchmarks
 ### Run on h100
-- commands for mlc-serve:
+#### commands for mlc-serve:
+- to run server
 ```bash
 /opt/bin/cuda-reserve.py --num-gpus <N> python3 -m mlc_serve --artifact-name <model_dir> --port 9001
 ```
 `N` - the number of `--tensor-parallel-shards` from model build
-
+- to run evaluation (branch develop-hf)
 ```bash
 python main.py \ 
 --model octoai \
@@ -62,12 +63,13 @@ python main.py \
 --output_path <path_for_result>
 ```
 
-- commands for hugginface backend:
+#### commands for hugginface backend :
+- to run evaluation (branch main)
 ```bash
 /opt/bin/cuda-reserve.py --num-gpus <N> python3 -m main \
 --model hf-causal-experimental \
 --device auto \
---model_args pretrained=/opt/models/<model> \
+--model_args pretrained=/opt/models/<model>,use_accelerate=True \
 --batch_size=16 \
 --num_fewshot=0 \
 --tasks <list_of_tasks> \
