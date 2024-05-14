@@ -248,7 +248,7 @@ class OctoAIEndpointRunnerLogLikelihood(OctoAIEndpointRunnerBase):
     sym = bytes.fromhex("e29681").decode("utf-8")
     # workaround for case sym + "_"
     if token.startswith("_" + sym):
-      res = token.replace("_" + sym, " ", 1)
+      res = token.replace("_" + sym, "  ", 1)
     elif token.startswith(sym):
       res = token.replace(sym, " ")
     return res
@@ -271,13 +271,13 @@ class OctoAIEndpointRunnerLogLikelihood(OctoAIEndpointRunnerBase):
     prob_cont = ""
     while prob_ctx.endswith(token):
       prob_cont = token + prob_cont
-      if continuation in prob_cont:
+      if continuation == prob_cont:
         break
       prob_ctx = prob_ctx[:-len(token)]
       cont_len += 1
       token = self.get_llama_token(tokens[-cont_len])
     try:
-      assert continuation.startswith(token.strip()), f"Tokenization issue, wrong token: \"{token}\""
+      assert continuation.startswith(token), f"Tokenization issue, wrong token: \"{token}\""
     except:
       print("CONTEXT:", context, sep="\n")
       print("CONTINUATION:", continuation, sep="\n")
