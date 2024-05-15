@@ -70,8 +70,8 @@ class BigBenchJsonTask(Task):
             res = f"{res}{choice_prefix}{choice_prefix.join(permuted_choices)}"
 
         example_output_prefix = self._task_json.get("example_output_prefix", "\nA: ")
-        res = f"{res}{example_output_prefix.rstrip()}"
-        return res
+        res = f"{res}{example_output_prefix}"
+        return res.rstrip()
 
     def doc_to_target(self, doc):
         return max(doc["target_scores"].items(), key=lambda x: x[1])[0]
