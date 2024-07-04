@@ -126,7 +126,7 @@ def simple_evaluate(
         decontamination_ngrams_path=decontamination_ngrams_path,
         write_out=write_out,
         output_base_path=output_base_path,
-        model_name=lm.model_name,
+        model_name=lm.model_name if hasattr(lm, 'model_name') else "",
         samples_choice=samples_choice,
         no_shuffle=no_shuffle,
     )
