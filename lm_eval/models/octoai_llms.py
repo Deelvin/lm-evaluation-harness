@@ -19,6 +19,8 @@ class OctoAIEndpointRunnerBase():
     max_tokens: int=1024,
     top_p: float=1.0,
     temperature: float=0.0,
+    presence_penalty: float=0.0,
+    repetition_penalty: float=1.0,
     prod=True,
     token=None,
   ):
@@ -36,7 +38,7 @@ class OctoAIEndpointRunnerBase():
     self.url_postfix = url_postfix
 
     self.init_msg_header(token)
-    self.init_base_msg(max_tokens, top_p, temperature)
+    self.init_base_msg(max_tokens, top_p, temperature, presence_penalty, repetition_penalty)
 
   def init_msg_header(self, token):
     # Get the API key from the environment variables
@@ -49,7 +51,7 @@ class OctoAIEndpointRunnerBase():
       "content-type": "application/json",
     }
 
-  def init_base_msg(self, max_tokens, top_p, temperature):
+  def init_base_msg(self, max_tokens, top_p, temperature, presence_penalty, repetition_penalty):
     self.base_msg = {
         "model": self.model_name,
         "stream": False,
@@ -57,6 +59,8 @@ class OctoAIEndpointRunnerBase():
         "stop": ["<|eot_id|>"] if os.environ.get("CONVERSATION_TEMPLATE", "default") == "llama3" else [],
         "top_p": top_p,
         "temperature": temperature,
+        "presence_penalty": presence_penalty,
+        "repetition_penalty": repetition_penalty,
     }
 
   def construct_request_url(self, prod):
@@ -323,6 +327,8 @@ class OctoAIEndpointLM(BaseLM):
     max_tokens: int=1024,
     top_p: float=1.0,
     temperature: float=0.0,
+    presence_penalty: float=0.0,
+    repetition_penalty: float=1.0,
     prod=True,
     token=None,
   ):
@@ -348,6 +354,8 @@ class OctoAIEndpointLM(BaseLM):
       "max_tokens": max_tokens,
       "top_p": top_p,
       "temperature": temperature,
+      "presence_penalty": presence_penalty,
+      "repetition_penalty": repetition_penalty,
       "prod": prod,
       "token": token,
     }
