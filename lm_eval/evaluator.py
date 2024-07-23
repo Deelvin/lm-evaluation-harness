@@ -421,6 +421,7 @@ def evaluate(
         except FileExistsError:
             pass
 
+        model_name = model_name.replace('/', '_')
         for task_name, _ in task_dict_items:
             print(
                 "OUTPUT PATH",
