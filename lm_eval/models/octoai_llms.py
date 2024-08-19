@@ -16,7 +16,7 @@ class OctoAIEndpointRunnerBase():
     url: str=None,
     url_postfix: str = "/v1/chat/completions",
     batch_size: int=1,
-    max_tokens: int=1024,
+    max_tokens: int=2048,
     top_p: float=1.0,
     temperature: float=0.0,
     prod=True,
