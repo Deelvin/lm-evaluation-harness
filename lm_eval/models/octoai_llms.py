@@ -230,10 +230,15 @@ class OctoAIEndpointRunnerLogLikelihood(OctoAIEndpointRunnerBase):
     success = False
     self.prepare_msg_data(request)
     async with aiohttp.ClientSession() as session:
+      exception = None
       for _ in range(REPEAT_REQUEST_TO_OCTOAI_SERVER):
         async with session.post(self.url+ self.url_postfix, headers=self.headers, json=self.msg) as response:
-          response_text = await response.text()
-          response_text = json.loads(response_text)
+          try:
+            response_text = await response.text()
+            response_text = json.loads(response_text)
+          except Exception as exc:
+            exception = str(exc)
+            continue
           if self.response_check(response_text):
             success = True
             break
@@ -241,7 +246,10 @@ class OctoAIEndpointRunnerLogLikelihood(OctoAIEndpointRunnerBase):
         results.append(self.get_result(response_text, request[0], request[1]))
       else:
         print("ERROR: response check failed. Dummy response was inserted")
-        results.append(self.dummy_result())
+        if exception is not None:
+          results.append(exception)
+        else:
+          results.append(self.dummy_result())
 
   def get_llama_token(self, token: str):
     res = token
