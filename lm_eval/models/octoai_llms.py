@@ -1,6 +1,7 @@
 import os
 import json
 import time
+import json
 
 import requests
 import asyncio
@@ -87,7 +88,7 @@ class OctoAIEndpointRunnerBase():
       for batch_idx, request_batch in enumerate(self._batcher(requests)):
         try:
           asyncio.run(self.model_generate_parallel(request_batch, results))
-        except ConnectionError as e:
+        except json.decoder.JSONDecodeError as exc:
           print(f"ConnectionError: {e}. Skipping this batch and continuing...")
         print(
           f"\r{(batch_idx + 1) * self.batch_size}/{len(requests)} requests processed",
@@ -129,18 +130,26 @@ class OctoAIEndpointRunnerBase():
     success = False
     self.prepare_msg_data(request)
     async with aiohttp.ClientSession() as session:
+      exception = None
       for _ in range(REPEAT_REQUEST_TO_OCTOAI_SERVER):
         async with session.post(self.url+ self.url_postfix, headers=self.headers, json=self.msg) as response:
-          response_text = await response.text()
-          response_text = json.loads(response_text)
+          try:
+            response_text = await response.text()
+            response_text = json.loads(response_text)
+          except Exception as exc:
+            exception = str(exc)
+            continue
           if self.response_check(response_text):
             success = True
             break
       if success:
-        results.append(self.get_result(response_text))
+        results.append(self.get_result(response_text, request[0], request[1]))
       else:
         print("ERROR: response check failed. Dummy response was inserted")
-        results.append(self.dummy_result())
+        if exception is not None:
+          results.append(exception)
+        else:
+          results.append(self.dummy_result())
 
   async def model_generate_parallel(self, request_batch, results):
     parallel_results = {}
