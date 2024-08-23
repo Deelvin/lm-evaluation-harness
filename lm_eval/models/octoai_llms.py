@@ -138,6 +138,7 @@ class OctoAIEndpointRunnerBase():
             response_text = json.loads(response_text)
           except Exception as exc:
             exception = str(exc)
+            response_text = ""
             continue
           if self.response_check(response_text):
             success = True
@@ -247,6 +248,7 @@ class OctoAIEndpointRunnerLogLikelihood(OctoAIEndpointRunnerBase):
             response_text = json.loads(response_text)
           except Exception as exc:
             exception = str(exc)
+            response_text = ""
             continue
           if self.response_check(response_text):
             success = True
