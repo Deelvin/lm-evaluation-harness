@@ -144,7 +144,7 @@ class OctoAIEndpointRunnerBase():
             success = True
             break
       if success:
-        results.append(self.get_result(response_text, request[0], request[1]))
+        results.append(self.get_result(response_text))
       else:
         print("ERROR: response check failed. Dummy response was inserted")
         if exception is not None:
