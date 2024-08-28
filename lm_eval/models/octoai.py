@@ -123,6 +123,7 @@ class OctoAIChatCompletion(OctoAICompletionsAPI):
     def __init__(
         self,
         base_url="https://text.octoai.run/v1/chat/completions",
+        tokenizer_backend=None,
         **kwargs,
     ):
         eval_logger.warning(
@@ -154,7 +155,7 @@ class OctoAIChatCompletion(OctoAICompletionsAPI):
             gen_kwargs.pop("do_sample", False)
             max_tokens = gen_kwargs.pop("max_gen_toks", self._max_gen_toks)
             temperature = gen_kwargs.pop("temperature", 0)
-            stop = gen_kwargs.pop("until", None)
+            stop = gen_kwargs.pop("until", ["<|endoftext|>"])
             if stop and not isinstance(stop, (list, tuple)):
                 stop = [stop]
 
@@ -163,12 +164,16 @@ class OctoAIChatCompletion(OctoAICompletionsAPI):
                 "model": self.model,
                 "max_tokens": max_tokens,
                 "temperature": temperature,
-                "stop": stop,
+                "stop": stop[:4],
                 **gen_kwargs,
             }
         else:
+            if isinstance(messages, str):
+                prompt = messages
+            elif isinstance(messages, (Tuple, list)):
+                prompt = messages[0]
             return {
-                "messages": messages,
+                "messages": [{"role": "user", "content": f"{prompt}"}],
                 "model": self.model,
                 "temperature": 0,
                 "max_tokens": 1,
@@ -185,14 +190,3 @@ class OctoAIChatCompletion(OctoAICompletionsAPI):
             for choices in out["choices"]:
                 res.append(choices["message"]["content"])
         return res
-
-    def create_message(
-        self,
-        messages: Union[str, Tuple[str]],
-    ) -> List[Dict[str, str]]:
-        """Helper method to transform the prompt into the expected API input format. messages consist of batched requests"""
-        if isinstance(messages, str):
-            prompt = [{"role": "user", "content": f"{messages}"}]
-        elif isinstance(messages, (Tuple, list)):
-            prompt = messages[0]
-        return [{"role": "user", "content": f"{prompt}"}]
