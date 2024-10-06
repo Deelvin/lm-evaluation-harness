@@ -30,6 +30,7 @@ from . import triviaqa_truncated_7b
 from . import triviaqa_truncated_13b
 from . import triviaqa_truncated_70b
 from . import triviaqa_truncated_llama
+from . import triviaqa_truncated_llamaguard
 from . import triviaqa_truncated_codellama
 from . import triviaqa_truncated_mistral
 from . import triviaqa_truncated_hermes_2_pro_mistral
@@ -61,6 +62,7 @@ from . import gsm8k_truncated_7b
 from . import gsm8k_truncated_13b
 from . import gsm8k_truncated_70b
 from . import gsm8k_truncated_llama
+from . import gsm8k_truncated_llamaguard
 from . import gsm8k_truncated_codellama
 from . import gsm8k_truncated_hermes_2_pro_mistral
 from . import gsm8k_truncated_mistral
@@ -151,10 +153,11 @@ TASK_REGISTRY = {
     "qa4mre_2012": qa4mre.QA4MRE_2012,
     "qa4mre_2013": qa4mre.QA4MRE_2013,
     "triviaqa": triviaqa.TriviaQA,
-    "triviaqa_truncated_7b": triviaqa_truncated_7b.TruncatedTriviaQA,
-    "triviaqa_truncated_13b": triviaqa_truncated_13b.TruncatedTriviaQA,
-    "triviaqa_truncated_70b": triviaqa_truncated_70b.TruncatedTriviaQA,
+    # "triviaqa_truncated_7b": triviaqa_truncated_7b.TruncatedTriviaQA,
+    # "triviaqa_truncated_13b": triviaqa_truncated_13b.TruncatedTriviaQA,
+    # "triviaqa_truncated_70b": triviaqa_truncated_70b.TruncatedTriviaQA,
     "triviaqa_truncated_llama": triviaqa_truncated_llama.TruncatedTriviaQA,
+    "triviaqa_truncated_llamaguard": triviaqa_truncated_llamaguard.TruncatedTriviaQA,
     "triviaqa_truncated_codellama": triviaqa_truncated_codellama.TruncatedTriviaQA,
     "triviaqa_truncated_hermes_2_pro_mistral": triviaqa_truncated_hermes_2_pro_mistral.TruncatedTriviaQA,
     "triviaqa_truncated_mistral": triviaqa_truncated_mistral.TruncatedTriviaQA,
@@ -200,10 +203,11 @@ TASK_REGISTRY = {
     "math_precalc": hendrycks_math.MathPrecalculus,
     "math_asdiv": asdiv.Asdiv,
     "gsm8k": gsm8k.GradeSchoolMath8K,
-    "gsm8k_truncated_7b": gsm8k_truncated_7b.TruncatedGradeSchoolMath8K,
-    "gsm8k_truncated_13b": gsm8k_truncated_13b.TruncatedGradeSchoolMath8K,
-    "gsm8k_truncated_70b": gsm8k_truncated_70b.TruncatedGradeSchoolMath8K,
+    # "gsm8k_truncated_7b": gsm8k_truncated_7b.TruncatedGradeSchoolMath8K,
+    # "gsm8k_truncated_13b": gsm8k_truncated_13b.TruncatedGradeSchoolMath8K,
+    # "gsm8k_truncated_70b": gsm8k_truncated_70b.TruncatedGradeSchoolMath8K,
     "gsm8k_truncated_llama": gsm8k_truncated_llama.TruncatedGradeSchoolMath8K,
+    "gsm8k_truncated_llamaguard": gsm8k_truncated_llamaguard.TruncatedGradeSchoolMath8K,
     "gsm8k_truncated_codellama": gsm8k_truncated_codellama.TruncatedGradeSchoolMath8K,
     "gsm8k_truncated_hermes_2_pro_mistral": gsm8k_truncated_hermes_2_pro_mistral.TruncatedGradeSchoolMath8K,
     "gsm8k_truncated_mistral": gsm8k_truncated_mistral.TruncatedGradeSchoolMath8K,

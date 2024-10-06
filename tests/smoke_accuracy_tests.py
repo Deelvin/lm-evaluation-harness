@@ -35,11 +35,11 @@ def check_output(model_name, task_name, num_fewshot):
                     ), f"Found the wrong answer or the incorrect scoring case:\nPredicted:\n{i['logit_0']}\nTruth:\n{i['truth']}"
 
             result = (f"test_endpoint_{task_name}", model_name, "PASSED")
+            write_results_to_csv(result)
         except AssertionError as e:
             result = (f"test_endpoint_{task_name}", model_name, f"FAILED: {str(e)}")
+            write_results_to_csv(result)
             raise e
-
-        write_results_to_csv(result)
 
 
 @pytest.fixture
@@ -64,14 +64,13 @@ def test_endpoint_availability(model_name, endpoint, token):
     ]
 
     try:
-        assert run_chat_completion(model_name, messages, token, endpoint) == 200
-
         result = ("test_endpoint_availability", model_name, "PASSED")
+        assert run_chat_completion(model_name, messages, token, endpoint) == 200
+        write_results_to_csv(result)
     except AssertionError as e:
         result = ("test_endpoint_availability", model_name, f"FAILED: {str(e)}")
+        write_results_to_csv(result)
         raise e
-
-    write_results_to_csv(result)
 
 
 def test_endpoint_gsm8k(model_name, endpoint, token):
