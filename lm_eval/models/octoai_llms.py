@@ -299,10 +299,10 @@ class OctoAIEndpointRunnerLogLikelihood(OctoAIEndpointRunnerBase):
     try:
       assert continuation.startswith(token), f"Tokenization issue, wrong token: \"{token}\""
     except:
-      print("CONTEXT:", context)
-      print("CONTINUATION:", continuation)
-      print("TOKENS:", tokens)
-      print("TOKEN:", f"\"{token}\"")
+      print("CONTEXT:", context, sep="\n")
+      print("CONTINUATION:", continuation, sep="\n")
+      print("TOKENS:", tokens[-cont_len:], sep="\n")
+      print("TOKEN:", f"\"{token}\"", sep="\n")
       return self.dummy_result()
 
     res_logprob = sum(logprobs[-cont_len:])
